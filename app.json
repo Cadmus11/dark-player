@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Dark Manager",
+    "slug": "dark-manager",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Dark Manager needs access to your photo library to display and manage your images.",
+        "NSPhotoLibraryAddUsageDescription": "Dark Manager needs access to save images to your photo library.",
+        "NSCameraUsageDescription": "Dark Manager needs camera access to take photos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-file-system",
+      "expo-av",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Dark Manager to access your photos.",
+          "savePhotosPermission": "Allow Dark Manager to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ]
+  }
+}
