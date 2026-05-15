@@ -10,14 +10,14 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { useFiles } from '../context/FileContext';
-import { getFileIcon, formatFileSize, formatDuration } from '../services/FileService';
-import type { FileItem } from '../types';
+import { getFileIcon, getDocIcon, formatFileSize, formatDuration } from '../services/FileService';
+import type { FileItem, DocumentSubType } from '../types';
 
 type CategoryScreenProps = NativeStackScreenProps<RootStackParamList, 'Category'>;
 
 export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
-  const { type, title, icon } = route.params;
-  const { images, videos, audio, documents } = useFiles();
+  const { type, title, icon, subType } = route.params;
+  const { images, videos, audio, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles } = useFiles();
 
   const files = (() => {
     switch (type) {
@@ -28,7 +28,20 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
       case 'audio':
         return audio;
       case 'document':
-        return documents;
+        switch (subType as DocumentSubType) {
+          case 'pdf':
+            return pdfFiles;
+          case 'word':
+            return wordFiles;
+          case 'excel':
+            return excelFiles;
+          case 'powerpoint':
+            return pptFiles;
+          case 'text':
+            return textFiles;
+          default:
+            return [];
+        }
       default:
         return [];
     }
@@ -65,8 +78,17 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const renderListItem = ({ item }: { item: FileItem }) => (
     <TouchableOpacity style={styles.listItem} onPress={() => navigateToFile(item)}>
       <View style={styles.listItemLeft}>
-        <View style={styles.listItemIcon}>
-          <Text style={styles.listItemIconText}>{getFileIcon(item.type)}</Text>
+        <View
+          style={[
+            styles.listItemIcon,
+            type === 'document' && item.docSubType
+              ? { backgroundColor: getDocSubTypeColor(item.docSubType) + '20' }
+              : {},
+          ]}
+        >
+          <Text style={styles.listItemIconText}>
+            {type === 'document' ? getDocIcon(item.docSubType || 'other') : getFileIcon(item.type)}
+          </Text>
         </View>
         <View style={styles.listItemInfo}>
           <Text style={styles.listItemName} numberOfLines={1}>
@@ -80,6 +102,14 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
               <>
                 <Text style={styles.listItemMetaSeparator}>•</Text>
                 <Text style={styles.listItemMetaText}>{formatDuration(item.duration)}</Text>
+              </>
+            )}
+            {item.docSubType && (
+              <>
+                <Text style={styles.listItemMetaSeparator}>•</Text>
+                <Text style={[styles.listItemMetaText, { color: getDocSubTypeColor(item.docSubType) }]}>
+                  {item.docSubType.toUpperCase()}
+                </Text>
               </>
             )}
           </View>
@@ -145,6 +175,23 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
       />
     </View>
   );
+}
+
+function getDocSubTypeColor(subType: string): string {
+  switch (subType) {
+    case 'pdf':
+      return '#e74c3c';
+    case 'word':
+      return '#3498db';
+    case 'excel':
+      return '#27ae60';
+    case 'powerpoint':
+      return '#f39c12';
+    case 'text':
+      return '#9b59b6';
+    default:
+      return '#999';
+  }
 }
 
 const styles = StyleSheet.create({

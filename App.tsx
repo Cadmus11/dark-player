@@ -7,17 +7,19 @@ import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
 import { HomeScreen } from './screens/HomeScreen';
 import { CategoryScreen } from './screens/CategoryScreen';
+import { DocumentsScreen } from './screens/DocumentsScreen';
 import { VideoPlayerScreen } from './screens/VideoPlayerScreen';
 import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { ImageViewerScreen } from './screens/ImageViewerScreen';
 import { DocumentViewerScreen } from './screens/DocumentViewerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import type { FileItem, FileType } from './types';
+import type { FileItem, FileType, DocumentSubType } from './types';
 import './global.css';
 
 export type RootStackParamList = {
   Home: undefined;
-  Category: { type: FileType; title: string; icon: string };
+  Category: { type: FileType; title: string; icon: string; subType?: DocumentSubType };
+  Documents: undefined;
   VideoPlayer: { file: FileItem };
   MusicPlayer: { file: FileItem };
   ImageViewer: { file: FileItem };
@@ -41,6 +43,7 @@ export default function App() {
             <Stack.Navigator screenOptions={screenOptions}>
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Category" component={CategoryScreen} />
+              <Stack.Screen name="Documents" component={DocumentsScreen} />
               <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
               <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
               <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />

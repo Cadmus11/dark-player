@@ -7,6 +7,11 @@ interface ThemeContextType {
   updateTheme: (settings: Partial<ThemeSettings>) => Promise<void>;
   setBackgroundImage: (uri: string) => Promise<void>;
   clearBackgroundImage: () => Promise<void>;
+  isDarkMode: boolean;
+  textColor: string;
+  mutedColor: string;
+  cardBg: string;
+  borderColor: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -50,16 +55,34 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   async function clearBackgroundImage() {
     const updated = {
       ...theme,
-      backgroundType: 'gradient' as const,
+      backgroundType: 'solid' as const,
+      backgroundColor: '#0a0a0a',
       backgroundImageUri: undefined,
     };
     setTheme(updated);
     await saveThemeSettings(updated);
   }
 
+  const isDarkMode = true;
+
+  const textColor = '#ffffff';
+  const mutedColor = 'rgba(255, 255, 255, 0.5)';
+  const cardBg = 'rgba(255, 255, 255, 0.06)';
+  const borderColor = 'rgba(255, 255, 255, 0.08)';
+
   return (
     <ThemeContext.Provider
-      value={{ theme, updateTheme, setBackgroundImage, clearBackgroundImage }}
+      value={{
+        theme,
+        updateTheme,
+        setBackgroundImage,
+        clearBackgroundImage,
+        isDarkMode,
+        textColor,
+        mutedColor,
+        cardBg,
+        borderColor,
+      }}
     >
       {children}
     </ThemeContext.Provider>

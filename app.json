@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Dark Manager",
-    "slug": "dark-manager",
+    "slug": "dark-player",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,6 +21,7 @@
       }
     },
     "android": {
+      "package": "com.darkmanager.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a0a"
@@ -40,8 +41,6 @@
       "tsconfigPaths": true
     },
     "plugins": [
-      "expo-file-system",
-      "expo-av",
       [
         "expo-media-library",
         {
@@ -50,6 +49,12 @@
           "isAccessMediaLocationEnabled": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "39e64c2f-573a-4d24-83ac-8e332d418794"
+      }
+    },
+    "owner": "cadmuslabss-organization"
   }
 }
