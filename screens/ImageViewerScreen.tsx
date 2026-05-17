@@ -44,7 +44,7 @@ export function ImageViewerScreen({ navigation, route }: ImageViewerScreenProps)
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: '#06060B' },
   image: { width, height },
   overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
   header: {

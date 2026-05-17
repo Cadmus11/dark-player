@@ -20,8 +20,8 @@ export type RootStackParamList = {
   Home: undefined;
   Category: { type: FileType; title: string; icon: string; subType?: DocumentSubType };
   Documents: undefined;
-  VideoPlayer: { file: FileItem };
-  MusicPlayer: { file: FileItem };
+  VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
+  MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
   ImageViewer: { file: FileItem };
   DocumentViewer: { file: FileItem };
   Settings: undefined;
@@ -31,7 +31,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const screenOptions = {
   headerShown: false,
-  contentStyle: { backgroundColor: '#0a0a0a' },
+  contentStyle: { backgroundColor: '#06060B' },
 };
 
 export default function App() {

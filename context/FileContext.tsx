@@ -9,6 +9,7 @@ interface FileContextType {
   images: FileItem[];
   videos: FileItem[];
   audio: FileItem[];
+  audioWithVideos: FileItem[];
   documents: FileItem[];
   folders: FileItem[];
   pdfFiles: FileItem[];
@@ -50,6 +51,7 @@ const DEFAULT_PLAYER: PlayerState = {
   currentIndex: -1,
   shuffle: false,
   repeat: 'none',
+  audioOnly: false,
 };
 
 export function FileProvider({ children }: { children: ReactNode }) {
@@ -70,6 +72,11 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [currentPath, setCurrentPath] = useState('/');
   const [musicPlayer, setMusicPlayerState] = useState<PlayerState>(DEFAULT_PLAYER);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  const audioWithVideos = React.useMemo(() => {
+    const sorted = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
+    return sorted;
+  }, [audio, videos]);
 
   const categories: Category[] = [
     { id: 'images', name: 'Images', icon: '🖼️', type: 'image', count: images.length, color: '#e17055' },
@@ -176,6 +183,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         images,
         videos,
         audio,
+        audioWithVideos,
         documents,
         folders,
         pdfFiles,

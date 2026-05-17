@@ -16,6 +16,7 @@ export interface FileItem {
   parentUri?: string;
   subtitleUri?: string;
   lyrics?: string;
+  artColor?: string;
 }
 
 export interface Category {
@@ -55,6 +56,7 @@ export interface PlayerState {
   currentIndex: number;
   shuffle: boolean;
   repeat: 'none' | 'one' | 'all';
+  audioOnly: boolean;
 }
 
 export interface SubtitleEntry {

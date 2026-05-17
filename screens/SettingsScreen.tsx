@@ -16,12 +16,12 @@ import { useTheme } from '../context/ThemeContext';
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 const COLOR_PRESETS = [
-  { name: 'Midnight', colors: ['#0a0a0a', '#1a1a2e', '#16213e'], primary: '#6c5ce7' },
-  { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'], primary: '#e44d6e' },
+  { name: 'Dark Matter', colors: ['#06060B', '#1D1D21', '#0a0a0f'], primary: '#C2FC4A' },
+  { name: 'Neon Pulse', colors: ['#06060B', '#1D1D21', '#2d1b69'], primary: '#C2FC4A' },
+  { name: 'Cyberpunk', colors: ['#0a0a0a', '#ff006e', '#8338ec'], primary: '#ff006e' },
+  { name: 'Ocean Deep', colors: ['#03045e', '#0077b6', '#00b4d8'], primary: '#00b4d8' },
   { name: 'Forest', colors: ['#0d1b2a', '#1b4332', '#2d6a4f'], primary: '#52b788' },
-  { name: 'Ocean', colors: ['#03045e', '#0077b6', '#00b4d8'], primary: '#00b4d8' },
-  { name: 'Rose', colors: ['#2b2d42', '#8d99ae', '#ef233c'], primary: '#ef233c' },
-  { name: 'Neon', colors: ['#0a0a0a', '#ff006e', '#8338ec'], primary: '#ff006e' },
+  { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'], primary: '#e44d6e' },
 ];
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
@@ -110,10 +110,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
               <TouchableOpacity
                 style={styles.settingRow}
-                onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#0a0a0a' })}
+                onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#06060B' })}
               >
                 <Text style={styles.settingIcon}>⬛</Text>
-                <Text style={styles.settingText}>Solid Black</Text>
+                <Text style={styles.settingText}>Deep Black</Text>
               </TouchableOpacity>
             </View>
 
@@ -139,10 +139,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             <View style={styles.card}>
               <View style={styles.accentRow}>
                 {[
+                  '#C2FC4A',
                   '#6c5ce7',
                   '#00cec9',
                   '#e17055',
-                  '#fdcb6e',
                   '#74b9ff',
                   '#ff7675',
                   '#a29bfe',
@@ -165,21 +165,21 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
         {activeTab === 'about' && (
           <View style={styles.card}>
-            <Text style={styles.appName}>Dark Manager</Text>
+            <Text style={styles.appName}>Lumora</Text>
             <Text style={styles.appVersion}>Version 1.0.0</Text>
             <Text style={styles.appDescription}>
-              A beautiful, feature-rich file manager for all your media. Browse, view, and
-              manage your files with a stunning dark interface.
+              A premium offline media hub. Experience your music, videos, images, and documents
+              in a stunning neon-dark interface.
             </Text>
             <View style={styles.features}>
               <Text style={styles.featureTitle}>Features:</Text>
-              <Text style={styles.featureItem}>📂 File browsing and organization</Text>
-              <Text style={styles.featureItem}>🎬 Built-in video player</Text>
-              <Text style={styles.featureItem}>🎵 Music player with queue</Text>
-              <Text style={styles.featureItem}>🖼️ Image gallery viewer</Text>
+              <Text style={styles.featureItem}>♪ Immersive music player</Text>
+              <Text style={styles.featureItem}>🎬 Premium video player</Text>
+              <Text style={styles.featureItem}>🖼 Cinematic image viewer</Text>
               <Text style={styles.featureItem}>📄 Document viewer</Text>
-              <Text style={styles.featureItem}>🎨 Customizable themes</Text>
-              <Text style={styles.featureItem}>🖼️ Custom background images</Text>
+              <Text style={styles.featureItem}>🎨 Dynamic theme engine</Text>
+              <Text style={styles.featureItem}>🖼 Glass morphism UI</Text>
+              <Text style={styles.featureItem}>🔊 Neon-lime accent design</Text>
             </View>
           </View>
         )}
@@ -191,7 +191,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: '#06060B' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#6c5ce7' },
+  tabActive: { borderBottomColor: '#C2FC4A' },
   tabText: { fontSize: 16, fontWeight: '500', color: 'rgba(255, 255, 255, 0.5)' },
   tabTextActive: { color: '#ffffff' },
   content: { paddingHorizontal: 20 },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   presetName: { fontSize: 15, color: '#ffffff' },
   accentRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingVertical: 8 },
   accentCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: 'transparent' },
-  accentCircleActive: { borderColor: '#ffffff' },
+  accentCircleActive: { borderColor: '#C2FC4A' },
   appName: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 8 },
   appVersion: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center', marginBottom: 16 },
   appDescription: {

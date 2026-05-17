@@ -71,7 +71,7 @@ export function DocumentViewerScreen({ navigation, route }: DocumentViewerScreen
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: '#06060B' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,14 +107,14 @@ const styles = StyleSheet.create({
   fileInfo: { flexDirection: 'row', gap: 12, marginBottom: 32 },
   infoText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' },
   openButton: {
-    backgroundColor: '#6c5ce7',
+    backgroundColor: '#C2FC4A',
     paddingHorizontal: 40,
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 32,
     width: '100%',
   },
-  openButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  openButtonText: { color: '#06060B', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   infoCard: {
     width: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',

@@ -18,10 +18,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const DEFAULT_THEME: ThemeSettings = {
   backgroundType: 'solid',
-  backgroundColor: '#0a0a0a',
-  gradientColors: ['#1a1a2e', '#16213e', '#0f3460'],
-  primaryColor: '#6c5ce7',
-  accentColor: '#00cec9',
+  backgroundColor: '#06060B',
+  gradientColors: ['#06060B', '#1D1D21', '#0a0a0f'],
+  primaryColor: '#C2FC4A',
+  accentColor: '#C2FC4A',
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -56,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const updated = {
       ...theme,
       backgroundType: 'solid' as const,
-      backgroundColor: '#0a0a0a',
+      backgroundColor: '#06060B',
       backgroundImageUri: undefined,
     };
     setTheme(updated);

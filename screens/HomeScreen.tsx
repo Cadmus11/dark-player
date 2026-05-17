@@ -6,10 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ImageBackground,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { useFiles } from '../context/FileContext';
@@ -17,8 +15,18 @@ import { useTheme } from '../context/ThemeContext';
 import { getFileIcon } from '../services/FileService';
 import type { FileItem } from '../types';
 import { SplashScreen } from './SplashScreen';
+import { GlassCard } from '../components/GlassCard';
+import { GlassButton } from '../components/GlassButton';
+import { BlurBackground } from '../components/BlurBackground';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const CATEGORY_ICONS: Record<string, string> = {
+  images: '🖼',
+  videos: '🎬',
+  music: '♪',
+  documents: '📄',
+};
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const { permissionsGranted, loading, categories, files, requestPermissions } = useFiles();
@@ -37,21 +45,24 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
   if (!permissionsGranted) {
     return (
-      <View style={[styles.container, { backgroundColor: '#0a0a0a' }]}>
+      <View style={[styles.container, { backgroundColor: '#06060B' }]}>
         <View style={styles.permissionContainer}>
-          <View style={[styles.permissionIconContainer, { borderColor: theme.primaryColor + '60' }]}>
-            <Text style={styles.permissionIcon}>📂</Text>
-          </View>
-          <Text style={styles.permissionTitle}>Dark Manager</Text>
-          <Text style={styles.permissionSubtitle}>
-            Your Files, Beautifully Organized
-          </Text>
-          <TouchableOpacity
-            style={[styles.permissionButton, { backgroundColor: theme.primaryColor }]}
-            onPress={requestPermissions}
-          >
-            <Text style={styles.permissionButtonText}>Grant Permissions</Text>
-          </TouchableOpacity>
+          <GlassCard style={styles.permissionCard} glowColor="#C2FC4A">
+            <View style={styles.permissionInner}>
+              <Text style={styles.permissionIcon}>♪</Text>
+              <Text style={styles.permissionTitle}>Lumora</Text>
+              <Text style={styles.permissionSubtitle}>
+                Your Media, Immersive
+              </Text>
+              <GlassButton
+                title="Grant Permissions"
+                variant="neon"
+                onPress={requestPermissions}
+                size="lg"
+                style={{ marginTop: 32 }}
+              />
+            </View>
+          </GlassCard>
         </View>
       </View>
     );
@@ -59,9 +70,9 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: '#0a0a0a' }]}>
-        <ActivityIndicator size="large" color={theme.primaryColor} />
-        <Text style={[styles.loadingText, { color: mutedColor }]}>Scanning files...</Text>
+      <View style={[styles.container, styles.center, { backgroundColor: '#06060B' }]}>
+        <ActivityIndicator size="large" color="#C2FC4A" />
+        <Text style={[styles.loadingText, { color: mutedColor }]}>Scanning media...</Text>
       </View>
     );
   }
@@ -90,73 +101,53 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
-  const renderBackground = () => {
-    if (theme.backgroundType === 'image' && theme.backgroundImageUri) {
-      return (
-        <ImageBackground
-          source={{ uri: theme.backgroundImageUri }}
-          style={StyleSheet.absoluteFill}
-          imageStyle={{ opacity: 0.4 }}
-        >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.7)' }]} />
-        </ImageBackground>
-      );
-    }
-
-    if (theme.backgroundType === 'gradient' && theme.gradientColors) {
-      return (
-        <LinearGradient
-          colors={theme.gradientColors as [string, string, ...string[]]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-      );
-    }
-
-    return <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.backgroundColor }]} />;
+  const playAsAudio = (file: FileItem) => {
+    navigation.navigate('MusicPlayer', { file, isVideoAsAudio: true });
   };
 
   return (
-    <View style={styles.container}>
-      {renderBackground()}
+    <BlurBackground>
       <View style={styles.safeArea}>
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: mutedColor }]}>Welcome to</Text>
-            <Text style={[styles.title, { color: textColor }]}>Dark Manager</Text>
+            <Text style={[styles.title, { color: textColor }]}>Lumora</Text>
           </View>
           <TouchableOpacity
-            style={[styles.settingsButton, { backgroundColor: cardBg }]}
+            style={[styles.settingsButton, { backgroundColor: cardBg, borderColor }]}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Text style={[styles.settingsIcon, { color: '#C2FC4A' }]}>⚙</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Browse by Type</Text>
-          <View style={styles.categoriesGrid}>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.categoryCard, { backgroundColor: cardBg, borderColor }]}
-                onPress={() => navigateToCategory(category)}
-              >
-                <View style={[styles.categoryIconContainer, { backgroundColor: category.color + '25' }]}>
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
-                </View>
-                <Text style={[styles.categoryName, { color: textColor }]}>{category.name}</Text>
-                <Text style={[styles.categoryCount, { color: mutedColor }]}>
-                  {category.count} files
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <GlassCard style={styles.quickAccessCard} glowColor="#C2FC4A" intensity={0.04}>
+            <Text style={[styles.quickAccessTitle, { color: textColor }]}>Quick Access</Text>
+            <View style={styles.quickAccessGrid}>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[styles.quickAccessItem, { backgroundColor: 'rgba(194, 252, 74, 0.08)' }]}
+                  onPress={() => navigateToCategory(category)}
+                >
+                  <Text style={styles.quickAccessIcon}>
+                    {CATEGORY_ICONS[category.id] || category.icon}
+                  </Text>
+                  <Text style={[styles.quickAccessLabel, { color: textColor }]}>
+                    {category.name}
+                  </Text>
+                  <Text style={[styles.quickAccessCount, { color: mutedColor }]}>
+                    {category.count}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </GlassCard>
 
           {files.length > 0 && (
             <>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Recent Files</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>Recent</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -168,7 +159,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                     style={[styles.recentFileCard, { backgroundColor: cardBg, borderColor }]}
                     onPress={() => navigateToFile(file)}
                   >
-                    <Text style={styles.recentFileIcon}>{getFileIcon(file.type)}</Text>
+                    <View style={styles.recentFileIconWrap}>
+                      <Text style={styles.recentFileIcon}>
+                        {getFileIcon(file.type)}
+                      </Text>
+                    </View>
                     <Text style={[styles.recentFileName, { color: textColor }]} numberOfLines={2}>
                       {file.name}
                     </Text>
@@ -181,12 +176,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
-    </View>
+    </BlurBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: '#06060B' },
   center: { justifyContent: 'center', alignItems: 'center' },
   safeArea: { flex: 1, paddingTop: Platform.OS === 'ios' ? 60 : 50, paddingHorizontal: 20 },
   header: {
@@ -195,79 +190,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  greeting: { fontSize: 14, marginBottom: 2 },
-  title: { fontSize: 28, fontWeight: 'bold', letterSpacing: 1 },
+  greeting: { fontSize: 13, marginBottom: 2, letterSpacing: 1, textTransform: 'uppercase' },
+  title: { fontSize: 30, fontWeight: 'bold', letterSpacing: 2 },
   settingsButton: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
-  settingsIcon: { fontSize: 20 },
+  settingsIcon: { fontSize: 22 },
   scrollView: { flex: 1 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 14 },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16, letterSpacing: 1 },
+  quickAccessCard: {
+    padding: 20,
     marginBottom: 28,
   },
-  categoryCard: {
-    width: '48%',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
-    alignItems: 'center',
-    borderWidth: 1,
+  quickAccessTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 16,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    opacity: 0.7,
   },
-  categoryIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
+  quickAccessGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  categoryIcon: { fontSize: 32 },
-  categoryName: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  categoryCount: { fontSize: 13 },
+  quickAccessItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 20,
+    marginHorizontal: 4,
+  },
+  quickAccessIcon: { fontSize: 28, marginBottom: 8 },
+  quickAccessLabel: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  quickAccessCount: { fontSize: 11 },
   recentFilesScroll: { marginBottom: 20 },
   recentFileCard: {
-    width: 90,
+    width: 100,
     marginRight: 12,
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 20,
+    padding: 14,
     alignItems: 'center',
     borderWidth: 1,
   },
-  recentFileIcon: { fontSize: 30, marginBottom: 8 },
-  recentFileName: { fontSize: 11, textAlign: 'center' },
+  recentFileIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(194, 252, 74, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recentFileIcon: { fontSize: 24 },
+  recentFileName: { fontSize: 11, textAlign: 'center', lineHeight: 14 },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    padding: 30,
   },
-  permissionIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 25,
-    backgroundColor: 'rgba(108, 92, 231, 0.15)',
-    justifyContent: 'center',
+  permissionCard: {
+    width: '100%',
+    maxWidth: 340,
+    padding: 40,
     alignItems: 'center',
-    marginBottom: 30,
-    borderWidth: 2,
   },
-  permissionIcon: { fontSize: 50 },
-  permissionTitle: { fontSize: 32, fontWeight: 'bold', color: '#ffffff', marginBottom: 8, letterSpacing: 1 },
+  permissionInner: { alignItems: 'center' },
+  permissionIcon: {
+    fontSize: 56,
+    color: '#C2FC4A',
+    marginBottom: 20,
+  },
+  permissionTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 3,
+    marginBottom: 8,
+  },
   permissionSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.5)',
+    letterSpacing: 2,
     textAlign: 'center',
-    marginBottom: 40,
   },
-  permissionButton: { paddingHorizontal: 36, paddingVertical: 16, borderRadius: 14 },
-  permissionButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-  loadingText: { marginTop: 16, fontSize: 16 },
+  loadingText: { marginTop: 16, fontSize: 15, letterSpacing: 1 },
 });

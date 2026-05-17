@@ -121,7 +121,7 @@ export function DocumentsScreen({ navigation }: DocumentsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: '#06060B' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

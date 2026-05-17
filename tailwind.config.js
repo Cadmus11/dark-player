@@ -6,19 +6,19 @@ module.exports = {
     extend: {
       colors: {
         dark: {
-          bg: '#0a0a0a',
+          bg: '#06060B',
+          surface: '#1D1D21',
           card: 'rgba(255, 255, 255, 0.05)',
           border: 'rgba(255, 255, 255, 0.08)',
           text: '#ffffff',
           muted: 'rgba(255, 255, 255, 0.5)',
         },
-        accent: {
-          purple: '#6c5ce7',
-          teal: '#00cec9',
-          orange: '#e17055',
-          yellow: '#fdcb6e',
-          blue: '#74b9ff',
+        neon: {
+          lime: '#C2FC4A',
         },
+      },
+      borderRadius: {
+        glass: '28px',
       },
     },
   },

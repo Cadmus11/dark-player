@@ -17,10 +17,10 @@ export async function getThemeSettings(): Promise<ThemeSettings> {
 
   return {
     backgroundType: 'solid',
-    backgroundColor: '#0a0a0a',
-    gradientColors: ['#1a1a2e', '#16213e'],
-    primaryColor: '#6c5ce7',
-    accentColor: '#00cec9',
+    backgroundColor: '#06060B',
+    gradientColors: ['#06060B', '#1D1D21'],
+    primaryColor: '#C2FC4A',
+    accentColor: '#C2FC4A',
   };
 }
 

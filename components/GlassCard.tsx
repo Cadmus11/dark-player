@@ -1,0 +1,38 @@
+import React, { type ReactNode } from 'react';
+import { View, type ViewStyle } from 'react-native';
+
+interface GlassCardProps {
+  children: ReactNode;
+  style?: ViewStyle;
+  intensity?: number;
+  glowColor?: string;
+  onPress?: () => void;
+}
+
+export function GlassCard({ children, style, intensity = 0.06, glowColor, onPress }: GlassCardProps) {
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: `rgba(255, 255, 255, ${intensity})`,
+          borderRadius: 28,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+          overflow: 'hidden',
+          ...(glowColor
+            ? {
+                shadowColor: glowColor,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 6,
+              }
+            : {}),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}

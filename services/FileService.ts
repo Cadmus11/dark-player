@@ -5,6 +5,20 @@ import type { FileItem, FileType, DocumentSubType } from '../types';
 
 const isWeb = Platform.OS === 'web';
 
+const ART_COLORS = [
+  '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
+  '#fdcb6e', '#74b9ff', '#ff7675', '#55efc4',
+  '#a29bfe', '#fd79a8', '#f39c12', '#27ae60',
+];
+
+export function getArtColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return ART_COLORS[Math.abs(hash) % ART_COLORS.length];
+}
+
 const EXTENSION_MAP: Record<string, FileType> = {
   jpg: 'image',
   jpeg: 'image',
@@ -95,11 +109,11 @@ export function findSubtitleFile(videoUri: string, allFiles: FileItem[]): string
 export function getFileIcon(type: FileType): string {
   switch (type) {
     case 'image':
-      return '🖼️';
+      return '🖼';
     case 'video':
       return '🎬';
     case 'audio':
-      return '🎵';
+      return '♪';
     case 'document':
       return '📄';
     case 'folder':
@@ -176,6 +190,7 @@ export async function getMediaFiles(type: 'image' | 'video' | 'audio'): Promise<
       createdAt: asset.creationTime * 1000,
       thumbnail: type !== 'audio' ? asset.uri : undefined,
       duration: asset.duration ? asset.duration * 1000 : undefined,
+      artColor: getArtColor(asset.filename),
     }));
   } catch {
     return [];
@@ -185,44 +200,108 @@ export async function getMediaFiles(type: 'image' | 'video' | 'audio'): Promise<
 export async function scanDocuments(): Promise<FileItem[]> {
   if (isWeb) return [];
 
+  const found: FileItem[] = [];
+  const scanned = new Set<string>();
+
+  const dirs: string[] = [];
   try {
-    const dirs: string[] = [];
+    const docDir = FileSystem.documentDirectory;
+    if (docDir) dirs.push(docDir);
+    const cache = FileSystem.cacheDirectory;
+    if (cache) dirs.push(cache);
+  } catch {}
+
+  async function scanDir(dir: string) {
+    if (!dir || scanned.has(dir)) return;
+    scanned.add(dir);
     try {
-      const docDir = (FileSystem as any).documentDirectory as string | undefined;
-      if (docDir) dirs.push(docDir);
-      const cache = (FileSystem as any).cacheDirectory as string | undefined;
-      if (cache) dirs.push(cache);
-    } catch {}
-
-    const found: FileItem[] = [];
-
-    for (const dir of dirs) {
-      if (!dir) continue;
-      try {
-        const entries = await FileSystem.readDirectoryAsync(dir);
-        for (const entry of entries) {
-          const entryUri = (dir.endsWith('/') ? dir : dir + '/') + entry;
-          const fileType = getFileType(entry);
-          if (fileType === 'document' || fileType === 'other') {
-            const info = await FileSystem.getInfoAsync(entryUri);
+      const entries = await FileSystem.readDirectoryAsync(dir);
+      for (const entry of entries) {
+        const entryUri = (dir.endsWith('/') ? dir : dir + '/') + entry;
+        const fileType = getFileType(entry);
+        if (fileType === 'document' || fileType === 'other') {
+          try {
+            const info = await FileSystem.getInfoAsync(entryUri, { size: true });
             if (info.exists && !info.isDirectory) {
+              const docSubType = fileType === 'document' ? getDocumentSubType(entry) : undefined;
+              if (![...found].some(f => f.uri === entryUri)) {
+                found.push({
+                  uri: entryUri,
+                  name: entry,
+                  type: fileType,
+                  docSubType,
+                  size: 'size' in info ? info.size : undefined,
+                  parentUri: dir,
+                  artColor: getArtColor(entry),
+                });
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  for (const dir of dirs) {
+    await scanDir(dir);
+  }
+
+  if (Platform.OS === 'android') {
+    try {
+      const SAF = FileSystem.StorageAccessFramework;
+      const permissions = await SAF.requestDirectoryPermissionsAsync();
+      if (permissions.granted) {
+        const uris = await SAF.readDirectoryAsync(permissions.directoryUri);
+        for (const uri of uris) {
+          const name = uri.split('/').pop() || uri;
+          const fileType = getFileType(name);
+          if (fileType === 'document' || fileType === 'other') {
+            const docSubType = fileType === 'document' ? getDocumentSubType(name) : undefined;
+            if (![...found].some(f => f.uri === uri)) {
               found.push({
-                uri: entryUri,
-                name: entry,
+                uri,
+                name,
                 type: fileType,
-                docSubType: fileType === 'document' ? getDocumentSubType(entry) : undefined,
-                parentUri: dir,
+                docSubType,
+                parentUri: permissions.directoryUri,
+                artColor: getArtColor(name),
               });
             }
           }
         }
-      } catch {
+      }
+    } catch {}
+  }
+
+  try {
+    const mediaAlbums = await MediaLibrary.getAlbumsAsync();
+    for (const album of mediaAlbums) {
+      if (album.assetCount === 0) continue;
+      const { assets } = await MediaLibrary.getAssetsAsync({
+        album: album.id,
+        first: album.assetCount,
+        mediaType: ['audio', 'video', 'photo', 'unknown'] as any,
+      });
+      for (const asset of assets) {
+        const fileType = getFileType(asset.filename);
+        if ((fileType === 'document' || fileType === 'other') && !scanned.has(asset.uri)) {
+          scanned.add(asset.uri);
+          found.push({
+            uri: asset.uri,
+            name: asset.filename,
+            type: fileType,
+            docSubType: fileType === 'document' ? getDocumentSubType(asset.filename) : undefined,
+            modifiedAt: asset.modificationTime * 1000,
+            createdAt: asset.creationTime * 1000,
+            size: asset.fileSize ?? undefined,
+            artColor: getArtColor(asset.filename),
+          });
+        }
       }
     }
-    return found;
-  } catch {
-    return [];
-  }
+  } catch {}
+
+  return found;
 }
 
 export async function requestPermissions(): Promise<boolean> {
