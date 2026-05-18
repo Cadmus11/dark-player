@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import { CaretLeft } from 'phosphor-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { formatFileSize } from '../services/FileService';
@@ -27,7 +28,7 @@ export function ImageViewerScreen({ navigation, route }: ImageViewerScreenProps)
       <View style={styles.overlay}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <CaretLeft size={28} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.title} numberOfLines={1}>
             {file.name}
@@ -56,7 +57,6 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 28, color: '#ffffff' },
   title: { flex: 1, fontSize: 16, color: '#ffffff', textAlign: 'center', marginHorizontal: 10 },
   footer: {
     alignItems: 'center',

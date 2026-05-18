@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface NeonSliderProps {
   progress: number;
@@ -7,6 +7,7 @@ interface NeonSliderProps {
   width?: number;
   showThumb?: boolean;
   height?: number;
+  primaryColor?: string;
 }
 
 export function NeonSlider({
@@ -15,6 +16,7 @@ export function NeonSlider({
   width: containerWidth,
   showThumb = true,
   height = 4,
+  primaryColor = '#C2FC4A',
 }: NeonSliderProps) {
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
 
@@ -23,8 +25,7 @@ export function NeonSlider({
       style={[styles.track, { height: height + 20, width: containerWidth }]}
       onPress={(e) => {
         const { locationX } = e.nativeEvent;
-        const trackWidth = containerWidth || e.nativeEvent.target;
-        const percentage = locationX / (containerWidth || trackWidth);
+        const percentage = locationX / (containerWidth || 300);
         onSeek(Math.min(Math.max(percentage, 0), 1));
       }}
       activeOpacity={1}
@@ -33,14 +34,14 @@ export function NeonSlider({
         <View
           style={[
             styles.trackFill,
-            { width: `${clampedProgress * 100}%`, height },
+            { width: `${clampedProgress * 100}%` as unknown as number, height, backgroundColor: primaryColor, shadowColor: primaryColor },
           ]}
         />
         {showThumb && (
           <View
             style={[
               styles.thumb,
-              { left: `${clampedProgress * 100}%` as unknown as number },
+              { left: `${clampedProgress * 100}%` as unknown as number, backgroundColor: primaryColor, shadowColor: primaryColor },
             ]}
           />
         )}
@@ -50,32 +51,16 @@ export function NeonSlider({
 }
 
 const styles = StyleSheet.create({
-  track: {
-    justifyContent: 'center',
-  },
-  trackBg: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 3,
-    overflow: 'visible',
-  },
-  trackFill: {
-    backgroundColor: '#C2FC4A',
-    borderRadius: 3,
-    shadowColor: '#C2FC4A',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 3,
-  },
+  track: { justifyContent: 'center' },
+  trackBg: { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, overflow: 'visible' },
+  trackFill: { borderRadius: 3, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 3 },
   thumb: {
     position: 'absolute',
     top: -6,
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
     marginLeft: -8,
-    shadowColor: '#C2FC4A',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,

@@ -1,33 +1,62 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
 import { HomeScreen } from './screens/HomeScreen';
-import { CategoryScreen } from './screens/CategoryScreen';
+import { MusicScreen } from './screens/MusicScreen';
+import { VideosScreen } from './screens/VideosScreen';
 import { DocumentsScreen } from './screens/DocumentsScreen';
+import { SearchScreen } from './screens/SearchScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { CategoryScreen } from './screens/CategoryScreen';
 import { VideoPlayerScreen } from './screens/VideoPlayerScreen';
 import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { ImageViewerScreen } from './screens/ImageViewerScreen';
 import { DocumentViewerScreen } from './screens/DocumentViewerScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
+import { BottomTabBar } from './components/BottomTabBar';
 import type { FileItem, FileType, DocumentSubType } from './types';
 import './global.css';
 
+export type MainTabParamList = {
+  HomeTab: undefined;
+  MusicTab: undefined;
+  VideosTab: undefined;
+  DocumentsTab: undefined;
+  SearchTab: undefined;
+  SettingsTab: undefined;
+};
+
 export type RootStackParamList = {
-  Home: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
   Category: { type: FileType; title: string; icon: string; subType?: DocumentSubType };
-  Documents: undefined;
   VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
   MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
   ImageViewer: { file: FileItem };
   DocumentViewer: { file: FileItem };
-  Settings: undefined;
 };
 
+const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      tabBar={(props) => <BottomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tab.Screen name="HomeTab" component={HomeScreen} />
+      <Tab.Screen name="MusicTab" component={MusicScreen} />
+      <Tab.Screen name="VideosTab" component={VideosScreen} />
+      <Tab.Screen name="DocumentsTab" component={DocumentsScreen} />
+      <Tab.Screen name="SearchTab" component={SearchScreen} />
+      <Tab.Screen name="SettingsTab" component={SettingsScreen} />
+    </Tab.Navigator>
+  );
+}
 
 const screenOptions = {
   headerShown: false,
@@ -41,14 +70,12 @@ export default function App() {
         <FileProvider>
           <NavigationContainer>
             <Stack.Navigator screenOptions={screenOptions}>
-              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="MainTabs" component={MainTabs} />
               <Stack.Screen name="Category" component={CategoryScreen} />
-              <Stack.Screen name="Documents" component={DocumentsScreen} />
               <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
               <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
               <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
               <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
-              <Stack.Screen name="Settings" component={SettingsScreen} />
             </Stack.Navigator>
           </NavigationContainer>
           <StatusBar style="auto" />

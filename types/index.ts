@@ -1,6 +1,6 @@
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'folder' | 'other';
 
-export type DocumentSubType = 'pdf' | 'word' | 'excel' | 'powerpoint' | 'text' | 'other';
+export type DocumentSubType = 'pdf' | 'word' | 'excel' | 'powerpoint' | 'text' | 'epub' | 'other';
 
 export interface FileItem {
   uri: string;
@@ -16,7 +16,10 @@ export interface FileItem {
   parentUri?: string;
   subtitleUri?: string;
   lyrics?: string;
+  hasLyrics?: boolean;
   artColor?: string;
+  artist?: string;
+  album?: string;
 }
 
 export interface Category {
@@ -57,6 +60,9 @@ export interface PlayerState {
   shuffle: boolean;
   repeat: 'none' | 'one' | 'all';
   audioOnly: boolean;
+  showLyrics: boolean;
+  playbackSpeed: number;
+  equalizer: Record<string, number>;
 }
 
 export interface SubtitleEntry {
@@ -68,6 +74,22 @@ export interface SubtitleEntry {
 export interface Playlist {
   id: string;
   name: string;
+  coverUri?: string;
   files: FileItem[];
   createdAt: number;
+  updatedAt: number;
 }
+
+export interface RecentlyPlayed {
+  file: FileItem;
+  lastPlayedAt: number;
+  playCount: number;
+}
+
+export interface SavedSearch {
+  id: string;
+  query: string;
+  timestamp: number;
+}
+
+export type LayoutMode = 'grid' | 'list';

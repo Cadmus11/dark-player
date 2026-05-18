@@ -9,15 +9,33 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
+import { CaretLeft, Image as ImageIcon, VideoCamera, MusicNote, FileText, FilePdf, FileDoc, FileXls, FilePpt, FileTxt } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
-import { getFileIcon, getDocIcon, formatFileSize, formatDuration } from '../services/FileService';
+import { formatFileSize, formatDuration } from '../services/FileService';
+import { FileIcon } from '../components/FileIcon';
 import type { FileItem, DocumentSubType } from '../types';
 
 type CategoryScreenProps = NativeStackScreenProps<RootStackParamList, 'Category'>;
 
+const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
+  images: ImageIcon,
+  videos: VideoCamera,
+  music: MusicNote,
+  audio: MusicNote,
+  documents: FileText,
+  document: FileText,
+  pdf: FilePdf,
+  word: FileDoc,
+  excel: FileXls,
+  powerpoint: FilePpt,
+  text: FileTxt,
+};
+
 export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon, subType } = route.params;
   const { images, videos, audio, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles } = useFiles();
+
+  const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || FileText;
 
   const files = (() => {
     switch (type) {
@@ -86,9 +104,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
               : {},
           ]}
         >
-          <Text style={styles.listItemIconText}>
-            {type === 'document' ? getDocIcon(item.docSubType || 'other') : getFileIcon(item.type)}
-          </Text>
+          <FileIcon type={item.type} docSubType={item.docSubType} size={22} />
         </View>
         <View style={styles.listItemInfo}>
           <Text style={styles.listItemName} numberOfLines={1}>
@@ -124,11 +140,12 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <CaretLeft size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {icon} {title}
-          </Text>
+          <View style={styles.headerCenter}>
+            <CategoryIcon size={20} color="#ffffff" />
+            <Text style={styles.headerTitle}> {title}</Text>
+          </View>
           <View style={{ width: 40 }} />
         </View>
         <FlatList
@@ -140,7 +157,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>{icon}</Text>
+              <CategoryIcon size={64} color="rgba(255, 255, 255, 0.5)" />
               <Text style={styles.emptyText}>No {title.toLowerCase()} found</Text>
             </View>
           }
@@ -153,11 +170,12 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <CaretLeft size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {icon} {title}
-        </Text>
+        <View style={styles.headerCenter}>
+          <CategoryIcon size={20} color="#ffffff" />
+          <Text style={styles.headerTitle}> {title}</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
       <FlatList
@@ -168,7 +186,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>{icon}</Text>
+            <CategoryIcon size={64} color="rgba(255, 255, 255, 0.5)" />
             <Text style={styles.emptyText}>No {title.toLowerCase()} found</Text>
           </View>
         }
@@ -204,8 +222,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerCenter: { flexDirection: 'row', alignItems: 'center' },
   backButton: { padding: 10 },
-  backIcon: { fontSize: 24, color: '#ffffff' },
   headerTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff' },
   imageGrid: { padding: 4 },
   imageItem: {
@@ -245,7 +263,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  listItemIconText: { fontSize: 22 },
   listItemInfo: { flex: 1 },
   listItemName: { fontSize: 15, color: '#ffffff', marginBottom: 4 },
   listItemMeta: { flexDirection: 'row', alignItems: 'center' },
@@ -253,6 +270,5 @@ const styles = StyleSheet.create({
   listItemMetaSeparator: { fontSize: 12, color: 'rgba(255, 255, 255, 0.3)', marginHorizontal: 6 },
   chevron: { fontSize: 20, color: 'rgba(255, 255, 255, 0.3)' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
-  emptyIcon: { fontSize: 64, marginBottom: 16, opacity: 0.5 },
-  emptyText: { fontSize: 16, color: 'rgba(255, 255, 255, 0.5)' },
+  emptyText: { fontSize: 16, color: 'rgba(255, 255, 255, 0.5)', marginTop: 16 },
 });

@@ -1,6 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
-import type { FileItem, Category, DocCategory, PlayerState, Playlist } from '../types';
+import type { FileItem, Category, DocCategory, PlayerState, Playlist, SavedSearch, RecentlyPlayed, LayoutMode } from '../types';
 import { getMediaFiles, scanDocuments, requestPermissions } from '../services/FileService';
+import {
+  getRecentFiles,
+  addToRecentFiles,
+  getRecentlyPlayed,
+  addToRecentlyPlayed,
+  getPlaylists,
+  savePlaylists,
+  createPlaylist as createPlaylistStorage,
+  deletePlaylist as deletePlaylistStorage,
+  getSearchHistory,
+  saveSearch as saveSearchStorage,
+  removeSearch as removeSearchStorage,
+  clearSearchHistory as clearSearchHistoryStorage,
+} from '../services/StorageService';
 
 interface FileContextType {
   permissionsGranted: boolean;
@@ -17,29 +31,40 @@ interface FileContextType {
   excelFiles: FileItem[];
   pptFiles: FileItem[];
   textFiles: FileItem[];
+  epubFiles: FileItem[];
   recentFiles: FileItem[];
+  recentlyPlayed: RecentlyPlayed[];
   currentPath: string;
   musicPlayer: PlayerState;
   playlists: Playlist[];
   docCategories: DocCategory[];
+  searchHistory: SavedSearch[];
   requestPermissions: () => Promise<void>;
   refreshFiles: () => Promise<void>;
   setCurrentPath: (path: string) => void;
   setMusicPlayer: (state: Partial<PlayerState>) => void;
   addToQueue: (file: FileItem) => void;
-  createPlaylist: (name: string) => void;
-  addToPlaylist: (playlistId: string, file: FileItem) => void;
+  createPlaylist: (name: string, coverUri?: string) => Promise<Playlist>;
+  addToPlaylist: (playlistId: string, file: FileItem) => Promise<void>;
+  removeFromPlaylist: (playlistId: string, fileUri: string) => Promise<void>;
+  removePlaylist: (playlistId: string) => Promise<void>;
+  setPlaylistCover: (playlistId: string, coverUri: string) => Promise<void>;
+  recordRecentlyPlayed: (file: FileItem) => Promise<void>;
+  saveSearch: (query: string) => Promise<void>;
+  removeSearch: (id: string) => Promise<void>;
+  clearSearchHistory: () => Promise<void>;
   categories: Category[];
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
 
 const DOC_CATEGORIES: DocCategory[] = [
-  { id: 'pdf', name: 'PDF', icon: '📕', ext: ['pdf'], subType: 'pdf', count: 0, color: '#e74c3c' },
-  { id: 'word', name: 'Word', icon: '📘', ext: ['doc', 'docx'], subType: 'word', count: 0, color: '#3498db' },
-  { id: 'excel', name: 'Excel', icon: '📊', ext: ['xls', 'xlsx', 'csv'], subType: 'excel', count: 0, color: '#27ae60' },
-  { id: 'powerpoint', name: 'PowerPoint', icon: '📙', ext: ['ppt', 'pptx'], subType: 'powerpoint', count: 0, color: '#f39c12' },
-  { id: 'text', name: 'Text', icon: '📝', ext: ['txt', 'rtf', 'md'], subType: 'text', count: 0, color: '#9b59b6' },
+  { id: 'pdf', name: 'PDF', icon: 'pdf', ext: ['pdf'], subType: 'pdf', count: 0, color: '#e74c3c' },
+  { id: 'word', name: 'Word', icon: 'word', ext: ['doc', 'docx'], subType: 'word', count: 0, color: '#3498db' },
+  { id: 'excel', name: 'Excel', icon: 'excel', ext: ['xls', 'xlsx', 'csv'], subType: 'excel', count: 0, color: '#27ae60' },
+  { id: 'powerpoint', name: 'PowerPoint', icon: 'powerpoint', ext: ['ppt', 'pptx'], subType: 'powerpoint', count: 0, color: '#f39c12' },
+  { id: 'text', name: 'Text', icon: 'text', ext: ['txt', 'rtf', 'md'], subType: 'text', count: 0, color: '#9b59b6' },
+  { id: 'epub', name: 'EPUB', icon: 'epub', ext: ['epub'], subType: 'epub', count: 0, color: '#f39c12' },
 ];
 
 const DEFAULT_PLAYER: PlayerState = {
@@ -52,6 +77,9 @@ const DEFAULT_PLAYER: PlayerState = {
   shuffle: false,
   repeat: 'none',
   audioOnly: false,
+  showLyrics: false,
+  playbackSpeed: 1,
+  equalizer: {},
 };
 
 export function FileProvider({ children }: { children: ReactNode }) {
@@ -68,10 +96,30 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [excelFiles, setExcelFiles] = useState<FileItem[]>([]);
   const [pptFiles, setPptFiles] = useState<FileItem[]>([]);
   const [textFiles, setTextFiles] = useState<FileItem[]>([]);
+  const [epubFiles, setEpubFiles] = useState<FileItem[]>([]);
   const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
   const [currentPath, setCurrentPath] = useState('/');
   const [musicPlayer, setMusicPlayerState] = useState<PlayerState>(DEFAULT_PLAYER);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
+
+  useEffect(() => {
+    loadPersistedData();
+  }, []);
+
+  async function loadPersistedData() {
+    const [recent, played, pls, searches] = await Promise.all([
+      getRecentFiles(),
+      getRecentlyPlayed(),
+      getPlaylists(),
+      getSearchHistory(),
+    ]);
+    setRecentFiles(recent);
+    setRecentlyPlayed(played);
+    setPlaylists(pls);
+    setSearchHistory(searches);
+  }
 
   const audioWithVideos = React.useMemo(() => {
     const sorted = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
@@ -79,10 +127,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
   }, [audio, videos]);
 
   const categories: Category[] = [
-    { id: 'images', name: 'Images', icon: '🖼️', type: 'image', count: images.length, color: '#e17055' },
-    { id: 'videos', name: 'Videos', icon: '🎬', type: 'video', count: videos.length, color: '#6c5ce7' },
-    { id: 'music', name: 'Music', icon: '🎵', type: 'audio', count: audio.length, color: '#00cec9' },
-    { id: 'documents', name: 'Documents', icon: '📄', type: 'document', count: documents.length, color: '#fdcb6e' },
+    { id: 'images', name: 'Images', icon: 'images', type: 'image', count: images.length, color: '#e17055' },
+    { id: 'videos', name: 'Videos', icon: 'videos', type: 'video', count: videos.length, color: '#6c5ce7' },
+    { id: 'music', name: 'Music', icon: 'music', type: 'audio', count: audio.length, color: '#00cec9' },
+    { id: 'documents', name: 'Documents', icon: 'documents', type: 'document', count: documents.length + epubFiles.length, color: '#fdcb6e' },
   ];
 
   const docCategories = DOC_CATEGORIES.map((cat) => ({
@@ -96,6 +144,8 @@ export function FileProvider({ children }: { children: ReactNode }) {
         ? excelFiles.length
         : cat.subType === 'powerpoint'
         ? pptFiles.length
+        : cat.subType === 'epub'
+        ? epubFiles.length
         : textFiles.length,
   }));
 
@@ -123,9 +173,11 @@ export function FileProvider({ children }: { children: ReactNode }) {
 
       const allMedia = [...mediaImages, ...mediaVideos, ...mediaAudio];
       const allDocs = scannedDocs.filter((f) => f.type === 'document');
+      const epubDocs = scannedDocs.filter((f) => f.docSubType === 'epub');
       const otherFiles = scannedDocs.filter((f) => f.type === 'other');
 
-      setDocuments(allDocs);
+      setDocuments(allDocs.filter((f) => f.docSubType !== 'epub'));
+      setEpubFiles(epubDocs);
       setFiles([...allMedia, ...allDocs, ...otherFiles]);
 
       setPdfFiles(allDocs.filter((f) => f.docSubType === 'pdf'));
@@ -156,22 +208,65 @@ export function FileProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function createPlaylist(name: string) {
-    const newPlaylist: Playlist = {
-      id: Date.now().toString(),
-      name,
-      files: [],
-      createdAt: Date.now(),
-    };
+  async function createPlaylist(name: string, coverUri?: string) {
+    const newPlaylist = await createPlaylistStorage(name, coverUri);
     setPlaylists((prev) => [...prev, newPlaylist]);
+    return newPlaylist;
   }
 
-  function addToPlaylist(playlistId: string, file: FileItem) {
-    setPlaylists((prev) =>
-      prev.map((p) =>
-        p.id === playlistId ? { ...p, files: [...p.files, file] } : p
-      )
+  async function addToPlaylist(playlistId: string, file: FileItem) {
+    const updated = playlists.map((p) =>
+      p.id === playlistId ? { ...p, files: [...p.files, file], updatedAt: Date.now() } : p
     );
+    await savePlaylists(updated);
+    setPlaylists(updated);
+  }
+
+  async function removeFromPlaylist(playlistId: string, fileUri: string) {
+    const updated = playlists.map((p) =>
+      p.id === playlistId ? { ...p, files: p.files.filter((f) => f.uri !== fileUri), updatedAt: Date.now() } : p
+    );
+    await savePlaylists(updated);
+    setPlaylists(updated);
+  }
+
+  async function removePlaylist(playlistId: string) {
+    await deletePlaylistStorage(playlistId);
+    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+  }
+
+  async function setPlaylistCover(playlistId: string, coverUri: string) {
+    const updated = playlists.map((p) =>
+      p.id === playlistId ? { ...p, coverUri, updatedAt: Date.now() } : p
+    );
+    await savePlaylists(updated);
+    setPlaylists(updated);
+  }
+
+  async function recordRecentlyPlayed(file: FileItem) {
+    await addToRecentlyPlayed(file);
+    const played = await getRecentlyPlayed();
+    setRecentlyPlayed(played);
+    await addToRecentFiles(file);
+    const recent = await getRecentFiles();
+    setRecentFiles(recent);
+  }
+
+  async function saveSearch(query: string) {
+    await saveSearchStorage(query);
+    const searches = await getSearchHistory();
+    setSearchHistory(searches);
+  }
+
+  async function removeSearch(id: string) {
+    await removeSearchStorage(id);
+    const searches = await getSearchHistory();
+    setSearchHistory(searches);
+  }
+
+  async function clearSearchHistory() {
+    await clearSearchHistoryStorage();
+    setSearchHistory([]);
   }
 
   return (
@@ -191,11 +286,14 @@ export function FileProvider({ children }: { children: ReactNode }) {
         excelFiles,
         pptFiles,
         textFiles,
+        epubFiles,
         recentFiles,
+        recentlyPlayed,
         currentPath,
         musicPlayer,
         playlists,
         docCategories,
+        searchHistory,
         requestPermissions: handleRequestPermissions,
         refreshFiles,
         setCurrentPath,
@@ -203,6 +301,13 @@ export function FileProvider({ children }: { children: ReactNode }) {
         addToQueue,
         createPlaylist,
         addToPlaylist,
+        removeFromPlaylist,
+        removePlaylist,
+        setPlaylistCover,
+        recordRecentlyPlayed,
+        saveSearch,
+        removeSearch,
+        clearSearchHistory,
         categories,
       }}
     >

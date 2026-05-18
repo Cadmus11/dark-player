@@ -9,11 +9,18 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Animated,
 } from 'react-native';
 import { Video, ResizeMode, Audio, AVPlaybackStatus } from 'expo-av';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
+import {
+  CaretLeft, Rewind, FastForward, Play, Pause, MusicNote,
+  VideoCamera, FrameCorners, Square, ArrowsOut, Sparkle,
+  Subtitles, Gear, SkipBack, SkipForward,
+} from 'phosphor-react-native';
 import { formatDuration, findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
+import { useTheme } from '../context/ThemeContext';
 import type { SubtitleEntry } from '../types';
 
 type VideoPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
@@ -22,14 +29,17 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type ResizeModeType = 'contain' | 'cover' | 'stretch';
 
-const RESIZE_MODES: { mode: ResizeModeType; icon: string; label: string }[] = [
-  { mode: 'contain', icon: '⬜', label: 'Fit' },
-  { mode: 'cover', icon: '🔲', label: 'Fill' },
-  { mode: 'stretch', icon: '↔️', label: 'Stretch' },
+const RESIZE_MODES: { mode: ResizeModeType; Icon: React.ElementType; label: string }[] = [
+  { mode: 'contain', Icon: FrameCorners, label: 'Fit' },
+  { mode: 'cover', Icon: Square, label: 'Fill' },
+  { mode: 'stretch', Icon: ArrowsOut, label: 'Stretch' },
 ];
+
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
+  const { primaryColor } = useTheme();
   const videoRef = useRef<Video>(null);
   const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
   const [showControls, setShowControls] = useState(true);
@@ -40,9 +50,10 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
+  const [showAiSubModal, setShowAiSubModal] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(initialAudioOnly || false);
-
-  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const controlsAnim = useRef(new Animated.Value(1)).current;
 
   const isPlaying = status && 'isPlaying' in status ? status.isPlaying : false;
   const position = status && 'positionMillis' in status ? status.positionMillis : 0;
@@ -115,21 +126,24 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
     }
   }
 
-  function switchToAudioOnly() {
-    setIsAudioOnly(true);
+  function toggleControls() {
+    const toValue = showControls ? 0 : 1;
+    Animated.timing(controlsAnim, {
+      toValue,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowControls(!showControls));
   }
 
-  function switchToVideo() {
-    setIsAudioOnly(false);
-  }
+  const progress = duration > 0 ? ((position as number) / (duration as number)) * 100 : 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#0a0a0a' }]}>
       <StatusBar hidden />
       <TouchableOpacity
         style={styles.videoContainer}
         activeOpacity={1}
-        onPress={() => setShowControls(!showControls)}
+        onPress={toggleControls}
       >
         {!isAudioOnly && (
           <Video
@@ -144,123 +158,188 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 
         {isAudioOnly && (
           <View style={styles.audioOnlyBg}>
-            <View style={[styles.audioOnlyArt, { borderColor: '#C2FC4A' }]}>
-              <Text style={styles.audioOnlyIcon}>♪</Text>
+            <View style={[styles.audioOnlyArt, { borderColor: primaryColor + '60' }]}>
+              <MusicNote size={64} color={primaryColor} />
             </View>
-            <Text style={styles.audioOnlyLabel}>Audio Mode</Text>
+            <Text style={[styles.audioOnlyLabel, { color: primaryColor }]}>Audio Mode</Text>
+            <TouchableOpacity style={[styles.switchBackBtn, { backgroundColor: `${primaryColor}20` }]} onPress={() => setIsAudioOnly(false)}>
+              <VideoCamera size={16} color={primaryColor} />
+              <Text style={[styles.switchBackText, { color: primaryColor }]}>Switch to Video</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {showControls && (
-          <View style={styles.controlsOverlay}>
-            <View style={styles.headerControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={goBack}>
-                <Text style={styles.controlIcon}>←</Text>
-              </TouchableOpacity>
-              <Text style={styles.title} numberOfLines={1}>{file.name}</Text>
-              <TouchableOpacity style={styles.speedBtn} onPress={() => setShowSpeedModal(true)}>
-                <Text style={styles.speedBtnText}>{playbackSpeed}x</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.centerControls}>
-              <TouchableOpacity style={styles.skipButton} onPress={() => skip(-10)}>
-                <Text style={styles.skipIcon}>⏪</Text>
-                <Text style={styles.skipLabel}>10s</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.playButton} onPress={togglePlayback}>
-                <Text style={styles.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.skipButton} onPress={() => skip(10)}>
-                <Text style={styles.skipIcon}>⏩</Text>
-                <Text style={styles.skipLabel}>10s</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.bottomControls}>
-              {currentSubtitle && subtitlesEnabled && !isAudioOnly && (
-                <View style={styles.subtitleContainer}>
-                  <Text style={styles.subtitleText}>{currentSubtitle}</Text>
-                </View>
-              )}
-
-              <View style={styles.progressWrapper}>
-                <TouchableOpacity
-                  style={styles.progressBar}
-                  onPress={(e) => {
-                    const { locationX } = e.nativeEvent;
-                    seekTo(locationX / (SCREEN_WIDTH - 40));
-                  }}
-                >
-                  <View style={[styles.progressFill, { width: `${(duration ? ((position as number) / (duration as number)) * 100 : 0)}%` as any }]} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.timeRow}>
-                <Text style={styles.timeText}>{formatDuration(position as number)}</Text>
-                <View style={styles.timeButtons}>
-                  <TouchableOpacity
-                    style={[styles.iconBtnAudio, !isAudioOnly && { backgroundColor: 'rgba(194,252,74,0.2)' }]}
-                    onPress={switchToAudioOnly}
-                  >
-                    <Text style={[styles.iconBtnText, !isAudioOnly && { color: '#C2FC4A' }]}>♪</Text>
-                  </TouchableOpacity>
-                  {isAudioOnly && (
-                    <TouchableOpacity style={[styles.iconBtnAudio, isAudioOnly && { backgroundColor: 'rgba(194,252,74,0.2)' }]} onPress={switchToVideo}>
-                      <Text style={[styles.iconBtnText, isAudioOnly && { color: '#C2FC4A' }]}>🎬</Text>
-                    </TouchableOpacity>
-                  )}
-                  {!isAudioOnly && (
-                    <>
-                      <TouchableOpacity style={[styles.iconBtn, subtitlesEnabled && styles.iconBtnActive]} onPress={() => setSubtitlesEnabled(!subtitlesEnabled)}>
-                        <Text style={styles.iconBtnText}>CC</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => setShowResizeModal(true)}>
-                        <Text style={styles.iconBtnText}>⬜</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-                <Text style={styles.timeText}>{formatDuration(duration as number)}</Text>
-              </View>
+        {/* Subtitle Overlay - AI Style */}
+        {currentSubtitle && subtitlesEnabled && !isAudioOnly && (
+          <View style={styles.subtitleOverlay}>
+            <View style={styles.subtitleBubble}>
+              <Text style={[styles.subtitleText, { color: '#ffffff' }]}>{currentSubtitle}</Text>
             </View>
           </View>
+        )}
+
+        {/* Controls Overlay */}
+        {showControls && (
+          <Animated.View style={[styles.controlsOverlay, { opacity: controlsAnim }]}>
+            {/* Header */}
+            <View style={styles.headerControls}>
+              <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+                <CaretLeft size={26} color="#ffffff" weight="bold" />
+              </TouchableOpacity>
+              <Text style={styles.title} numberOfLines={1}>{file.name}</Text>
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowAiSubModal(true)}>
+                <Sparkle size={20} color={primaryColor} weight="bold" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowSettingsModal(true)}>
+                <Gear size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Center Controls */}
+            <View style={styles.centerControls}>
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)}>
+                <Rewind size={28} color="#ffffff" weight="fill" />
+                <Text style={styles.skipLabel}>10</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.playBtn, { borderColor: primaryColor }]} onPress={togglePlayback}>
+                {isPlaying ? <Pause size={32} color={primaryColor} weight="fill" /> : <Play size={32} color={primaryColor} weight="fill" />}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)}>
+                <FastForward size={28} color="#ffffff" weight="fill" />
+                <Text style={styles.skipLabel}>10</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom Controls */}
+            <View style={styles.bottomControls}>
+              <View style={styles.progressRow}>
+                <Text style={styles.timeText}>{formatDuration(position as number)}</Text>
+                <TouchableOpacity
+                  style={styles.progressTrack}
+                  onPress={(e) => {
+                    const { locationX } = e.nativeEvent;
+                    seekTo(locationX / (SCREEN_WIDTH - 80));
+                  }}
+                >
+                  <View style={[styles.progressFill, { width: `${progress}%` as any, backgroundColor: primaryColor }]} />
+                  <View style={[styles.progressThumb, { backgroundColor: primaryColor }]} />
+                </TouchableOpacity>
+                <Text style={styles.timeText}>{formatDuration(duration as number)}</Text>
+              </View>
+
+              <View style={styles.bottomActions}>
+                {!isAudioOnly && (
+                  <TouchableOpacity style={styles.switchAudioBtn} onPress={() => setIsAudioOnly(true)}>
+                    <MusicNote size={14} color="#e4e4e7" />
+                    <Text style={[styles.switchAudioText, { color: '#e4e4e7' }]}>Audio</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, subtitlesEnabled && { backgroundColor: primaryColor }]}
+                    onPress={() => setSubtitlesEnabled(!subtitlesEnabled)}
+                  >
+                    <Subtitles size={16} color={subtitlesEnabled ? '#0a0a0a' : '#e4e4e7'} weight={subtitlesEnabled ? 'fill' : 'regular'} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => setShowSpeedModal(true)}>
+                    <Text style={[styles.speedLabel, { color: '#e4e4e7' }]}>{playbackSpeed}x</Text>
+                  </TouchableOpacity>
+                  {!isAudioOnly && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => setShowResizeModal(true)}>
+                      <FrameCorners size={16} color="#e4e4e7" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          </Animated.View>
         )}
       </TouchableOpacity>
 
+      {/* Resize Modal */}
       <Modal visible={showResizeModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowResizeModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Video Size</Text>
+          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
+            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Video Size</Text>
             {RESIZE_MODES.map((mode) => (
               <TouchableOpacity
                 key={mode.mode}
-                style={[styles.modalOption, resizeMode === mode.mode && styles.modalOptionActive]}
+                style={[styles.modalOption, resizeMode === mode.mode && { backgroundColor: `${primaryColor}15` }]}
                 onPress={() => { setResizeMode(mode.mode); setShowResizeModal(false); }}
               >
-                <Text style={styles.modalOptionIcon}>{mode.icon}</Text>
-                <Text style={[styles.modalOptionText, resizeMode === mode.mode && styles.modalOptionTextActive]}>{mode.label}</Text>
+                <mode.Icon size={20} color={resizeMode === mode.mode ? primaryColor : '#e4e4e7'} />
+                <Text style={[styles.modalOptionText, resizeMode === mode.mode && { color: primaryColor, fontWeight: '700' }, { color: '#e4e4e7' }]}>{mode.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </TouchableOpacity>
       </Modal>
 
+      {/* Speed Modal */}
       <Modal visible={showSpeedModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSpeedModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Playback Speed</Text>
-            <ScrollView>
+          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
+            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Playback Speed</Text>
+            <View style={styles.speedGrid}>
               {SPEEDS.map((speed) => (
                 <TouchableOpacity
                   key={speed}
-                  style={[styles.modalOption, playbackSpeed === speed && styles.modalOptionActive]}
+                  style={[styles.speedOption, playbackSpeed === speed && { backgroundColor: primaryColor }]}
                   onPress={() => changeSpeed(speed)}
                 >
-                  <Text style={[styles.modalOptionText, playbackSpeed === speed && styles.modalOptionTextActive]}>{speed}x</Text>
+                  <Text style={[styles.speedOptionText, playbackSpeed === speed && { color: '#0a0a0a', fontWeight: '700' }, { color: '#e4e4e7' }]}>{speed}x</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* AI Subtitles Modal */}
+      <Modal visible={showAiSubModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowAiSubModal(false)}>
+          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
+            <View style={[styles.aiHeader, { backgroundColor: `${primaryColor}15` }]}>
+              <Sparkle size={20} color={primaryColor} weight="bold" />
+              <Text style={[styles.aiTitle, { color: primaryColor }]}>AI Subtitles</Text>
+            </View>
+            <Text style={[styles.aiDesc, { color: '#a1a1aa' }]}>
+              AI-generated subtitles will be available soon. This feature will automatically detect and transcribe speech in your videos.
+            </Text>
+            <View style={styles.aiFeatures}>
+              <View style={styles.aiFeature}>
+                <Sparkle size={14} color={primaryColor} />
+                <Text style={[styles.aiFeatureText, { color: '#e4e4e7' }]}>Auto-detect language</Text>
+              </View>
+              <View style={styles.aiFeature}>
+                <Sparkle size={14} color={primaryColor} />
+                <Text style={[styles.aiFeatureText, { color: '#e4e4e7' }]}>Real-time transcription</Text>
+              </View>
+              <View style={styles.aiFeature}>
+                <Sparkle size={14} color={primaryColor} />
+                <Text style={[styles.aiFeatureText, { color: '#e4e4e7' }]}>Multi-language support</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal visible={showSettingsModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSettingsModal(false)}>
+          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
+            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Player Settings</Text>
+            <TouchableOpacity style={styles.settingRow} onPress={() => { setSubtitlesEnabled(!subtitlesEnabled); setShowSettingsModal(false); }}>
+              <Subtitles size={20} color="#e4e4e7" />
+              <Text style={[styles.settingText, { color: '#e4e4e7' }]}>Subtitles {subtitlesEnabled ? 'On' : 'Off'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingRow} onPress={() => setShowSpeedModal(true)}>
+              <Text style={[styles.settingText, { color: '#e4e4e7' }]}>Speed: {playbackSpeed}x</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.settingRow} onPress={() => setShowResizeModal(true)}>
+              <FrameCorners size={20} color="#e4e4e7" />
+              <Text style={[styles.settingText, { color: '#e4e4e7' }]}>Resize: {RESIZE_MODES.find(m => m.mode === resizeMode)?.label}</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -269,12 +348,29 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06060B' },
+  container: { flex: 1 },
   videoContainer: { flex: 1 },
   video: { width: '100%', height: '100%' },
+  subtitleOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    paddingBottom: 100,
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  subtitleBubble: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    maxWidth: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(194, 252, 74, 0.2)',
+  },
+  subtitleText: { fontSize: 16, textAlign: 'center', fontWeight: '500' },
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'space-between',
   },
   headerControls: {
@@ -283,71 +379,45 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 16,
   },
-  controlButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  controlIcon: { fontSize: 28, color: '#ffffff' },
-  title: { flex: 1, fontSize: 16, color: '#ffffff', textAlign: 'center', marginHorizontal: 10 },
-  speedBtn: {
-    backgroundColor: 'rgba(194, 252, 74, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  speedBtnText: { color: '#C2FC4A', fontSize: 13, fontWeight: '600' },
-  centerControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 40,
-  },
-  skipButton: { alignItems: 'center' },
-  skipIcon: { fontSize: 30, color: '#ffffff' },
-  skipLabel: { fontSize: 10, color: 'rgba(255, 255, 255, 0.7)', marginTop: 2 },
-  playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  title: { flex: 1, fontSize: 15, color: '#ffffff', textAlign: 'center', marginHorizontal: 8, fontWeight: '600' },
+  headerIconBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  centerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36 },
+  skipBtn: { alignItems: 'center', gap: 2 },
+  skipLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
+  playBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(194, 252, 74, 0.3)',
+    borderWidth: 2,
   },
-  playIcon: { fontSize: 36, color: '#ffffff' },
   bottomControls: { paddingHorizontal: 20, paddingBottom: 30 },
-  subtitleContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-    alignSelf: 'center',
-    maxWidth: '90%',
-  },
-  subtitleText: { color: '#C2FC4A', fontSize: 16, textAlign: 'center' },
-  progressWrapper: { height: 30, justifyContent: 'center' },
-  progressBar: { height: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 2 },
-  progressFill: { height: '100%', backgroundColor: '#C2FC4A', borderRadius: 2 },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  timeText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', width: 40 },
+  progressTrack: { flex: 1, height: 20, justifyContent: 'center' },
+  progressFill: { height: 4, borderRadius: 2 },
+  bottomActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  switchAudioBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#27272a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  switchAudioText: { fontSize: 12, fontWeight: '600' },
+  actionButtons: { flexDirection: 'row', gap: 8 },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#27272a',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
   },
-  timeText: { fontSize: 12, color: 'rgba(255, 255, 255, 0.7)' },
-  timeButtons: { flexDirection: 'row', gap: 10 },
-  iconBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  iconBtnActive: { backgroundColor: '#C2FC4A' },
-  iconBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
+  speedLabel: { fontSize: 12, fontWeight: '700' },
   audioOnlyBg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#06060B',
+    backgroundColor: '#0a0a0a',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 16,
   },
   audioOnlyArt: {
     width: 160,
@@ -356,49 +426,25 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  audioOnlyIcon: { fontSize: 64, color: '#C2FC4A' },
-  audioOnlyLabel: { fontSize: 16, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
-  iconBtnAudio: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#1D1D21',
-    borderRadius: 24,
-    padding: 20,
-    width: '80%',
-    maxWidth: 300,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  modalOptionActive: { backgroundColor: 'rgba(194, 252, 74, 0.15)' },
-  modalOptionIcon: { fontSize: 20, marginRight: 12 },
-  modalOptionText: { fontSize: 16, color: '#ffffff' },
-  modalOptionTextActive: { color: '#C2FC4A', fontWeight: '600' },
+  audioOnlyLabel: { fontSize: 16, letterSpacing: 2, fontWeight: '600' },
+  switchBackBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  switchBackText: { fontSize: 14, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#27272a', borderRadius: 24, padding: 24, width: '80%', maxWidth: 320 },
+  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
+  modalOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 8, gap: 12 },
+  modalOptionText: { fontSize: 16, fontWeight: '500' },
+  speedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  speedOption: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#3f3f46' },
+  speedOptionText: { fontSize: 14, textAlign: 'center' },
+  aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 14, marginBottom: 16, alignSelf: 'flex-start' },
+  aiTitle: { fontSize: 16, fontWeight: '800' },
+  aiDesc: { fontSize: 14, lineHeight: 22, marginBottom: 20 },
+  aiFeatures: { gap: 12 },
+  aiFeature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  aiFeatureText: { fontSize: 14 },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  settingText: { fontSize: 15, fontWeight: '500' },
 });

@@ -7,13 +7,19 @@ import {
   ScrollView,
   Image,
   Alert,
+  Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../App';
+import {
+  Clock, PaintBrush, Moon, EyeSlash, Trash,
+  SlidersHorizontal, Translate, ChatCenteredDots, Info,
+  MusicNotes, VideoCamera, FileText, Image as ImageIcon,
+  SpeakerHigh, SquaresFour, CaretLeft,
+} from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { TopBar } from '../components/TopBar';
 
-type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+const APP_VERSION = '1.0.0';
 
 const COLOR_PRESETS = [
   { name: 'Dark Matter', colors: ['#06060B', '#1D1D21', '#0a0a0f'], primary: '#C2FC4A' },
@@ -24,9 +30,23 @@ const COLOR_PRESETS = [
   { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'], primary: '#e44d6e' },
 ];
 
-export function SettingsScreen({ navigation }: SettingsScreenProps) {
+const SETTINGS_ITEMS = [
+  { id: 'playtime', Icon: Clock, label: 'Playtime' },
+  { id: 'theme', Icon: PaintBrush, label: 'Theme' },
+  { id: 'sleepTimer', Icon: Moon, label: 'Sleep Timer' },
+  { id: 'hiddenFiles', Icon: EyeSlash, label: 'Hidden Files' },
+  { id: 'recentlyDeleted', Icon: Trash, label: 'Recently Deleted' },
+  { id: 'playback', Icon: SlidersHorizontal, label: 'Playback Settings' },
+  { id: 'language', Icon: Translate, label: 'Language' },
+  { id: 'feedback', Icon: ChatCenteredDots, label: 'Feedback' },
+  { id: 'about', Icon: Info, label: 'About' },
+];
+
+export function SettingsScreen() {
   const { theme, updateTheme, setBackgroundImage, clearBackgroundImage } = useTheme();
-  const [activeTab, setActiveTab] = useState<'theme' | 'about'>('theme');
+  const [activeView, setActiveView] = useState<'list' | 'theme' | 'about'>('list');
+
+  const appVersion = APP_VERSION;
 
   const pickBackgroundImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -60,131 +80,182 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     });
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+  const handleSettingPress = (id: string) => {
+    switch (id) {
+      case 'theme':
+        setActiveView('theme');
+        break;
+      case 'about':
+        setActiveView('about');
+        break;
+      case 'feedback':
+        Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
+        break;
+      case 'playtime':
+      case 'sleepTimer':
+      case 'hiddenFiles':
+      case 'recentlyDeleted':
+      case 'playback':
+      case 'language':
+        Alert.alert('Coming Soon', `${SETTINGS_ITEMS.find(i => i.id === id)?.label} settings will be available in a future update.`);
+        break;
+    }
+  };
+
+  const renderMainList = () => (
+    <>
+      {SETTINGS_ITEMS.map((item) => (
+        <TouchableOpacity
+          key={item.id}
+          style={styles.settingRow}
+          onPress={() => handleSettingPress(item.id)}
+        >
+          <item.Icon size={22} color="#ffffff" />
+          <Text style={styles.settingText}>{item.label}</Text>
+          <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+      ))}
+    </>
+  );
+
+  const renderThemeView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>Theme</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'theme' && styles.tabActive]}
-          onPress={() => setActiveTab('theme')}
-        >
-          <Text style={[styles.tabText, activeTab === 'theme' && styles.tabTextActive]}>
-            Theme
-          </Text>
+      <Text style={styles.sectionTitle}>Background</Text>
+      <View style={styles.card}>
+        <TouchableOpacity style={styles.settingRow} onPress={pickBackgroundImage}>
+          <ImageIcon size={22} color="#ffffff" />
+          <Text style={styles.settingText}>Choose Background Image</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'about' && styles.tabActive]}
-          onPress={() => setActiveTab('about')}
-        >
-          <Text style={[styles.tabText, activeTab === 'about' && styles.tabTextActive]}>
-            About
-          </Text>
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {activeTab === 'theme' && (
-          <>
-            <Text style={styles.sectionTitle}>Background</Text>
-            <View style={styles.card}>
-              <TouchableOpacity style={styles.settingRow} onPress={pickBackgroundImage}>
-                <Text style={styles.settingIcon}>🖼️</Text>
-                <Text style={styles.settingText}>Choose Background Image</Text>
-              </TouchableOpacity>
-
-              {theme.backgroundImageUri && (
-                <View style={styles.currentBgContainer}>
-                  <Image source={{ uri: theme.backgroundImageUri }} style={styles.currentBgImage} />
-                  <TouchableOpacity style={styles.removeBgButton} onPress={clearBackgroundImage}>
-                    <Text style={styles.removeBgText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#06060B' })}
-              >
-                <Text style={styles.settingIcon}>⬛</Text>
-                <Text style={styles.settingText}>Deep Black</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionTitle}>Color Themes</Text>
-            <View style={styles.card}>
-              {COLOR_PRESETS.map((preset) => (
-                <TouchableOpacity
-                  key={preset.name}
-                  style={styles.colorPreset}
-                  onPress={() => applyColorPreset(preset)}
-                >
-                  <View style={styles.colorPreview}>
-                    {preset.colors.map((color, i) => (
-                      <View key={i} style={[styles.colorSwatch, { backgroundColor: color }]} />
-                    ))}
-                  </View>
-                  <Text style={styles.presetName}>{preset.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.sectionTitle}>Accent Color</Text>
-            <View style={styles.card}>
-              <View style={styles.accentRow}>
-                {[
-                  '#C2FC4A',
-                  '#6c5ce7',
-                  '#00cec9',
-                  '#e17055',
-                  '#74b9ff',
-                  '#ff7675',
-                  '#a29bfe',
-                  '#55efc4',
-                ].map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.accentCircle,
-                      { backgroundColor: color },
-                      theme.primaryColor === color && styles.accentCircleActive,
-                    ]}
-                    onPress={() => updateTheme({ primaryColor: color })}
-                  />
-                ))}
-              </View>
-            </View>
-          </>
-        )}
-
-        {activeTab === 'about' && (
-          <View style={styles.card}>
-            <Text style={styles.appName}>Lumora</Text>
-            <Text style={styles.appVersion}>Version 1.0.0</Text>
-            <Text style={styles.appDescription}>
-              A premium offline media hub. Experience your music, videos, images, and documents
-              in a stunning neon-dark interface.
-            </Text>
-            <View style={styles.features}>
-              <Text style={styles.featureTitle}>Features:</Text>
-              <Text style={styles.featureItem}>♪ Immersive music player</Text>
-              <Text style={styles.featureItem}>🎬 Premium video player</Text>
-              <Text style={styles.featureItem}>🖼 Cinematic image viewer</Text>
-              <Text style={styles.featureItem}>📄 Document viewer</Text>
-              <Text style={styles.featureItem}>🎨 Dynamic theme engine</Text>
-              <Text style={styles.featureItem}>🖼 Glass morphism UI</Text>
-              <Text style={styles.featureItem}>🔊 Neon-lime accent design</Text>
-            </View>
+        {theme.backgroundImageUri && (
+          <View style={styles.currentBgContainer}>
+            <Image source={{ uri: theme.backgroundImageUri }} style={styles.currentBgImage} />
+            <TouchableOpacity style={styles.removeBgButton} onPress={clearBackgroundImage}>
+              <Text style={styles.removeBgText}>Remove</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        <View style={{ height: 50 }} />
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#06060B' })}
+        >
+          <View style={styles.deepBlackIcon} />
+          <Text style={styles.settingText}>Deep Black</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Color Themes</Text>
+      <View style={styles.card}>
+        {COLOR_PRESETS.map((preset) => (
+          <TouchableOpacity
+            key={preset.name}
+            style={styles.colorPreset}
+            onPress={() => applyColorPreset(preset)}
+          >
+            <View style={styles.colorPreview}>
+              {preset.colors.map((color, i) => (
+                <View key={i} style={[styles.colorSwatch, { backgroundColor: color }]} />
+              ))}
+            </View>
+            <Text style={styles.presetName}>{preset.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.sectionTitle}>Accent Color</Text>
+      <View style={styles.card}>
+        <View style={styles.accentRow}>
+          {[
+            '#C2FC4A',
+            '#6c5ce7',
+            '#00cec9',
+            '#e17055',
+            '#74b9ff',
+            '#ff7675',
+            '#a29bfe',
+            '#55efc4',
+          ].map((color) => (
+            <TouchableOpacity
+              key={color}
+              style={[
+                styles.accentCircle,
+                { backgroundColor: color },
+                theme.primaryColor === color && styles.accentCircleActive,
+              ]}
+              onPress={() => updateTheme({ primaryColor: color })}
+            />
+          ))}
+        </View>
+      </View>
+    </>
+  );
+
+  const renderAboutView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>About</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.appName}>Lumora</Text>
+        <Text style={styles.appVersion}>Version {appVersion}</Text>
+        <Text style={styles.appDescription}>
+          A premium offline media hub. Experience your music, videos, images, and documents
+          in a stunning neon-dark interface.
+        </Text>
+        <View style={styles.features}>
+          <Text style={styles.featureTitle}>Features:</Text>
+          {[
+            { Icon: MusicNotes, text: 'Immersive music player' },
+            { Icon: VideoCamera, text: 'Premium video player' },
+            { Icon: ImageIcon, text: 'Cinematic image viewer' },
+            { Icon: FileText, text: 'Document viewer' },
+            { Icon: PaintBrush, text: 'Dynamic theme engine' },
+            { Icon: SquaresFour, text: 'Glass morphism UI' },
+            { Icon: SpeakerHigh, text: 'Neon-lime accent design' },
+          ].map(({ Icon, text }) => (
+            <View key={text} style={styles.featureRow}>
+              <Icon size={16} color="rgba(255, 255, 255, 0.7)" />
+              <Text style={styles.featureItem}>{text}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </>
+  );
+
+  if (activeView !== 'list') {
+    return (
+      <View style={styles.container}>
+        <TopBar />
+        <ScrollView contentContainerStyle={styles.content}>
+          {activeView === 'theme' && renderThemeView()}
+          {activeView === 'about' && renderAboutView()}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <TopBar />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.pageTitle}>Settings</Text>
+        <View style={styles.card}>{renderMainList()}</View>
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -192,34 +263,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#06060B' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 28, color: '#ffffff' },
-  headerTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff' },
-  tabs: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20 },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: { borderBottomColor: '#C2FC4A' },
-  tabText: { fontSize: 16, fontWeight: '500', color: 'rgba(255, 255, 255, 0.5)' },
-  tabTextActive: { color: '#ffffff' },
   content: { paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff', marginBottom: 12, marginTop: 8 },
+  pageTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff', marginBottom: 16 },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
-    padding: 16,
+    padding: 8,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -228,11 +277,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  settingIcon: { fontSize: 22, marginRight: 14 },
-  settingText: { fontSize: 15, color: '#ffffff' },
+  settingText: { fontSize: 15, color: '#ffffff', flex: 1, marginLeft: 14 },
+  chevron: { fontSize: 22, color: 'rgba(255, 255, 255, 0.3)' },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff', marginBottom: 12, marginTop: 8 },
   currentBgContainer: { marginVertical: 12 },
   currentBgImage: { width: '100%', height: 120, borderRadius: 12 },
   removeBgButton: {
@@ -249,6 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
@@ -265,6 +317,13 @@ const styles = StyleSheet.create({
   accentRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingVertical: 8 },
   accentCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: 'transparent' },
   accentCircleActive: { borderColor: '#C2FC4A' },
+  themeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  themeHeaderTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff' },
   appName: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 8 },
   appVersion: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center', marginBottom: 16 },
   appDescription: {
@@ -274,7 +333,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 24,
   },
-  features: { backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, padding: 16 },
+  features: {},
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
   featureTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff', marginBottom: 12 },
-  featureItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', paddingVertical: 4 },
+  featureItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginLeft: 8 },
+  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  deepBlackIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    backgroundColor: '#06060B',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
 });

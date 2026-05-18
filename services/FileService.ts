@@ -53,6 +53,7 @@ const EXTENSION_MAP: Record<string, FileType> = {
   pptx: 'document',
   json: 'document',
   xml: 'document',
+  epub: 'document',
   srt: 'other',
   vtt: 'other',
   ass: 'other',
@@ -73,6 +74,7 @@ const DOC_SUBTYPE_MAP: Record<string, DocumentSubType> = {
   txt: 'text',
   rtf: 'text',
   md: 'text',
+  epub: 'epub',
 };
 
 const SUBTITLE_EXTENSIONS = ['srt', 'vtt', 'ass'];
@@ -104,40 +106,6 @@ export function findSubtitleFile(videoUri: string, allFiles: FileItem[]): string
     }
   }
   return undefined;
-}
-
-export function getFileIcon(type: FileType): string {
-  switch (type) {
-    case 'image':
-      return '🖼';
-    case 'video':
-      return '🎬';
-    case 'audio':
-      return '♪';
-    case 'document':
-      return '📄';
-    case 'folder':
-      return '📁';
-    default:
-      return '📎';
-  }
-}
-
-export function getDocIcon(subType: DocumentSubType): string {
-  switch (subType) {
-    case 'pdf':
-      return '📕';
-    case 'word':
-      return '📘';
-    case 'excel':
-      return '📊';
-    case 'powerpoint':
-      return '📙';
-    case 'text':
-      return '📝';
-    default:
-      return '📄';
-  }
 }
 
 export function formatFileSize(bytes?: number): string {

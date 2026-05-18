@@ -7,9 +7,11 @@ import {
   Linking,
   ScrollView,
 } from 'react-native';
+import { CaretLeft, FilePdf, FileTxt, FileDoc, FileXls, Upload } from 'phosphor-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { getFileIcon, formatFileSize } from '../services/FileService';
+import { FileIcon } from '../components/FileIcon';
+import { formatFileSize } from '../services/FileService';
 
 type DocumentViewerScreenProps = NativeStackScreenProps<RootStackParamList, 'DocumentViewer'>;
 
@@ -33,7 +35,7 @@ export function DocumentViewerScreen({ navigation, route }: DocumentViewerScreen
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Document</Text>
         <View style={{ width: 44 }} />
@@ -41,7 +43,7 @@ export function DocumentViewerScreen({ navigation, route }: DocumentViewerScreen
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.documentIconContainer}>
-          <Text style={styles.documentIcon}>{getFileIcon(file.type)}</Text>
+          <FileIcon type={file.type} docSubType={file.docSubType} size={56} />
         </View>
 
         <Text style={styles.fileName} numberOfLines={2}>
@@ -59,11 +61,34 @@ export function DocumentViewerScreen({ navigation, route }: DocumentViewerScreen
 
         <View style={styles.infoCard}>
           <Text style={styles.infoCardTitle}>Supported Actions</Text>
-          {isPdf && <Text style={styles.infoCardItem}>📄 PDF Viewer</Text>}
-          {isText && <Text style={styles.infoCardItem}>📝 Text Preview</Text>}
-          {isWord && <Text style={styles.infoCardItem}>📝 Document Viewer</Text>}
-          {isExcel && <Text style={styles.infoCardItem}>📊 Spreadsheet Viewer</Text>}
-          <Text style={styles.infoCardItem}>📤 Share with other apps</Text>
+          {isPdf && (
+            <View style={styles.infoRow}>
+              <FilePdf size={16} color="rgba(255, 255, 255, 0.7)" />
+              <Text style={styles.infoCardItem}>PDF Viewer</Text>
+            </View>
+          )}
+          {isText && (
+            <View style={styles.infoRow}>
+              <FileTxt size={16} color="rgba(255, 255, 255, 0.7)" />
+              <Text style={styles.infoCardItem}>Text Preview</Text>
+            </View>
+          )}
+          {isWord && (
+            <View style={styles.infoRow}>
+              <FileDoc size={16} color="rgba(255, 255, 255, 0.7)" />
+              <Text style={styles.infoCardItem}>Document Viewer</Text>
+            </View>
+          )}
+          {isExcel && (
+            <View style={styles.infoRow}>
+              <FileXls size={16} color="rgba(255, 255, 255, 0.7)" />
+              <Text style={styles.infoCardItem}>Spreadsheet Viewer</Text>
+            </View>
+          )}
+          <View style={styles.infoRow}>
+            <Upload size={16} color="rgba(255, 255, 255, 0.7)" />
+            <Text style={styles.infoCardItem}>Share with other apps</Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -81,7 +106,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 28, color: '#ffffff' },
   headerTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
   content: { alignItems: 'center', paddingHorizontal: 30, paddingBottom: 40 },
   documentIconContainer: {
@@ -95,7 +119,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  documentIcon: { fontSize: 56 },
   fileName: {
     fontSize: 20,
     fontWeight: '600',
@@ -124,5 +147,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   infoCardTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff', marginBottom: 12 },
-  infoCardItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', paddingVertical: 6 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
+  infoCardItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginLeft: 8 },
 });
