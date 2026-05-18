@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,12 @@ import {
   Clock, PaintBrush, Moon, EyeSlash, Trash,
   SlidersHorizontal, Translate, ChatCenteredDots, Info,
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
-  SpeakerHigh, SquaresFour, CaretLeft,
+  SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useFont, FONT_OPTIONS } from '../context/FontContext';
+import { useFiles } from '../context/FileContext';
 import { TopBar } from '../components/TopBar';
 
 const APP_VERSION = '1.0.0';
@@ -28,25 +31,55 @@ const COLOR_PRESETS = [
   { name: 'Ocean Deep', colors: ['#03045e', '#0077b6', '#00b4d8'], primary: '#00b4d8' },
   { name: 'Forest', colors: ['#0d1b2a', '#1b4332', '#2d6a4f'], primary: '#52b788' },
   { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'], primary: '#e44d6e' },
+  { name: 'Midnight', colors: ['#0f0f1a', '#1a1a2e', '#16213e'], primary: '#e94560' },
+  { name: 'Nordic', colors: ['#0d1117', '#21262d', '#30363d'], primary: '#58a6ff' },
 ];
 
-const SETTINGS_ITEMS = [
-  { id: 'playtime', Icon: Clock, label: 'Playtime' },
-  { id: 'theme', Icon: PaintBrush, label: 'Theme' },
-  { id: 'sleepTimer', Icon: Moon, label: 'Sleep Timer' },
-  { id: 'hiddenFiles', Icon: EyeSlash, label: 'Hidden Files' },
-  { id: 'recentlyDeleted', Icon: Trash, label: 'Recently Deleted' },
-  { id: 'playback', Icon: SlidersHorizontal, label: 'Playback Settings' },
-  { id: 'language', Icon: Translate, label: 'Language' },
-  { id: 'feedback', Icon: ChatCenteredDots, label: 'Feedback' },
-  { id: 'about', Icon: Info, label: 'About' },
+const ACCENT_COLORS = [
+  '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
+  '#74b9ff', '#ff7675', '#a29bfe', '#55efc4',
+  '#fdcb6e', '#fd79a8', '#e94560', '#58a6ff',
+  '#8b5cf6', '#f59e0b', '#10b981', '#ec4899',
 ];
+
+type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts';
 
 export function SettingsScreen() {
-  const { theme, updateTheme, setBackgroundImage, clearBackgroundImage } = useTheme();
-  const [activeView, setActiveView] = useState<'list' | 'theme' | 'about'>('list');
+  const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, primaryColor } = useTheme();
+  const { t, language, setLanguage, languages } = useLanguage();
+  const { fontKey, setFont } = useFont();
+  const { recentlyPlayed } = useFiles();
+  const [activeView, setActiveView] = useState<ActiveView>('list');
 
   const appVersion = APP_VERSION;
+
+  const totalPlaytime = useMemo(() => {
+    let totalMs = 0;
+    for (const item of recentlyPlayed) {
+      const dur = item.file.duration || 0;
+      totalMs += dur * item.playCount;
+    }
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}${t('playtime.hours', { h: 0 }).replace('0', String(hours))} ${minutes}${t('playtime.minutes', { m: 0 }).replace('0', String(minutes))} ${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
+    if (minutes > 0) return `${minutes}${t('playtime.minutes', { m: 0 }).replace('0', String(minutes))} ${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
+    return `${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
+  }, [recentlyPlayed, t]);
+
+  const SETTINGS_ITEMS = [
+    { id: 'playtime', Icon: Clock, label: t('settings.playtime') },
+    { id: 'theme', Icon: PaintBrush, label: t('settings.theme') },
+    { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
+    { id: 'hiddenFiles', Icon: EyeSlash, label: t('settings.hiddenFiles') },
+    { id: 'recentlyDeleted', Icon: Trash, label: t('settings.recentlyDeleted') },
+    { id: 'playback', Icon: SlidersHorizontal, label: t('settings.playback') },
+    { id: 'language', Icon: Translate, label: t('settings.language') },
+    { id: 'fonts', Icon: TextAa, label: t('settings.fonts') },
+    { id: 'feedback', Icon: ChatCenteredDots, label: t('settings.feedback') },
+    { id: 'about', Icon: Info, label: t('settings.about') },
+  ];
 
   const pickBackgroundImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,6 +121,12 @@ export function SettingsScreen() {
       case 'about':
         setActiveView('about');
         break;
+      case 'language':
+        setActiveView('language');
+        break;
+      case 'fonts':
+        setActiveView('fonts');
+        break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
         break;
@@ -96,8 +135,7 @@ export function SettingsScreen() {
       case 'hiddenFiles':
       case 'recentlyDeleted':
       case 'playback':
-      case 'language':
-        Alert.alert('Coming Soon', `${SETTINGS_ITEMS.find(i => i.id === id)?.label} settings will be available in a future update.`);
+        Alert.alert(t('settings.comingSoon'), t('settings.comingSoonMsg', { label: SETTINGS_ITEMS.find(i => i.id === id)?.label || id }));
         break;
     }
   };
@@ -112,6 +150,9 @@ export function SettingsScreen() {
         >
           <item.Icon size={22} color="#ffffff" />
           <Text style={styles.settingText}>{item.label}</Text>
+          {item.id === 'playtime' && totalPlaytime !== '0s' && (
+            <Text style={styles.playtimeValue}>{totalPlaytime}</Text>
+          )}
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
       ))}
@@ -124,22 +165,22 @@ export function SettingsScreen() {
         <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>Theme</Text>
+        <Text style={styles.themeHeaderTitle}>{t('settings.theme')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <Text style={styles.sectionTitle}>Background</Text>
+      <Text style={styles.sectionTitle}>{t('settings.background')}</Text>
       <View style={styles.card}>
         <TouchableOpacity style={styles.settingRow} onPress={pickBackgroundImage}>
           <ImageIcon size={22} color="#ffffff" />
-          <Text style={styles.settingText}>Choose Background Image</Text>
+          <Text style={styles.settingText}>{t('settings.chooseBgImage')}</Text>
         </TouchableOpacity>
 
         {theme.backgroundImageUri && (
           <View style={styles.currentBgContainer}>
             <Image source={{ uri: theme.backgroundImageUri }} style={styles.currentBgImage} />
             <TouchableOpacity style={styles.removeBgButton} onPress={clearBackgroundImage}>
-              <Text style={styles.removeBgText}>Remove</Text>
+              <Text style={styles.removeBgText}>{t('settings.remove')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -149,11 +190,11 @@ export function SettingsScreen() {
           onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#06060B' })}
         >
           <View style={styles.deepBlackIcon} />
-          <Text style={styles.settingText}>Deep Black</Text>
+          <Text style={styles.settingText}>{t('settings.deepBlack')}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Color Themes</Text>
+      <Text style={styles.sectionTitle}>{t('settings.colorThemes')}</Text>
       <View style={styles.card}>
         {COLOR_PRESETS.map((preset) => (
           <TouchableOpacity
@@ -171,19 +212,14 @@ export function SettingsScreen() {
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Accent Color</Text>
+      <Text style={styles.sectionTitle}>{t('settings.accentColor')}</Text>
       <View style={styles.card}>
+        <View style={styles.accentPreview}>
+          <View style={[styles.accentPreviewSwatch, { backgroundColor: primaryColor }]} />
+          <Text style={styles.accentPreviewLabel}>{primaryColor}</Text>
+        </View>
         <View style={styles.accentRow}>
-          {[
-            '#C2FC4A',
-            '#6c5ce7',
-            '#00cec9',
-            '#e17055',
-            '#74b9ff',
-            '#ff7675',
-            '#a29bfe',
-            '#55efc4',
-          ].map((color) => (
+          {ACCENT_COLORS.map((color) => (
             <TouchableOpacity
               key={color}
               style={[
@@ -192,7 +228,11 @@ export function SettingsScreen() {
                 theme.primaryColor === color && styles.accentCircleActive,
               ]}
               onPress={() => updateTheme({ primaryColor: color })}
-            />
+            >
+              {theme.primaryColor === color && (
+                <Check size={16} color="#0a0a0a" weight="bold" />
+              )}
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -205,26 +245,25 @@ export function SettingsScreen() {
         <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>About</Text>
+        <Text style={styles.themeHeaderTitle}>{t('about.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
       <View style={styles.card}>
         <Text style={styles.appName}>Lumora</Text>
-        <Text style={styles.appVersion}>Version {appVersion}</Text>
+        <Text style={styles.appVersion}>{t('about.version', { version: appVersion })}</Text>
         <Text style={styles.appDescription}>
-          A premium offline media hub. Experience your music, videos, images, and documents
-          in a stunning neon-dark interface.
+          {t('about.description')}
         </Text>
         <View style={styles.features}>
-          <Text style={styles.featureTitle}>Features:</Text>
+          <Text style={styles.featureTitle}>{t('about.features')}:</Text>
           {[
-            { Icon: MusicNotes, text: 'Immersive music player' },
-            { Icon: VideoCamera, text: 'Premium video player' },
-            { Icon: ImageIcon, text: 'Cinematic image viewer' },
-            { Icon: FileText, text: 'Document viewer' },
-            { Icon: PaintBrush, text: 'Dynamic theme engine' },
-            { Icon: SquaresFour, text: 'Glass morphism UI' },
-            { Icon: SpeakerHigh, text: 'Neon-lime accent design' },
+            { Icon: MusicNotes, text: t('about.feature.music') },
+            { Icon: VideoCamera, text: t('about.feature.video') },
+            { Icon: ImageIcon, text: t('about.feature.image') },
+            { Icon: FileText, text: t('about.feature.document') },
+            { Icon: PaintBrush, text: t('about.feature.theme') },
+            { Icon: SquaresFour, text: t('about.feature.ui') },
+            { Icon: SpeakerHigh, text: t('about.feature.accent') },
           ].map(({ Icon, text }) => (
             <View key={text} style={styles.featureRow}>
               <Icon size={16} color="rgba(255, 255, 255, 0.7)" />
@@ -236,6 +275,69 @@ export function SettingsScreen() {
     </>
   );
 
+  const renderLanguageView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.selectLanguage')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      <View style={styles.card}>
+        {languages.map((lang) => (
+          <TouchableOpacity
+            key={lang.code}
+            style={styles.languageRow}
+            onPress={() => setLanguage(lang.code)}
+          >
+            <Text style={[
+              styles.languageName,
+              language === lang.code && { color: primaryColor },
+            ]}>
+              {lang.nativeName}
+            </Text>
+            <Text style={styles.languageEnglishName}>{lang.name}</Text>
+            {language === lang.code && (
+              <Check size={20} color={primaryColor} weight="bold" />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
+
+  const renderFontsView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.selectFont')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      <View style={styles.card}>
+        {FONT_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={styles.languageRow}
+            onPress={() => setFont(opt.key)}
+          >
+            <Text style={[
+              styles.languageName,
+              fontKey === opt.key && { color: primaryColor },
+            ]}>
+              {t(opt.labelKey)}
+            </Text>
+            {fontKey === opt.key && (
+              <Check size={20} color={primaryColor} weight="bold" />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
+
   if (activeView !== 'list') {
     return (
       <View style={styles.container}>
@@ -243,6 +345,8 @@ export function SettingsScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           {activeView === 'theme' && renderThemeView()}
           {activeView === 'about' && renderAboutView()}
+          {activeView === 'language' && renderLanguageView()}
+          {activeView === 'fonts' && renderFontsView()}
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
@@ -253,7 +357,7 @@ export function SettingsScreen() {
     <View style={styles.container}>
       <TopBar />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>Settings</Text>
+        <Text style={styles.pageTitle}>{t('settings.title')}</Text>
         <View style={styles.card}>{renderMainList()}</View>
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -282,6 +386,11 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   settingText: { fontSize: 15, color: '#ffffff', flex: 1, marginLeft: 14 },
+  playtimeValue: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginRight: 8,
+  },
   chevron: { fontSize: 22, color: 'rgba(255, 255, 255, 0.3)' },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff', marginBottom: 12, marginTop: 8 },
   currentBgContainer: { marginVertical: 12 },
@@ -314,9 +423,46 @@ const styles = StyleSheet.create({
     borderColor: '#0a0a0a',
   },
   presetName: { fontSize: 15, color: '#ffffff' },
-  accentRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, paddingVertical: 8 },
-  accentCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: 'transparent' },
-  accentCircleActive: { borderColor: '#C2FC4A' },
+  accentPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+  },
+  accentPreviewSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  accentPreviewLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: 'monospace',
+  },
+  accentRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  accentCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accentCircleActive: { borderColor: '#ffffff' },
   themeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -350,4 +496,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  languageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  languageName: { fontSize: 16, color: '#ffffff', flex: 1 },
+  languageEnglishName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)', marginRight: 12 },
 });

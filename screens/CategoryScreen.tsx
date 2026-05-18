@@ -33,7 +33,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon, subType } = route.params;
-  const { images, videos, audio, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles } = useFiles();
+  const { images, videos, audio, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles, epubFiles, otherDocs } = useFiles();
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || FileText;
 
@@ -57,6 +57,10 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
             return pptFiles;
           case 'text':
             return textFiles;
+          case 'epub':
+            return epubFiles;
+          case 'other':
+            return otherDocs;
           default:
             return [];
         }

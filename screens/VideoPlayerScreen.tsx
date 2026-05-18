@@ -21,6 +21,7 @@ import {
 } from 'phosphor-react-native';
 import { formatDuration, findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
 import { useTheme } from '../context/ThemeContext';
+import { useFiles } from '../context/FileContext';
 import type { SubtitleEntry } from '../types';
 
 type VideoPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
@@ -54,6 +55,19 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
   const [isAudioOnly, setIsAudioOnly] = useState(initialAudioOnly || false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const controlsAnim = useRef(new Animated.Value(1)).current;
+
+  const { videos } = useFiles();
+  const currentVideoIndex = videos.findIndex((v) => v.uri === file.uri);
+
+  const goToVideo = (index: number) => {
+    if (index < 0 || index >= videos.length) return;
+    try {
+      videoRef.current?.stopAsync();
+    } catch (e) {
+      console.warn('Stop video failed:', e);
+    }
+    navigation.replace('VideoPlayer', { file: videos[index] });
+  };
 
   const isPlaying = status && 'isPlaying' in status ? status.isPlaying : false;
   const position = status && 'positionMillis' in status ? status.positionMillis : 0;
@@ -91,8 +105,12 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 
   async function togglePlayback() {
     if (!videoRef.current) return;
-    if (isPlaying) { await videoRef.current.pauseAsync(); }
-    else { await videoRef.current.playAsync(); }
+    try {
+      if (isPlaying) { await videoRef.current.pauseAsync(); }
+      else { await videoRef.current.playAsync(); }
+    } catch (e) {
+      console.warn('Toggle video playback failed:', e);
+    }
   }
 
   async function seekTo(percentage: number) {
@@ -135,7 +153,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
     }).start(() => setShowControls(!showControls));
   }
 
-  const progress = duration > 0 ? ((position as number) / (duration as number)) * 100 : 0;
+  const progress = (duration || 0) > 0 ? ((position as number) / (duration || 1)) * 100 : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: '#0a0a0a' }]}>
@@ -197,16 +215,30 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 
             {/* Center Controls */}
             <View style={styles.centerControls}>
+              <TouchableOpacity
+                style={[styles.prevNextBtn, currentVideoIndex <= 0 && { opacity: 0.3 }]}
+                onPress={() => goToVideo(currentVideoIndex - 1)}
+                disabled={currentVideoIndex <= 0}
+              >
+                <SkipBack size={24} color="#ffffff" weight="fill" />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)}>
-                <Rewind size={28} color="#ffffff" weight="fill" />
+                <Rewind size={24} color="#ffffff" weight="fill" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.playBtn, { borderColor: primaryColor }]} onPress={togglePlayback}>
                 {isPlaying ? <Pause size={32} color={primaryColor} weight="fill" /> : <Play size={32} color={primaryColor} weight="fill" />}
               </TouchableOpacity>
               <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)}>
-                <FastForward size={28} color="#ffffff" weight="fill" />
+                <FastForward size={24} color="#ffffff" weight="fill" />
                 <Text style={styles.skipLabel}>10</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.prevNextBtn, currentVideoIndex >= videos.length - 1 && { opacity: 0.3 }]}
+                onPress={() => goToVideo(currentVideoIndex + 1)}
+                disabled={currentVideoIndex >= videos.length - 1}
+              >
+                <SkipForward size={24} color="#ffffff" weight="fill" />
               </TouchableOpacity>
             </View>
 
@@ -394,11 +426,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
   },
+  prevNextBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   bottomControls: { paddingHorizontal: 20, paddingBottom: 30 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   timeText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', width: 40 },
   progressTrack: { flex: 1, height: 20, justifyContent: 'center' },
   progressFill: { height: 4, borderRadius: 2 },
+  progressThumb: { width: 12, height: 12, borderRadius: 6, position: 'absolute', top: -4 },
   bottomActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   switchAudioBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#27272a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   switchAudioText: { fontSize: 12, fontWeight: '600' },

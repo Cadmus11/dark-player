@@ -16,7 +16,7 @@ import { FileIcon } from '../components/FileIcon';
 import { TopBar } from '../components/TopBar';
 
 export function DocumentsScreen() {
-  const { docCategories, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles, epubFiles } = useFiles();
+  const { docCategories, pdfFiles, wordFiles, excelFiles, pptFiles, textFiles, epubFiles, otherDocs } = useFiles();
   const { textColor, mutedColor } = useTheme();
   const navigation = useNavigation<any>();
 
@@ -75,7 +75,7 @@ export function DocumentsScreen() {
     </TouchableOpacity>
   );
 
-  const allDocs = [...pdfFiles, ...wordFiles, ...excelFiles, ...pptFiles, ...textFiles, ...epubFiles].sort(
+  const allDocs = [...pdfFiles, ...wordFiles, ...excelFiles, ...pptFiles, ...textFiles, ...epubFiles, ...otherDocs].sort(
     (a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0)
   );
 

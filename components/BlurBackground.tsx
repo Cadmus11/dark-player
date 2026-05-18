@@ -8,7 +8,7 @@ interface BlurBackgroundProps {
 }
 
 export function BlurBackground({ children }: BlurBackgroundProps) {
-  const { theme } = useTheme();
+  const { theme, backgroundOverlayColor } = useTheme();
 
   const renderBg = () => {
     if (theme.backgroundType === 'image' && theme.backgroundImageUri) {
@@ -16,9 +16,9 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
         <ImageBackground
           source={{ uri: theme.backgroundImageUri }}
           style={StyleSheet.absoluteFill}
-          imageStyle={{ opacity: 0.35 }}
+          imageStyle={{ opacity: 0.3 }}
         >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(6, 6, 11, 0.75)' }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: backgroundOverlayColor }]} />
         </ImageBackground>
       );
     }

@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { FontProvider } from './context/FontContext';
 import { HomeScreen } from './screens/HomeScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
@@ -66,6 +68,8 @@ const screenOptions = {
 export default function App() {
   return (
     <SafeAreaProvider>
+    <LanguageProvider>
+      <FontProvider>
       <ThemeProvider>
         <FileProvider>
           <NavigationContainer>
@@ -81,6 +85,8 @@ export default function App() {
           <StatusBar style="auto" />
         </FileProvider>
       </ThemeProvider>
+      </FontProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

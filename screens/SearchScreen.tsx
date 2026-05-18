@@ -26,6 +26,7 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 ];
 
 export function SearchScreen() {
+  const navigation = useNavigation<any>();
   const { files, searchHistory, saveSearch, removeSearch, clearSearchHistory } = useFiles();
   const { primaryColor, textColor, mutedColor } = useTheme();
   const [query, setQuery] = useState('');

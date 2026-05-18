@@ -36,7 +36,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps) {
-  const { file, queue: initialQueue } = route.params;
+  const { file } = route.params;
   const { setMusicPlayer, playlists, createPlaylist, addToPlaylist, videos, audio, recordRecentlyPlayed } = useFiles();
   const { primaryColor } = useTheme();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -59,6 +59,8 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   const audioWithVideos = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
   const queue = showVideoQueue ? audioWithVideos : (audio.length > 0 ? audio : [file]);
+
+  const isPlaying = status && 'isPlaying' in status ? status.isPlaying : false;
 
   useEffect(() => {
     setupAudioMode();
@@ -100,29 +102,37 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
   }, [isPlaying]);
 
   async function loadSound(fileItem: FileItem) {
-    if (sound) await sound.unloadAsync();
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: fileItem.uri },
-      { shouldPlay: true, rate: playbackSpeed },
-      onPlaybackStatusUpdate
-    );
-    setSound(newSound);
-    setSoundRef(newSound);
-    setCurrentMedia(fileItem);
-    setPlaying(true);
+    try {
+      if (sound) await sound.unloadAsync();
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: fileItem.uri },
+        { shouldPlay: true, rate: playbackSpeed },
+        onPlaybackStatusUpdate
+      );
+      setSound(newSound);
+      setSoundRef(newSound);
+      setCurrentMedia(fileItem);
+      setPlaying(true);
+    } catch (e) {
+      console.warn('Failed to load sound:', e);
+    }
   }
 
   function onPlaybackStatusUpdate(newStatus: AVPlaybackStatus) {
     setStatus(newStatus);
-    if ('isLoaded' in newStatus) {
-      setPlaying(newStatus.isPlaying);
+    if ('isLoaded' in newStatus && 'isPlaying' in newStatus) {
+      setPlaying((newStatus as any).isPlaying);
     }
   }
 
   async function togglePlayback() {
     if (!sound) return;
-    if (isPlaying) { await sound.pauseAsync(); setPlaying(false); }
-    else { await sound.playAsync(); setPlaying(true); }
+    try {
+      if (isPlaying) { await sound.pauseAsync(); setPlaying(false); }
+      else { await sound.playAsync(); setPlaying(true); }
+    } catch (e) {
+      console.warn('Toggle playback failed:', e);
+    }
   }
 
   function getNextIndex(): number {
@@ -143,29 +153,41 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   async function handleNext() {
     if (queue.length === 0) return;
-    const nextIndex = getNextIndex();
-    const nextFile = queue[nextIndex];
-    setCurrentIndex(nextIndex);
-    setMusicPlayer({ currentFile: nextFile });
-    await loadSound(nextFile);
+    try {
+      const nextIndex = getNextIndex();
+      const nextFile = queue[nextIndex];
+      setCurrentIndex(nextIndex);
+      setMusicPlayer({ currentFile: nextFile });
+      await loadSound(nextFile);
+    } catch (e) {
+      console.warn('Next track failed:', e);
+    }
   }
 
   async function handlePrev() {
     if (queue.length === 0) return;
-    if ((position as number) > 3000) {
-      await sound?.setPositionAsync(0);
-      return;
+    try {
+      if ((position as number) > 3000) {
+        await sound?.setPositionAsync(0);
+        return;
+      }
+      const prevIndex = getPrevIndex();
+      const prevFile = queue[prevIndex];
+      setCurrentIndex(prevIndex);
+      setMusicPlayer({ currentFile: prevFile });
+      await loadSound(prevFile);
+    } catch (e) {
+      console.warn('Prev track failed:', e);
     }
-    const prevIndex = getPrevIndex();
-    const prevFile = queue[prevIndex];
-    setCurrentIndex(prevIndex);
-    setMusicPlayer({ currentFile: prevFile });
-    await loadSound(prevFile);
   }
 
   async function seekTo(percentage: number) {
     if (!sound || !duration) return;
-    await sound.setPositionAsync(Math.round(percentage * duration));
+    try {
+      await sound.setPositionAsync(Math.round(percentage * duration));
+    } catch (e) {
+      console.warn('Seek failed:', e);
+    }
   }
 
   function toggleRepeat() {
@@ -204,7 +226,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     setShowSpeedModal(false);
   }
 
-  const isPlaying = status && 'isPlaying' in status ? status.isPlaying : false;
   const position = status && 'positionMillis' in status ? status.positionMillis : 0;
   const duration = status && 'durationMillis' in status ? (status.durationMillis ?? 0) : 0;
   const progress = duration > 0 ? (position as number) / duration : 0;

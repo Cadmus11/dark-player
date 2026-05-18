@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
 import type { ThemeSettings } from '../types';
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 interface ThemeContextType {
   theme: ThemeSettings;
   updateTheme: (settings: Partial<ThemeSettings>) => Promise<void>;
@@ -12,6 +19,9 @@ interface ThemeContextType {
   mutedColor: string;
   cardBg: string;
   borderColor: string;
+  primaryColor: string;
+  backgroundOverlayColor: string;
+  getAccentWithOpacity: (alpha: number) => string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -69,6 +79,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const mutedColor = 'rgba(255, 255, 255, 0.5)';
   const cardBg = 'rgba(255, 255, 255, 0.06)';
   const borderColor = 'rgba(255, 255, 255, 0.08)';
+  const primaryColor = theme.primaryColor;
+  const backgroundOverlayColor = hexToRgba(theme.primaryColor, 0.7);
+
+  function getAccentWithOpacity(alpha: number): string {
+    return hexToRgba(theme.primaryColor, alpha);
+  }
 
   return (
     <ThemeContext.Provider
@@ -82,6 +98,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         mutedColor,
         cardBg,
         borderColor,
+        primaryColor,
+        backgroundOverlayColor,
+        getAccentWithOpacity,
       }}
     >
       {children}

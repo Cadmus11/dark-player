@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   FAVORITES: '@lumora_favorites',
   PLAYLISTS: '@lumora_playlists',
   SEARCH_HISTORY: '@lumora_search_history',
+  PERMISSIONS_GRANTED: '@lumora_permissions_granted',
 } as const;
 
 export async function getThemeSettings(): Promise<ThemeSettings> {
@@ -170,4 +171,17 @@ export async function removeSearch(searchId: string): Promise<void> {
 
 export async function clearSearchHistory(): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify([]));
+}
+
+export async function getPermissionsGranted(): Promise<boolean> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.PERMISSIONS_GRANTED);
+    return stored === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setPermissionsGranted(value: boolean): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.PERMISSIONS_GRANTED, value ? 'true' : 'false');
 }

@@ -4,10 +4,10 @@
     "slug": "dark-player",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/black.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/lumora-name-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0a0a"
     },
@@ -27,7 +27,7 @@
     "android": {
       "package": "com.darkmanager.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/black.png",
         "backgroundColor": "#0a0a0a"
       },
       "permissions": [

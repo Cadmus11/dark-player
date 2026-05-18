@@ -14,6 +14,8 @@ import {
   saveSearch as saveSearchStorage,
   removeSearch as removeSearchStorage,
   clearSearchHistory as clearSearchHistoryStorage,
+  getPermissionsGranted as getPermissionsGrantedStorage,
+  setPermissionsGranted as setPermissionsGrantedStorage,
 } from '../services/StorageService';
 
 interface FileContextType {
@@ -32,6 +34,7 @@ interface FileContextType {
   pptFiles: FileItem[];
   textFiles: FileItem[];
   epubFiles: FileItem[];
+  otherDocs: FileItem[];
   recentFiles: FileItem[];
   recentlyPlayed: RecentlyPlayed[];
   currentPath: string;
@@ -65,6 +68,7 @@ const DOC_CATEGORIES: DocCategory[] = [
   { id: 'powerpoint', name: 'PowerPoint', icon: 'powerpoint', ext: ['ppt', 'pptx'], subType: 'powerpoint', count: 0, color: '#f39c12' },
   { id: 'text', name: 'Text', icon: 'text', ext: ['txt', 'rtf', 'md'], subType: 'text', count: 0, color: '#9b59b6' },
   { id: 'epub', name: 'EPUB', icon: 'epub', ext: ['epub'], subType: 'epub', count: 0, color: '#f39c12' },
+  { id: 'other', name: 'Other', icon: 'other', ext: [], subType: 'other', count: 0, color: '#718096' },
 ];
 
 const DEFAULT_PLAYER: PlayerState = {
@@ -97,6 +101,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [pptFiles, setPptFiles] = useState<FileItem[]>([]);
   const [textFiles, setTextFiles] = useState<FileItem[]>([]);
   const [epubFiles, setEpubFiles] = useState<FileItem[]>([]);
+  const [otherDocs, setOtherDocs] = useState<FileItem[]>([]);
   const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
   const [currentPath, setCurrentPath] = useState('/');
@@ -109,16 +114,21 @@ export function FileProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadPersistedData() {
-    const [recent, played, pls, searches] = await Promise.all([
+    const [recent, played, pls, searches, permGranted] = await Promise.all([
       getRecentFiles(),
       getRecentlyPlayed(),
       getPlaylists(),
       getSearchHistory(),
+      getPermissionsGrantedStorage(),
     ]);
     setRecentFiles(recent);
     setRecentlyPlayed(played);
     setPlaylists(pls);
     setSearchHistory(searches);
+    if (permGranted) {
+      setPermissionsGranted(true);
+      await refreshFiles();
+    }
   }
 
   const audioWithVideos = React.useMemo(() => {
@@ -146,12 +156,15 @@ export function FileProvider({ children }: { children: ReactNode }) {
         ? pptFiles.length
         : cat.subType === 'epub'
         ? epubFiles.length
+        : cat.subType === 'other'
+        ? otherDocs.length
         : textFiles.length,
   }));
 
   async function handleRequestPermissions() {
     const granted = await requestPermissions();
     setPermissionsGranted(granted);
+    await setPermissionsGrantedStorage(granted);
     if (granted) {
       await refreshFiles();
     }
@@ -176,15 +189,20 @@ export function FileProvider({ children }: { children: ReactNode }) {
       const epubDocs = scannedDocs.filter((f) => f.docSubType === 'epub');
       const otherFiles = scannedDocs.filter((f) => f.type === 'other');
 
-      setDocuments(allDocs.filter((f) => f.docSubType !== 'epub'));
+      const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
+      const categorizedDocs = allDocs.filter((f) => knownSubTypes.includes(f.docSubType || ''));
+      const uncategorizedDocs = allDocs.filter((f) => !knownSubTypes.includes(f.docSubType || ''));
+
+      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
       setEpubFiles(epubDocs);
+      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
       setFiles([...allMedia, ...allDocs, ...otherFiles]);
 
-      setPdfFiles(allDocs.filter((f) => f.docSubType === 'pdf'));
-      setWordFiles(allDocs.filter((f) => f.docSubType === 'word'));
-      setExcelFiles(allDocs.filter((f) => f.docSubType === 'excel'));
-      setPptFiles(allDocs.filter((f) => f.docSubType === 'powerpoint'));
-      setTextFiles(allDocs.filter((f) => f.docSubType === 'text'));
+      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
+      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
+      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
+      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
+      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
 
       const fileFolders = allMedia.filter((f) => f.type === 'folder');
       setFolders(fileFolders);
@@ -287,6 +305,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         pptFiles,
         textFiles,
         epubFiles,
+        otherDocs,
         recentFiles,
         recentlyPlayed,
         currentPath,

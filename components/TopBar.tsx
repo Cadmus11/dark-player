@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { useLanguage } from '../context/LanguageContext';
+import { useFont } from '../context/FontContext';
 
 export function TopBar() {
+  const { t } = useLanguage();
+  const { fontFamily } = useFont();
+
   return (
     <View style={styles.container}>
       <Image source={require('../assets/lumora-circle.png')} style={styles.avatar} />
-      <Text style={styles.username}>Lumora</Text>
+      <Text style={[styles.username, fontFamily ? { fontFamily } : undefined]}>{t('topbar.title')}</Text>
     </View>
   );
 }
