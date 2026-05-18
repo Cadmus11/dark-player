@@ -9,7 +9,7 @@ export function TopBar() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/lumora-circle.png')} style={styles.avatar} />
+      <Image source={require('../assets/icon.png')} style={styles.avatar} />
       <Text style={[styles.username, fontFamily ? { fontFamily } : undefined]}>{t('topbar.title')}</Text>
     </View>
   );

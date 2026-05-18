@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode, useCallback } from 'react';
 import type { FileItem, Category, DocCategory, PlayerState, Playlist, SavedSearch, RecentlyPlayed, LayoutMode } from '../types';
 import { getMediaFiles, scanDocuments, requestPermissions } from '../services/FileService';
 import {
@@ -136,14 +136,14 @@ export function FileProvider({ children }: { children: ReactNode }) {
     return sorted;
   }, [audio, videos]);
 
-  const categories: Category[] = [
+  const categories = useMemo<Category[]>(() => [
     { id: 'images', name: 'Images', icon: 'images', type: 'image', count: images.length, color: '#e17055' },
     { id: 'videos', name: 'Videos', icon: 'videos', type: 'video', count: videos.length, color: '#6c5ce7' },
     { id: 'music', name: 'Music', icon: 'music', type: 'audio', count: audio.length, color: '#00cec9' },
     { id: 'documents', name: 'Documents', icon: 'documents', type: 'document', count: documents.length + epubFiles.length, color: '#fdcb6e' },
-  ];
+  ], [images.length, videos.length, audio.length, documents.length, epubFiles.length]);
 
-  const docCategories = DOC_CATEGORIES.map((cat) => ({
+  const docCategories = useMemo(() => DOC_CATEGORIES.map((cat) => ({
     ...cat,
     count:
       cat.subType === 'pdf'
@@ -159,16 +159,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
         : cat.subType === 'other'
         ? otherDocs.length
         : textFiles.length,
-  }));
-
-  async function handleRequestPermissions() {
-    const granted = await requestPermissions();
-    setPermissionsGranted(granted);
-    await setPermissionsGrantedStorage(granted);
-    if (granted) {
-      await refreshFiles();
-    }
-  }
+  })), [pdfFiles.length, wordFiles.length, excelFiles.length, pptFiles.length, textFiles.length, epubFiles.length, otherDocs.length]);
 
   async function refreshFiles() {
     setLoading(true);
@@ -208,6 +199,15 @@ export function FileProvider({ children }: { children: ReactNode }) {
       setFolders(fileFolders);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRequestPermissions() {
+    const granted = await requestPermissions();
+    setPermissionsGranted(granted);
+    await setPermissionsGrantedStorage(granted);
+    if (granted) {
+      await refreshFiles();
     }
   }
 

@@ -93,3 +93,11 @@ export interface SavedSearch {
 }
 
 export type LayoutMode = 'grid' | 'list';
+
+export type SortField = 'name' | 'date' | 'size' | 'type' | 'duration' | 'artist';
+export type SortDirection = 'asc' | 'desc';
+
+export interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}

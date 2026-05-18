@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ export function SearchScreen() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
   const [isFocused, setIsFocused] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -69,8 +70,9 @@ export function SearchScreen() {
 
   const handleSearch = (text: string) => {
     setQuery(text);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     if (text.trim()) {
-      saveSearch(text.trim());
+      searchTimer.current = setTimeout(() => saveSearch(text.trim()), 500);
     }
   };
 
@@ -171,6 +173,10 @@ export function SearchScreen() {
         keyExtractor={(item) => item.uri}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        windowSize={7}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews
+        initialNumToRender={8}
         ListEmptyComponent={
           query.trim() ? (
             <View style={styles.emptyContainer}>

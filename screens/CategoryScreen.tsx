@@ -159,6 +159,10 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
           numColumns={3}
           contentContainerStyle={styles.imageGrid}
           showsVerticalScrollIndicator={false}
+          windowSize={5}
+          maxToRenderPerBatch={9}
+          removeClippedSubviews
+          initialNumToRender={9}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <CategoryIcon size={64} color="rgba(255, 255, 255, 0.5)" />
@@ -188,6 +192,10 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         keyExtractor={(item) => item.uri}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        windowSize={7}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews
+        initialNumToRender={8}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <CategoryIcon size={64} color="rgba(255, 255, 255, 0.5)" />

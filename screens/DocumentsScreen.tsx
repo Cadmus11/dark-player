@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -75,27 +75,40 @@ export function DocumentsScreen() {
     </TouchableOpacity>
   );
 
-  const allDocs = [...pdfFiles, ...wordFiles, ...excelFiles, ...pptFiles, ...textFiles, ...epubFiles, ...otherDocs].sort(
+  const allDocs = useMemo(() => [...pdfFiles, ...wordFiles, ...excelFiles, ...pptFiles, ...textFiles, ...epubFiles, ...otherDocs].sort(
     (a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0)
-  );
+  ), [pdfFiles, wordFiles, excelFiles, pptFiles, textFiles, epubFiles, otherDocs]);
+
+  const flatData = useMemo(() => {
+    const items: any[] = docCategories;
+    if (allDocs.length > 0) {
+      items.push({ id: 'divider', isDivider: true });
+      for (const doc of allDocs) items.push(doc);
+    }
+    return items;
+  }, [docCategories, allDocs]);
 
   return (
     <View style={[styles.container, { backgroundColor: '#18181b' }]}>
       <TopBar />
       <FlatList
-        data={[...docCategories, ...(allDocs.length > 0 ? [{ id: 'divider', name: '', icon: '', ext: [], subType: 'other' as any, count: 0, color: '' }] : []), ...allDocs] as (DocCategory | FileItem)[]}
-        renderItem={({ item }) => {
-          if ('id' in item && (item as DocCategory).id === 'divider') {
+        data={flatData as any}
+        renderItem={({ item }: any) => {
+          if (item.isDivider) {
             return <View style={styles.divider}><Text style={[styles.dividerText, { color: mutedColor }]}>All Documents</Text></View>;
           }
-          if ('type' in item) {
+          if (item.uri) {
             return renderFileItem({ item: item as FileItem });
           }
           return renderCategoryCard({ item: item as DocCategory });
         }}
-        keyExtractor={(item, index) => ('id' in item ? item.id : (item as FileItem).uri) + index.toString()}
+        keyExtractor={(item: any) => item.isDivider ? 'divider' : item.id || item.uri}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        windowSize={7}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews
+        initialNumToRender={8}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <FileText size={64} color={mutedColor} />

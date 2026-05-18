@@ -170,6 +170,7 @@ export async function scanDocuments(): Promise<FileItem[]> {
 
   const found: FileItem[] = [];
   const scanned = new Set<string>();
+  const uriSet = new Set<string>();
 
   const dirs: string[] = [];
   try {
@@ -186,23 +187,23 @@ export async function scanDocuments(): Promise<FileItem[]> {
       const entries = await FileSystem.readDirectoryAsync(dir);
       for (const entry of entries) {
         const entryUri = (dir.endsWith('/') ? dir : dir + '/') + entry;
+        if (uriSet.has(entryUri)) continue;
         const fileType = getFileType(entry);
         if (fileType === 'document' || fileType === 'other') {
           try {
             const info = await FileSystem.getInfoAsync(entryUri, { size: true });
             if (info.exists && !info.isDirectory) {
+              uriSet.add(entryUri);
               const docSubType = fileType === 'document' ? getDocumentSubType(entry) : undefined;
-              if (![...found].some(f => f.uri === entryUri)) {
-                found.push({
-                  uri: entryUri,
-                  name: entry,
-                  type: fileType,
-                  docSubType,
-                  size: 'size' in info ? info.size : undefined,
-                  parentUri: dir,
-                  artColor: getArtColor(entry),
-                });
-              }
+              found.push({
+                uri: entryUri,
+                name: entry,
+                type: fileType,
+                docSubType,
+                size: 'size' in info ? info.size : undefined,
+                parentUri: dir,
+                artColor: getArtColor(entry),
+              });
             }
           } catch {}
         }
@@ -221,20 +222,20 @@ export async function scanDocuments(): Promise<FileItem[]> {
       if (permissions.granted) {
         const uris = await SAF.readDirectoryAsync(permissions.directoryUri);
         for (const uri of uris) {
+          if (uriSet.has(uri)) continue;
           const name = uri.split('/').pop() || uri;
           const fileType = getFileType(name);
           if (fileType === 'document' || fileType === 'other') {
+            uriSet.add(uri);
             const docSubType = fileType === 'document' ? getDocumentSubType(name) : undefined;
-            if (![...found].some(f => f.uri === uri)) {
-              found.push({
-                uri,
-                name,
-                type: fileType,
-                docSubType,
-                parentUri: permissions.directoryUri,
-                artColor: getArtColor(name),
-              });
-            }
+            found.push({
+              uri,
+              name,
+              type: fileType,
+              docSubType,
+              parentUri: permissions.directoryUri,
+              artColor: getArtColor(name),
+            });
           }
         }
       }
@@ -251,9 +252,10 @@ export async function scanDocuments(): Promise<FileItem[]> {
         mediaType: ['audio', 'video', 'photo', 'unknown'] as any,
       });
       for (const asset of assets) {
+        if (uriSet.has(asset.uri)) continue;
         const fileType = getFileType(asset.filename);
-        if ((fileType === 'document' || fileType === 'other') && !scanned.has(asset.uri)) {
-          scanned.add(asset.uri);
+        if (fileType === 'document' || fileType === 'other') {
+          uriSet.add(asset.uri);
           found.push({
             uri: asset.uri,
             name: asset.filename,

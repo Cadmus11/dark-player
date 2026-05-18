@@ -271,6 +271,14 @@ export function SettingsScreen() {
             </View>
           ))}
         </View>
+        <View style={styles.aboutFooter}>
+          <Image
+            source={require('../assets/lumora-new-style.png')}
+            style={styles.aboutLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.aboutCredit}>By Cadmus Labs</Text>
+        </View>
       </View>
     </>
   );
@@ -503,6 +511,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  aboutFooter: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    marginTop: 16,
+  },
+  aboutLogo: {
+    width: 120,
+    height: 40,
+    marginBottom: 8,
+  },
+  aboutCredit: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   languageName: { fontSize: 16, color: '#ffffff', flex: 1 },
   languageEnglishName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)', marginRight: 12 },
