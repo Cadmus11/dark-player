@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -19,7 +20,10 @@ import { VideoPlayerScreen } from './screens/VideoPlayerScreen';
 import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { ImageViewerScreen } from './screens/ImageViewerScreen';
 import { DocumentViewerScreen } from './screens/DocumentViewerScreen';
+import { DocumentReaderScreen } from './screens/DocumentReaderScreen';
 import { BottomTabBar } from './components/BottomTabBar';
+import { MiniPlayer } from './components/player/MiniPlayer';
+import { NowPlayingBar } from './components/player/NowPlayingBar';
 import type { FileItem, FileType, DocumentSubType } from './types';
 import './global.css';
 
@@ -39,6 +43,7 @@ export type RootStackParamList = {
   MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
   ImageViewer: { file: FileItem };
   DocumentViewer: { file: FileItem };
+  DocumentReader: { file: FileItem };
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -46,17 +51,21 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 function MainTabs() {
   return (
-    <Tab.Navigator
-      tabBar={(props) => <BottomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="MusicTab" component={MusicScreen} />
-      <Tab.Screen name="VideosTab" component={VideosScreen} />
-      <Tab.Screen name="DocumentsTab" component={DocumentsScreen} />
-      <Tab.Screen name="SearchTab" component={SearchScreen} />
-      <Tab.Screen name="SettingsTab" component={SettingsScreen} />
-    </Tab.Navigator>
+    <View style={{ flex: 1, backgroundColor: '#06060B' }}>
+      <Tab.Navigator
+        tabBar={(props) => <BottomTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tab.Screen name="HomeTab" component={HomeScreen} />
+        <Tab.Screen name="MusicTab" component={MusicScreen} />
+        <Tab.Screen name="VideosTab" component={VideosScreen} />
+        <Tab.Screen name="DocumentsTab" component={DocumentsScreen} />
+        <Tab.Screen name="SearchTab" component={SearchScreen} />
+        <Tab.Screen name="SettingsTab" component={SettingsScreen} />
+      </Tab.Navigator>
+      <NowPlayingBar />
+      <MiniPlayer />
+    </View>
   );
 }
 
@@ -80,6 +89,7 @@ export default function App() {
               <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
               <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
               <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
+              <Stack.Screen name="DocumentReader" component={DocumentReaderScreen} />
             </Stack.Navigator>
           </NavigationContainer>
           <StatusBar style="auto" />

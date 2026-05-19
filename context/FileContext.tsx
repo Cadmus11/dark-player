@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode, useCallback } from 'react';
-import type { FileItem, Category, DocCategory, PlayerState, Playlist, SavedSearch, RecentlyPlayed, LayoutMode } from '../types';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import type { FileItem, Category, DocCategory, PlayerState, Playlist, SavedSearch, RecentlyPlayed, LayoutMode, RecentlyDeleted, HiddenFilesSettings } from '../types';
 import { getMediaFiles, scanDocuments, requestPermissions } from '../services/FileService';
+import { MediaCacheService } from '../services/MediaCacheService';
 import {
   getRecentFiles,
   addToRecentFiles,
@@ -16,6 +17,11 @@ import {
   clearSearchHistory as clearSearchHistoryStorage,
   getPermissionsGranted as getPermissionsGrantedStorage,
   setPermissionsGranted as setPermissionsGrantedStorage,
+  getRecentlyDeleted as getRecentlyDeletedStorage,
+  addToRecentlyDeleted as addToRecentlyDeletedStorage,
+  clearRecentlyDeleted as clearRecentlyDeletedStorage,
+  getHiddenFilesSettings as getHiddenFilesSettingsStorage,
+  saveHiddenFilesSettings as saveHiddenFilesSettingsStorage,
 } from '../services/StorageService';
 
 interface FileContextType {
@@ -42,6 +48,11 @@ interface FileContextType {
   playlists: Playlist[];
   docCategories: DocCategory[];
   searchHistory: SavedSearch[];
+  recentlyDeleted: RecentlyDeleted[];
+  hiddenFiles: FileItem[];
+  hiddenFilesCount: number;
+  hiddenFilesSettings: HiddenFilesSettings;
+  isReady: boolean;
   requestPermissions: () => Promise<void>;
   refreshFiles: () => Promise<void>;
   setCurrentPath: (path: string) => void;
@@ -53,6 +64,9 @@ interface FileContextType {
   removePlaylist: (playlistId: string) => Promise<void>;
   setPlaylistCover: (playlistId: string, coverUri: string) => Promise<void>;
   recordRecentlyPlayed: (file: FileItem) => Promise<void>;
+  recordRecentlyDeleted: (file: FileItem) => Promise<void>;
+  clearRecentlyDeleted: () => Promise<void>;
+  updateHiddenFilesSettings: (settings: HiddenFilesSettings) => Promise<void>;
   saveSearch: (query: string) => Promise<void>;
   removeSearch: (id: string) => Promise<void>;
   clearSearchHistory: () => Promise<void>;
@@ -86,10 +100,26 @@ const DEFAULT_PLAYER: PlayerState = {
   equalizer: {},
 };
 
+function categorizeDocuments(scannedDocs: FileItem[]) {
+  const allDocs = scannedDocs.filter((f) => f.type === 'document');
+  const epubDocs = scannedDocs.filter((f) => f.docSubType === 'epub');
+  const otherFiles = scannedDocs.filter((f) => f.type === 'other');
+  const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
+  const categorizedDocs = allDocs.filter((f) => knownSubTypes.includes(f.docSubType || ''));
+  const uncategorizedDocs = allDocs.filter((f) => !knownSubTypes.includes(f.docSubType || ''));
+  return {
+    allDocs,
+    epubDocs,
+    otherFiles,
+    categorizedDocs,
+    uncategorizedDocs,
+  };
+}
+
 export function FileProvider({ children }: { children: ReactNode }) {
   const [permissionsGranted, setPermissionsGranted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
   const [images, setImages] = useState<FileItem[]>([]);
   const [videos, setVideos] = useState<FileItem[]>([]);
   const [audio, setAudio] = useState<FileItem[]>([]);
@@ -108,30 +138,168 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [musicPlayer, setMusicPlayerState] = useState<PlayerState>(DEFAULT_PLAYER);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
+  const [recentlyDeleted, setRecentlyDeleted] = useState<RecentlyDeleted[]>([]);
+  const [hiddenFilesSettings, setHiddenFilesSettings] = useState<HiddenFilesSettings>({
+    hideShortSongs: true,
+    minDurationSeconds: 15,
+    hideOpus: true,
+    hideExtensions: ['opus'],
+  });
+  const backgroundRefreshRef = useRef(false);
 
   useEffect(() => {
-    loadPersistedData();
+    initializeApp();
   }, []);
 
-  async function loadPersistedData() {
-    const [recent, played, pls, searches, permGranted] = await Promise.all([
+  async function initializeApp() {
+    const hasCache = MediaCacheService.hasCachedData();
+
+    if (hasCache) {
+      loadCachedFilesInstantly();
+      setLoading(false);
+      setIsReady(true);
+    }
+
+    const [recent, played, pls, searches, permGranted, deleted, hfSettings] = await Promise.all([
       getRecentFiles(),
       getRecentlyPlayed(),
       getPlaylists(),
       getSearchHistory(),
       getPermissionsGrantedStorage(),
+      getRecentlyDeletedStorage(),
+      getHiddenFilesSettingsStorage(),
     ]);
+
     setRecentFiles(recent);
     setRecentlyPlayed(played);
     setPlaylists(pls);
     setSearchHistory(searches);
+    setRecentlyDeleted(deleted);
+    setHiddenFilesSettings(hfSettings);
+
     if (permGranted) {
       setPermissionsGranted(true);
+      if (hasCache) {
+        backgroundRefreshRef.current = true;
+        backgroundRefreshFiles();
+      } else {
+        setLoading(true);
+        await refreshFiles();
+        setLoading(false);
+        setIsReady(true);
+      }
+    } else if (hasCache) {
+      setLoading(false);
+      setIsReady(true);
+    }
+  }
+
+  function loadCachedFilesInstantly() {
+    const cachedImages = MediaCacheService.getImages();
+    const cachedVideos = MediaCacheService.getVideos();
+    const cachedAudio = MediaCacheService.getAudio();
+    const cachedDocuments = MediaCacheService.getDocuments();
+    const cachedEpub = MediaCacheService.getEpub();
+    const cachedOther = MediaCacheService.getOther();
+
+    setImages(cachedImages);
+    setVideos(cachedVideos);
+    setAudio(cachedAudio);
+    setDocuments(cachedDocuments);
+    setEpubFiles(cachedEpub);
+    setOtherDocs(cachedOther);
+
+    const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
+    const categorizedDocs = cachedDocuments.filter((f) => knownSubTypes.includes(f.docSubType || ''));
+    setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
+    setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
+    setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
+    setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
+    setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
+
+    const allMedia = [...cachedImages, ...cachedVideos, ...cachedAudio];
+    setFiles([...allMedia, ...cachedDocuments, ...cachedOther]);
+    setFolders(allMedia.filter((f) => f.type === 'folder'));
+  }
+
+  async function backgroundRefreshFiles() {
+    try {
+      const [mediaImages, mediaVideos, mediaAudio, scannedDocs] = await Promise.all([
+        getMediaFiles('image'),
+        getMediaFiles('video'),
+        getMediaFiles('audio'),
+        scanDocuments(),
+      ]);
+
+      const { allDocs, epubDocs, otherFiles, categorizedDocs, uncategorizedDocs } = categorizeDocuments(scannedDocs);
+
+      MediaCacheService.saveAll(mediaImages, mediaVideos, mediaAudio, categorizedDocs.filter((f) => f.docSubType !== 'epub'), epubDocs, [...uncategorizedDocs, ...otherFiles]);
+
+      setImages(mediaImages);
+      setVideos(mediaVideos);
+      setAudio(mediaAudio);
+      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
+      setEpubFiles(epubDocs);
+      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
+      setFiles([...mediaImages, ...mediaVideos, ...mediaAudio, ...allDocs, ...otherFiles]);
+      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
+      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
+      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
+      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
+      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
+      setFolders([...mediaImages, ...mediaVideos, ...mediaAudio].filter((f) => f.type === 'folder'));
+    } catch {
+    } finally {
+      backgroundRefreshRef.current = false;
+    }
+  }
+
+  const files = useMemo(() => {
+    const allMedia = [...images, ...videos, ...audio];
+    return [...allMedia, ...documents, ...epubFiles, ...otherDocs];
+  }, [images, videos, audio, documents, epubFiles, otherDocs]);
+
+  async function refreshFiles() {
+    setLoading(true);
+    try {
+      const [mediaImages, mediaVideos, mediaAudio, scannedDocs] = await Promise.all([
+        getMediaFiles('image'),
+        getMediaFiles('video'),
+        getMediaFiles('audio'),
+        scanDocuments(),
+      ]);
+
+      const { allDocs, epubDocs, otherFiles, categorizedDocs, uncategorizedDocs } = categorizeDocuments(scannedDocs);
+
+      MediaCacheService.saveAll(mediaImages, mediaVideos, mediaAudio, categorizedDocs.filter((f) => f.docSubType !== 'epub'), epubDocs, [...uncategorizedDocs, ...otherFiles]);
+
+      setImages(mediaImages);
+      setVideos(mediaVideos);
+      setAudio(mediaAudio);
+      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
+      setEpubFiles(epubDocs);
+      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
+      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
+      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
+      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
+      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
+      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
+      setFolders([...mediaImages, ...mediaVideos, ...mediaAudio].filter((f) => f.type === 'folder'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRequestPermissions() {
+    const granted = await requestPermissions();
+    setPermissionsGranted(granted);
+    await setPermissionsGrantedStorage(granted);
+    if (granted) {
       await refreshFiles();
     }
   }
 
-  const audioWithVideos = React.useMemo(() => {
+  const audioWithVideos = useMemo(() => {
     const sorted = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
     return sorted;
   }, [audio, videos]);
@@ -160,56 +328,6 @@ export function FileProvider({ children }: { children: ReactNode }) {
         ? otherDocs.length
         : textFiles.length,
   })), [pdfFiles.length, wordFiles.length, excelFiles.length, pptFiles.length, textFiles.length, epubFiles.length, otherDocs.length]);
-
-  async function refreshFiles() {
-    setLoading(true);
-    try {
-      const [mediaImages, mediaVideos, mediaAudio, scannedDocs] = await Promise.all([
-        getMediaFiles('image'),
-        getMediaFiles('video'),
-        getMediaFiles('audio'),
-        scanDocuments(),
-      ]);
-
-      setImages(mediaImages);
-      setVideos(mediaVideos);
-      setAudio(mediaAudio);
-
-      const allMedia = [...mediaImages, ...mediaVideos, ...mediaAudio];
-      const allDocs = scannedDocs.filter((f) => f.type === 'document');
-      const epubDocs = scannedDocs.filter((f) => f.docSubType === 'epub');
-      const otherFiles = scannedDocs.filter((f) => f.type === 'other');
-
-      const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
-      const categorizedDocs = allDocs.filter((f) => knownSubTypes.includes(f.docSubType || ''));
-      const uncategorizedDocs = allDocs.filter((f) => !knownSubTypes.includes(f.docSubType || ''));
-
-      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
-      setEpubFiles(epubDocs);
-      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
-      setFiles([...allMedia, ...allDocs, ...otherFiles]);
-
-      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
-      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
-      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
-      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
-      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
-
-      const fileFolders = allMedia.filter((f) => f.type === 'folder');
-      setFolders(fileFolders);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRequestPermissions() {
-    const granted = await requestPermissions();
-    setPermissionsGranted(granted);
-    await setPermissionsGrantedStorage(granted);
-    if (granted) {
-      await refreshFiles();
-    }
-  }
 
   function setMusicPlayer(state: Partial<PlayerState>) {
     setMusicPlayerState((prev) => ({ ...prev, ...state }));
@@ -287,11 +405,41 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setSearchHistory([]);
   }
 
+  async function recordRecentlyDeleted(file: FileItem) {
+    await addToRecentlyDeletedStorage(file);
+    const deleted = await getRecentlyDeletedStorage();
+    setRecentlyDeleted(deleted);
+  }
+
+  async function clearRecentlyDeleted() {
+    await clearRecentlyDeletedStorage();
+    setRecentlyDeleted([]);
+  }
+
+  async function updateHiddenFilesSettings(settings: HiddenFilesSettings) {
+    await saveHiddenFilesSettingsStorage(settings);
+    setHiddenFilesSettings(settings);
+  }
+
+  const hiddenFiles = useMemo(() => {
+    const hidden: FileItem[] = [];
+    for (const item of audio) {
+      const isShortSong = hiddenFilesSettings.hideShortSongs && item.duration && item.duration < hiddenFilesSettings.minDurationSeconds * 1000;
+      const ext = item.name.split('.').pop()?.toLowerCase() || '';
+      const isHiddenExt = hiddenFilesSettings.hideExtensions.includes(ext);
+      if (isShortSong || isHiddenExt) {
+        hidden.push(item);
+      }
+    }
+    return hidden;
+  }, [audio, hiddenFilesSettings]);
+
   return (
     <FileContext.Provider
       value={{
         permissionsGranted,
         loading,
+        isReady,
         files,
         images,
         videos,
@@ -324,10 +472,17 @@ export function FileProvider({ children }: { children: ReactNode }) {
         removePlaylist,
         setPlaylistCover,
         recordRecentlyPlayed,
+        recordRecentlyDeleted,
+        clearRecentlyDeleted,
+        updateHiddenFilesSettings,
         saveSearch,
         removeSearch,
         clearSearchHistory,
         categories,
+        recentlyDeleted,
+        hiddenFiles,
+        hiddenFilesCount: hiddenFiles.length,
+        hiddenFilesSettings,
       }}
     >
       {children}

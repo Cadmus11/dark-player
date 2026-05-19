@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import {
@@ -25,29 +24,35 @@ import {
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
-import { setupAudioMode, setSoundRef, setCurrentMedia, setPlaying, setCallbacks } from '../services/BackgroundPlaybackService';
+import { setupTrackPlayer, TrackPlayer, addTracks, clearQueue } from '../services/TrackPlayerSetup';
+import { playbackManager } from '../services/Playback/PlaybackManager';
+import { usePlaybackStore } from '../stores/playbackStore';
+import { HistoryService } from '../services/History/HistoryService';
 import type { FileItem, Playlist } from '../types';
 import { NeonSlider } from '../components/NeonSlider';
+import TrackPlayerModule from 'react-native-track-player';
 
 type MusicPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'MusicPlayer'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps) {
   const { file } = route.params;
   const { setMusicPlayer, playlists, createPlaylist, addToPlaylist, videos, audio, recordRecentlyPlayed } = useFiles();
   const { primaryColor } = useTheme();
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
+  const [isTrackPlayerReady, setIsTrackPlayerReady] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showLyrics, setShowLyrics] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<'none' | 'one' | 'all'>('none');
+  const playbackStore = usePlaybackStore();
   const [showVideoQueue, setShowVideoQueue] = useState(false);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [showEqualizerModal, setShowEqualizerModal] = useState(false);
@@ -56,37 +61,50 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     '60Hz': 0, '170Hz': 0, '310Hz': 0, '600Hz': 0, '1kHz': 0, '3kHz': 0, '6kHz': 0, '12kHz': 0, '14kHz': 0, '16kHz': 0,
   });
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const audioWithVideos = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
   const queue = showVideoQueue ? audioWithVideos : (audio.length > 0 ? audio : [file]);
 
-  const isPlaying = status && 'isPlaying' in status ? status.isPlaying : false;
+  useEffect(() => {
+    playbackManager.startAudioSession();
+    initializePlayer();
+    return () => {
+      playbackManager.stopPlayback();
+      if (progressPollRef.current) clearInterval(progressPollRef.current);
+    };
+  }, []);
 
   useEffect(() => {
-    setupAudioMode();
+    playbackStore.setCurrentFile(queue[currentIndex] || file);
+    playbackStore.setSource('music');
+    playbackStore.setIsPlaying(isPlaying);
+    playbackStore.setPosition(position);
+    playbackStore.setDuration(duration);
+  }, [currentIndex, isPlaying, position, duration]);
+
+  useEffect(() => {
     const idx = queue.findIndex((f) => f.uri === file.uri);
     if (idx >= 0) setCurrentIndex(idx);
-    loadSound(file);
-    recordRecentlyPlayed(file);
-    setCallbacks({
-      onNext: () => handleNext(),
-      onPrev: () => handlePrev(),
-      onToggle: (playing) => {
-        if (playing) sound?.playAsync();
-        else sound?.pauseAsync();
-      },
-    });
-    return () => {
-      sound?.unloadAsync();
-      setSoundRef(null);
-    };
-  }, [file.uri]);
+    if (isTrackPlayerReady) loadQueue(queue);
+  }, [file.uri, isTrackPlayerReady, showVideoQueue]);
 
   useEffect(() => {
-    if (status && 'didJustFinish' in status && status.didJustFinish) {
-      handleNext();
+    if (isPlaying) {
+      progressPollRef.current = setInterval(async () => {
+        try {
+          const progress = await TrackPlayer.getProgress();
+          setPosition(progress.position * 1000);
+          setDuration(progress.duration * 1000);
+        } catch {}
+      }, 250);
+    } else {
+      if (progressPollRef.current) clearInterval(progressPollRef.current);
     }
-  }, [status]);
+    return () => {
+      if (progressPollRef.current) clearInterval(progressPollRef.current);
+    };
+  }, [isPlaying]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -101,93 +119,135 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     }
   }, [isPlaying]);
 
-  async function loadSound(fileItem: FileItem) {
-    try {
-      if (sound) await sound.unloadAsync();
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: fileItem.uri },
-        { shouldPlay: true, rate: playbackSpeed },
-        onPlaybackStatusUpdate
-      );
-      setSound(newSound);
-      setSoundRef(newSound);
-      setCurrentMedia(fileItem);
-      setPlaying(true);
-    } catch (e) {
-      console.warn('Failed to load sound:', e);
+  useEffect(() => {
+    const sub = TrackPlayerModule.addEventListener('playback-queue-ended', async (event) => {
+      if (event.track === null) return;
+      if (repeat === 'one') {
+        await TrackPlayer.seekTo(0);
+        await TrackPlayer.play();
+      } else {
+        const nextIndex = currentIndex + 1;
+        if (nextIndex >= queue.length) {
+          if (repeat === 'all') {
+            setCurrentIndex(0);
+            await TrackPlayer.skip(0);
+            await TrackPlayer.play();
+          }
+        } else {
+          setCurrentIndex(nextIndex);
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [currentIndex, queue.length, repeat]);
+
+  async function initializePlayer() {
+    const ready = await setupTrackPlayer();
+    if (ready) {
+      setIsTrackPlayerReady(true);
+      await loadQueue(queue);
+      recordRecentlyPlayed(file);
     }
   }
 
-  function onPlaybackStatusUpdate(newStatus: AVPlaybackStatus) {
-    setStatus(newStatus);
-    if ('isLoaded' in newStatus && 'isPlaying' in newStatus) {
-      setPlaying((newStatus as any).isPlaying);
+  async function loadQueue(tracks: FileItem[]) {
+    await clearQueue();
+    const trackList = tracks.map((f, i) => ({
+      id: f.uri,
+      url: f.uri,
+      title: f.name,
+      artist: f.artist || 'Local File',
+      album: f.album || '',
+      artwork: f.thumbnail || undefined,
+      duration: f.duration ? f.duration / 1000 : undefined,
+    }));
+    await addTracks(trackList);
+    const idx = tracks.findIndex((f) => f.uri === file.uri);
+    if (idx >= 0) {
+      setCurrentIndex(idx);
+      await TrackPlayer.skip(idx);
+      await TrackPlayer.play();
+      setIsPlaying(true);
+      HistoryService.record(file, 0, 'audio');
     }
   }
 
   async function togglePlayback() {
-    if (!sound) return;
     try {
-      if (isPlaying) { await sound.pauseAsync(); setPlaying(false); }
-      else { await sound.playAsync(); setPlaying(true); }
-    } catch (e) {
-      console.warn('Toggle playback failed:', e);
-    }
-  }
-
-  function getNextIndex(): number {
-    if (repeat === 'one') return currentIndex;
-    if (shuffle) return Math.floor(Math.random() * queue.length);
-    const next = currentIndex + 1;
-    if (next >= queue.length) return repeat === 'all' ? 0 : currentIndex;
-    return next;
-  }
-
-  function getPrevIndex(): number {
-    if (repeat === 'one') return currentIndex;
-    if (shuffle) return Math.floor(Math.random() * queue.length);
-    const prev = currentIndex - 1;
-    if (prev < 0) return repeat === 'all' ? queue.length - 1 : 0;
-    return prev;
+      const state = await TrackPlayer.getPlaybackState();
+      if (state.state === 'playing') {
+        await TrackPlayer.pause();
+        setIsPlaying(false);
+      } else {
+        await TrackPlayer.play();
+        setIsPlaying(true);
+      }
+    } catch {}
   }
 
   async function handleNext() {
     if (queue.length === 0) return;
-    try {
-      const nextIndex = getNextIndex();
-      const nextFile = queue[nextIndex];
-      setCurrentIndex(nextIndex);
-      setMusicPlayer({ currentFile: nextFile });
-      await loadSound(nextFile);
-    } catch (e) {
-      console.warn('Next track failed:', e);
+    if (shuffle) {
+      const next = Math.floor(Math.random() * queue.length);
+      setCurrentIndex(next);
+      await TrackPlayer.skip(next);
+    } else {
+      const next = currentIndex + 1;
+      if (next >= queue.length) {
+        if (repeat === 'all') {
+          setCurrentIndex(0);
+          await TrackPlayer.skip(0);
+        } else {
+          return;
+        }
+      } else {
+        setCurrentIndex(next);
+        await TrackPlayer.skip(next);
+      }
     }
+    await TrackPlayer.play();
+    setIsPlaying(true);
+    HistoryService.record(queue[currentIndex] || file, 0, 'audio');
   }
 
   async function handlePrev() {
     if (queue.length === 0) return;
     try {
-      if ((position as number) > 3000) {
-        await sound?.setPositionAsync(0);
+      const progress = await TrackPlayer.getProgress();
+      if (progress.position > 3) {
+        await TrackPlayer.seekTo(0);
         return;
       }
-      const prevIndex = getPrevIndex();
-      const prevFile = queue[prevIndex];
-      setCurrentIndex(prevIndex);
-      setMusicPlayer({ currentFile: prevFile });
-      await loadSound(prevFile);
-    } catch (e) {
-      console.warn('Prev track failed:', e);
+    } catch {}
+    if (shuffle) {
+      const prev = Math.floor(Math.random() * queue.length);
+      setCurrentIndex(prev);
+      await TrackPlayer.skip(prev);
+    } else {
+      const prev = currentIndex - 1;
+      if (prev < 0) {
+        if (repeat === 'all') {
+          setCurrentIndex(queue.length - 1);
+          await TrackPlayer.skip(queue.length - 1);
+        } else {
+          setCurrentIndex(0);
+          await TrackPlayer.skip(0);
+        }
+      } else {
+        setCurrentIndex(prev);
+        await TrackPlayer.skip(prev);
+      }
     }
+    await TrackPlayer.play();
+    setIsPlaying(true);
+    HistoryService.record(queue[currentIndex] || file, 0, 'audio');
   }
 
   async function seekTo(percentage: number) {
-    if (!sound || !duration) return;
+    if (!duration) return;
     try {
-      await sound.setPositionAsync(Math.round(percentage * duration));
-    } catch (e) {
-      console.warn('Seek failed:', e);
-    }
+      await TrackPlayer.seekTo(percentage * duration / 1000);
+    } catch {}
   }
 
   function toggleRepeat() {
@@ -201,7 +261,9 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     if (index >= 0) {
       setCurrentIndex(index);
       setMusicPlayer({ currentFile: item });
-      await loadSound(item);
+      await TrackPlayer.skip(index);
+      await TrackPlayer.play();
+      setIsPlaying(true);
     }
     setShowQueueModal(false);
   }
@@ -220,15 +282,13 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   async function changeSpeed(speed: number) {
     setPlaybackSpeed(speed);
-    if (sound) {
-      await sound.setRateAsync(speed, true);
-    }
+    try {
+      await TrackPlayer.setRate(speed);
+    } catch {}
     setShowSpeedModal(false);
   }
 
-  const position = status && 'positionMillis' in status ? status.positionMillis : 0;
-  const duration = status && 'durationMillis' in status ? (status.durationMillis ?? 0) : 0;
-  const progress = duration > 0 ? (position as number) / duration : 0;
+  const progress = duration > 0 ? position / duration : 0;
   const currentItem = queue[currentIndex] || file;
   const artColor = currentItem?.artColor || primaryColor;
   const isVideo = currentItem?.type === 'video';
@@ -239,7 +299,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   return (
     <View style={[styles.container, { backgroundColor: '#18181b' }]}>
-      {/* Dynamic Background */}
       <View style={StyleSheet.absoluteFill}>
         {currentItem?.thumbnail ? (
           <Image
@@ -265,7 +324,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Album Art */}
           <View style={styles.albumArtContainer}>
             <View style={[styles.albumArt, { borderColor: artColor + '40', shadowColor: artColor }]}>
               <Animated.View
@@ -288,7 +346,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
             </View>
           </View>
 
-          {/* Track Info */}
           <View style={styles.trackInfo}>
             <Text style={[styles.trackName, { color: '#ffffff' }]} numberOfLines={1}>
               {currentItem.name}
@@ -298,16 +355,14 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
             </Text>
           </View>
 
-          {/* Progress */}
           <View style={styles.progressContainer}>
             <NeonSlider progress={progress} onSeek={seekTo} width={SCREEN_WIDTH - 60} primaryColor={artColor} />
             <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>{formatDuration(position as number)}</Text>
+              <Text style={styles.timeText}>{formatDuration(position)}</Text>
               <Text style={styles.timeText}>{formatDuration(duration)}</Text>
             </View>
           </View>
 
-          {/* Controls */}
           <View style={styles.controls}>
             <TouchableOpacity style={styles.controlButton} onPress={() => setShuffle(!shuffle)}>
               <ShuffleAngular size={22} color={shuffle ? primaryColor : '#e4e4e7'} weight={shuffle ? 'bold' : 'regular'} />
@@ -330,7 +385,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
             </TouchableOpacity>
           </View>
 
-          {/* Extra Controls */}
           <View style={styles.extraControls}>
             <TouchableOpacity style={styles.extraBtn} onPress={() => setShowLyrics(!showLyrics)}>
               <MicrophoneStage size={18} color={showLyrics ? primaryColor : '#e4e4e7'} weight={showLyrics ? 'bold' : 'regular'} />
@@ -347,7 +401,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
             </TouchableOpacity>
           </View>
 
-          {/* Lyrics */}
           {showLyrics && (
             <View style={styles.lyricsContainer}>
               <View style={[styles.lyricsHeader, { backgroundColor: `${primaryColor}15` }]}>
@@ -375,7 +428,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         </ScrollView>
       </View>
 
-      {/* Queue Modal */}
       <Modal visible={showQueueModal} transparent animationType="slide">
         <View style={[styles.fullModal, { backgroundColor: '#18181b' }]}>
           <View style={styles.fullModalHeader}>
@@ -418,7 +470,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         </View>
       </Modal>
 
-      {/* Add to Playlist Modal */}
       <Modal visible={showAddToPlaylistModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowAddToPlaylistModal(false)}>
           <View style={styles.modalContent}>
@@ -454,7 +505,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         </TouchableOpacity>
       </Modal>
 
-      {/* Speed Modal */}
       <Modal visible={showSpeedModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSpeedModal(false)}>
           <View style={styles.speedModalContent}>
@@ -480,7 +530,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         </TouchableOpacity>
       </Modal>
 
-      {/* Equalizer Modal */}
       <Modal visible={showEqualizerModal} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowEqualizerModal(false)}>
           <View style={styles.eqModalContent}>

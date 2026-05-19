@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   Image,
   Alert,
   Linking,
+  Switch,
+  TextInput,
+  FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -15,12 +18,22 @@ import {
   SlidersHorizontal, Translate, ChatCenteredDots, Info,
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
   SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
+  Bell, Timer, MusicNote,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useFont, FONT_OPTIONS } from '../context/FontContext';
 import { useFiles } from '../context/FileContext';
 import { TopBar } from '../components/TopBar';
+import {
+  getPlaybackSettings,
+  savePlaybackSettings,
+  getNotificationSettings,
+  saveNotificationSettings,
+  getSleepTimerSettings,
+  saveSleepTimerSettings,
+} from '../services/StorageService';
+import type { PlaybackSettings, NotificationSettings, SleepTimerSettings } from '../types';
 
 const APP_VERSION = '1.0.0';
 
@@ -42,14 +55,47 @@ const ACCENT_COLORS = [
   '#8b5cf6', '#f59e0b', '#10b981', '#ec4899',
 ];
 
-type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts';
+type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification';
 
 export function SettingsScreen() {
   const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, primaryColor } = useTheme();
   const { t, language, setLanguage, languages } = useLanguage();
   const { fontKey, setFont } = useFont();
-  const { recentlyPlayed } = useFiles();
+  const { recentlyPlayed, recentlyDeleted, clearRecentlyDeleted, hiddenFiles, hiddenFilesCount, hiddenFilesSettings, updateHiddenFilesSettings } = useFiles();
   const [activeView, setActiveView] = useState<ActiveView>('list');
+  const [playbackSettings, setPlaybackSettingsState] = useState<PlaybackSettings>({
+    playWithOtherApps: false,
+    crossFade: false,
+    crossFadeDuration: 3,
+    gaplessPlayback: true,
+  });
+  const [notificationSettings, setNotificationSettingsState] = useState<NotificationSettings>({
+    newMediaNotification: true,
+    pushNotification: true,
+  });
+  const [sleepTimerSettings, setSleepTimerSettingsState] = useState<SleepTimerSettings>({
+    enabled: false,
+    mode: 'off',
+    minutes: 30,
+    playOneToEnd: false,
+  });
+  const [crossFadeInput, setCrossFadeInput] = useState('3');
+  const [sleepMinutesInput, setSleepMinutesInput] = useState('30');
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+    const pb = await getPlaybackSettings();
+    const nt = await getNotificationSettings();
+    const st = await getSleepTimerSettings();
+    setPlaybackSettingsState(pb);
+    setNotificationSettingsState(nt);
+    setSleepTimerSettingsState(st);
+    setCrossFadeInput(String(pb.crossFadeDuration));
+    setSleepMinutesInput(String(st.minutes));
+  }
 
   const appVersion = APP_VERSION;
 
@@ -71,10 +117,11 @@ export function SettingsScreen() {
   const SETTINGS_ITEMS = [
     { id: 'playtime', Icon: Clock, label: t('settings.playtime') },
     { id: 'theme', Icon: PaintBrush, label: t('settings.theme') },
-    { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
-    { id: 'hiddenFiles', Icon: EyeSlash, label: t('settings.hiddenFiles') },
-    { id: 'recentlyDeleted', Icon: Trash, label: t('settings.recentlyDeleted') },
+    { id: 'hiddenFiles', Icon: EyeSlash, label: t('settings.hiddenFiles'), badge: hiddenFilesCount > 0 ? String(hiddenFilesCount) : undefined },
+    { id: 'recentlyDeleted', Icon: Trash, label: t('settings.recentlyDeleted'), badge: recentlyDeleted.length > 0 ? String(recentlyDeleted.length) : undefined },
     { id: 'playback', Icon: SlidersHorizontal, label: t('settings.playback') },
+    { id: 'notification', Icon: Bell, label: t('settings.notification') },
+    { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
     { id: 'language', Icon: Translate, label: t('settings.language') },
     { id: 'fonts', Icon: TextAa, label: t('settings.fonts') },
     { id: 'feedback', Icon: ChatCenteredDots, label: t('settings.feedback') },
@@ -127,17 +174,59 @@ export function SettingsScreen() {
       case 'fonts':
         setActiveView('fonts');
         break;
+      case 'hiddenFiles':
+        setActiveView('hiddenFiles');
+        break;
+      case 'recentlyDeleted':
+        setActiveView('recentlyDeleted');
+        break;
+      case 'playback':
+        setActiveView('playback');
+        break;
+      case 'notification':
+        setActiveView('notification');
+        break;
+      case 'sleepTimer':
+        setActiveView('notification');
+        break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
         break;
       case 'playtime':
-      case 'sleepTimer':
-      case 'hiddenFiles':
-      case 'recentlyDeleted':
-      case 'playback':
-        Alert.alert(t('settings.comingSoon'), t('settings.comingSoonMsg', { label: SETTINGS_ITEMS.find(i => i.id === id)?.label || id }));
         break;
     }
+  };
+
+  const updatePlaybackSetting = async (key: keyof PlaybackSettings, value: any) => {
+    const updated = { ...playbackSettings, [key]: value };
+    setPlaybackSettingsState(updated);
+    await savePlaybackSettings(updated);
+  };
+
+  const updateNotificationSetting = async (key: keyof NotificationSettings, value: boolean) => {
+    const updated = { ...notificationSettings, [key]: value };
+    setNotificationSettingsState(updated);
+    await saveNotificationSettings(updated);
+  };
+
+  const updateSleepTimerSetting = async (key: keyof SleepTimerSettings, value: any) => {
+    const updated = { ...sleepTimerSettings, [key]: value };
+    setSleepTimerSettingsState(updated);
+    await saveSleepTimerSettings(updated);
+  };
+
+  const handleCrossFadeBlur = async () => {
+    const val = parseInt(crossFadeInput) || 1;
+    const clamped = Math.min(Math.max(val, 1), 10);
+    setCrossFadeInput(String(clamped));
+    await updatePlaybackSetting('crossFadeDuration', clamped);
+  };
+
+  const handleSleepMinutesBlur = async () => {
+    const val = parseInt(sleepMinutesInput) || 5;
+    const clamped = Math.min(Math.max(val, 1), 180);
+    setSleepMinutesInput(String(clamped));
+    await updateSleepTimerSetting('minutes', clamped);
   };
 
   const renderMainList = () => (
@@ -151,7 +240,12 @@ export function SettingsScreen() {
           <item.Icon size={22} color="#ffffff" />
           <Text style={styles.settingText}>{item.label}</Text>
           {item.id === 'playtime' && totalPlaytime !== '0s' && (
-            <Text style={styles.playtimeValue}>{totalPlaytime}</Text>
+            <Text style={styles.badgeValue}>{totalPlaytime}</Text>
+          )}
+          {item.badge && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.badge}</Text>
+            </View>
           )}
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
@@ -273,7 +367,7 @@ export function SettingsScreen() {
         </View>
         <View style={styles.aboutFooter}>
           <Image
-            source={require('../assets/lumora-new-style.png')}
+            source={require('../assets/lumora.png')}
             style={styles.aboutLogo}
             resizeMode="contain"
           />
@@ -346,6 +440,273 @@ export function SettingsScreen() {
     </>
   );
 
+  const renderHiddenFilesView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.hiddenFiles')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.badgeSummary}>
+          {t('settings.hiddenFilesCount', { count: hiddenFilesCount })}
+        </Text>
+      </View>
+      {hiddenFiles.length > 0 ? (
+        <FlatList
+          data={hiddenFiles}
+          keyExtractor={(item) => item.uri}
+          renderItem={({ item }) => (
+            <View style={styles.hiddenFileRow}>
+              <MusicNote size={18} color="rgba(255,255,255,0.5)" />
+              <View style={styles.hiddenFileInfo}>
+                <Text style={styles.hiddenFileName} numberOfLines={1}>{item.name}</Text>
+                {item.duration && (
+                  <Text style={styles.hiddenFileMeta}>
+                    {Math.floor(item.duration / 1000)}s
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
+          scrollEnabled={false}
+        />
+      ) : (
+        <Text style={styles.emptyText}>No hidden files</Text>
+      )}
+    </>
+  );
+
+  const renderRecentlyDeletedView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.recentlyDeleted')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      {recentlyDeleted.length > 0 && (
+        <TouchableOpacity style={styles.clearAllBtn} onPress={clearRecentlyDeleted}>
+          <Text style={styles.clearAllText}>Clear All</Text>
+        </TouchableOpacity>
+      )}
+      <View style={styles.card}>
+        <Text style={styles.badgeSummary}>
+          {t('settings.recentlyDeletedCount', { count: recentlyDeleted.length })}
+        </Text>
+      </View>
+      {recentlyDeleted.length > 0 ? (
+        <FlatList
+          data={recentlyDeleted}
+          keyExtractor={(item, idx) => item.file.uri + idx}
+          renderItem={({ item }) => (
+            <View style={styles.hiddenFileRow}>
+              <Trash size={18} color="rgba(255,255,255,0.5)" />
+              <View style={styles.hiddenFileInfo}>
+                <Text style={styles.hiddenFileName} numberOfLines={1}>{item.file.name}</Text>
+                <Text style={styles.hiddenFileMeta}>
+                  {new Date(item.deletedAt).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+          )}
+          scrollEnabled={false}
+        />
+      ) : (
+        <Text style={styles.emptyText}>No recently deleted files</Text>
+      )}
+    </>
+  );
+
+  const renderPlaybackView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.playback')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchLabel}>
+            <Text style={styles.settingText}>{t('settings.playWithOtherApps')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.playWithOtherAppsDesc')}</Text>
+          </View>
+          <Switch
+            value={playbackSettings.playWithOtherApps}
+            onValueChange={(v) => updatePlaybackSetting('playWithOtherApps', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchLabel}>
+            <Text style={styles.settingText}>{t('settings.crossFade')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.crossFadeDesc')}</Text>
+          </View>
+          <Switch
+            value={playbackSettings.crossFade}
+            onValueChange={(v) => updatePlaybackSetting('crossFade', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+        {playbackSettings.crossFade && (
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>{t('settings.crossFadeDuration')}</Text>
+            <View style={styles.inputUnitRow}>
+              <TextInput
+                style={styles.numberInput}
+                value={crossFadeInput}
+                onChangeText={setCrossFadeInput}
+                onBlur={handleCrossFadeBlur}
+                keyboardType="numeric"
+                selectTextOnFocus
+              />
+              <Text style={styles.inputUnit}>{t('settings.seconds')}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchLabel}>
+            <Text style={styles.settingText}>{t('settings.gaplessPlayback')}</Text>
+          </View>
+          <Switch
+            value={playbackSettings.gaplessPlayback}
+            onValueChange={(v) => updatePlaybackSetting('gaplessPlayback', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      </View>
+    </>
+  );
+
+  const renderNotificationView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.notifications')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <Text style={styles.sectionTitle}>{t('settings.notification')}</Text>
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <Text style={styles.settingText}>{t('settings.newMediaNotification')}</Text>
+          <Switch
+            value={notificationSettings.newMediaNotification}
+            onValueChange={(v) => updateNotificationSetting('newMediaNotification', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.settingText}>{t('settings.pushNotification')}</Text>
+          <Switch
+            value={notificationSettings.pushNotification}
+            onValueChange={(v) => updateNotificationSetting('pushNotification', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>{t('settings.sleepTimer')}</Text>
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={[styles.modeRow, sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }]}
+          onPress={() => updateSleepTimerSetting('mode', 'off')}
+        >
+          <Timer size={20} color={sleepTimerSettings.mode === 'off' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <Text style={[styles.modeText, sleepTimerSettings.mode === 'off' && { color: primaryColor }]}>
+            {t('settings.sleepTimerOff')}
+          </Text>
+          {sleepTimerSettings.mode === 'off' && <Check size={18} color={primaryColor} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeRow, sleepTimerSettings.mode === 'minutes' && { backgroundColor: `${primaryColor}15` }]}
+          onPress={() => updateSleepTimerSetting('mode', 'minutes')}
+        >
+          <Timer size={20} color={sleepTimerSettings.mode === 'minutes' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <Text style={[styles.modeText, sleepTimerSettings.mode === 'minutes' && { color: primaryColor }]}>
+            {t('settings.sleepTimerMinutes')}
+          </Text>
+          {sleepTimerSettings.mode === 'minutes' && <Check size={18} color={primaryColor} />}
+        </TouchableOpacity>
+
+        {sleepTimerSettings.mode === 'minutes' && (
+          <View style={styles.inputRow}>
+            <Text style={styles.inputLabel}>{t('settings.sleepTimerCustom')}</Text>
+            <View style={styles.inputUnitRow}>
+              <TextInput
+                style={styles.numberInput}
+                value={sleepMinutesInput}
+                onChangeText={setSleepMinutesInput}
+                onBlur={handleSleepMinutesBlur}
+                keyboardType="numeric"
+                selectTextOnFocus
+              />
+              <Text style={styles.inputUnit}>{t('settings.sleepTimerMinutes')}</Text>
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.modeRow, sleepTimerSettings.mode === 'endOfTrack' && { backgroundColor: `${primaryColor}15` }]}
+          onPress={() => updateSleepTimerSetting('mode', 'endOfTrack')}
+        >
+          <MusicNote size={20} color={sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfTrack' && { color: primaryColor }]}>
+            {t('settings.sleepTimerEndOfTrack')}
+          </Text>
+          {sleepTimerSettings.mode === 'endOfTrack' && <Check size={18} color={primaryColor} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeRow, sleepTimerSettings.mode === 'endOfQueue' && { backgroundColor: `${primaryColor}15` }]}
+          onPress={() => updateSleepTimerSetting('mode', 'endOfQueue')}
+        >
+          <MusicNote size={20} color={sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfQueue' && { color: primaryColor }]}>
+            {t('settings.sleepTimerEndOfQueue')}
+          </Text>
+          {sleepTimerSettings.mode === 'endOfQueue' && <Check size={18} color={primaryColor} />}
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>{t('settings.sleepTimerEndOfTrack')}</Text>
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchLabel}>
+            <Text style={styles.settingText}>{t('settings.playOneToEnd')}</Text>
+            <Text style={styles.settingDesc}>{t('settings.playOneToEndDesc')}</Text>
+          </View>
+          <Switch
+            value={sleepTimerSettings.playOneToEnd}
+            onValueChange={(v) => updateSleepTimerSetting('playOneToEnd', v)}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      </View>
+    </>
+  );
+
   if (activeView !== 'list') {
     return (
       <View style={styles.container}>
@@ -355,6 +716,10 @@ export function SettingsScreen() {
           {activeView === 'about' && renderAboutView()}
           {activeView === 'language' && renderLanguageView()}
           {activeView === 'fonts' && renderFontsView()}
+          {activeView === 'hiddenFiles' && renderHiddenFilesView()}
+          {activeView === 'recentlyDeleted' && renderRecentlyDeletedView()}
+          {activeView === 'playback' && renderPlaybackView()}
+          {activeView === 'notification' && renderNotificationView()}
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
@@ -394,10 +759,24 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   settingText: { fontSize: 15, color: '#ffffff', flex: 1, marginLeft: 14 },
-  playtimeValue: {
+  settingDesc: { fontSize: 12, color: 'rgba(255, 255, 255, 0.4)', marginLeft: 14, marginTop: 2 },
+  badge: {
+    backgroundColor: 'rgba(194, 252, 74, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  badgeText: { fontSize: 12, color: '#C2FC4A', fontWeight: '600' },
+  badgeValue: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.5)',
     marginRight: 8,
+  },
+  badgeSummary: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    padding: 12,
   },
   chevron: { fontSize: 22, color: 'rgba(255, 255, 255, 0.3)' },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff', marginBottom: 12, marginTop: 8 },
@@ -533,4 +912,65 @@ const styles = StyleSheet.create({
   },
   languageName: { fontSize: 16, color: '#ffffff', flex: 1 },
   languageEnglishName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)', marginRight: 12 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  switchLabel: { flex: 1, marginRight: 12 },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    paddingLeft: 22,
+  },
+  inputLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
+  inputUnitRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  numberInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    color: '#ffffff',
+    fontSize: 14,
+    width: 60,
+    textAlign: 'center',
+  },
+  inputUnit: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)' },
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+    gap: 10,
+  },
+  modeText: { fontSize: 15, color: 'rgba(255, 255, 255, 0.8)', flex: 1 },
+  hiddenFileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  hiddenFileInfo: { flex: 1 },
+  hiddenFileName: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' },
+  hiddenFileMeta: { fontSize: 12, color: 'rgba(255, 255, 255, 0.3)', marginTop: 2 },
+  emptyText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.3)', textAlign: 'center', paddingVertical: 20 },
+  clearAllBtn: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  clearAllText: { fontSize: 14, color: '#ef4444', fontWeight: '600' },
 });

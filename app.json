@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Lumora",
-    "slug": "dark-player",
+    "slug": "Lumora",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/black.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/lumora-name-logo.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0a0a"
     },
@@ -27,7 +27,7 @@
     "android": {
       "package": "com.darkmanager.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/black.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0a0a0a"
       },
       "permissions": [
@@ -59,7 +59,8 @@
           "savePhotosPermission": "Allow Lumora to save photos.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "./plugins/withReactNativeTrackPlayer"
     ],
     "extra": {
       "eas": {

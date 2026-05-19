@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ThemeSettings, FileItem, Playlist, RecentlyPlayed, SavedSearch } from '../types';
+import type { ThemeSettings, FileItem, Playlist, RecentlyPlayed, SavedSearch, RecentlyDeleted, PlaybackSettings, NotificationSettings, SleepTimerSettings, HiddenFilesSettings } from '../types';
 
 const STORAGE_KEYS = {
   THEME_SETTINGS: '@lumora_theme',
@@ -9,6 +9,11 @@ const STORAGE_KEYS = {
   PLAYLISTS: '@lumora_playlists',
   SEARCH_HISTORY: '@lumora_search_history',
   PERMISSIONS_GRANTED: '@lumora_permissions_granted',
+  RECENTLY_DELETED: '@lumora_recently_deleted',
+  PLAYBACK_SETTINGS: '@lumora_playback_settings',
+  NOTIFICATION_SETTINGS: '@lumora_notification_settings',
+  SLEEP_TIMER_SETTINGS: '@lumora_sleep_timer_settings',
+  HIDDEN_FILES_SETTINGS: '@lumora_hidden_files_settings',
 } as const;
 
 export async function getThemeSettings(): Promise<ThemeSettings> {
@@ -184,4 +189,94 @@ export async function getPermissionsGranted(): Promise<boolean> {
 
 export async function setPermissionsGranted(value: boolean): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.PERMISSIONS_GRANTED, value ? 'true' : 'false');
+}
+
+// Recently Deleted
+export async function getRecentlyDeleted(): Promise<RecentlyDeleted[]> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.RECENTLY_DELETED);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addToRecentlyDeleted(file: FileItem): Promise<void> {
+  const deleted = await getRecentlyDeleted();
+  const updated = [{ file, deletedAt: Date.now() }, ...deleted].slice(0, 50);
+  await AsyncStorage.setItem(STORAGE_KEYS.RECENTLY_DELETED, JSON.stringify(updated));
+}
+
+export async function clearRecentlyDeleted(): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.RECENTLY_DELETED, JSON.stringify([]));
+}
+
+// Playback Settings
+export async function getPlaybackSettings(): Promise<PlaybackSettings> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.PLAYBACK_SETTINGS);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    playWithOtherApps: false,
+    crossFade: false,
+    crossFadeDuration: 3,
+    gaplessPlayback: true,
+  };
+}
+
+export async function savePlaybackSettings(settings: PlaybackSettings): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.PLAYBACK_SETTINGS, JSON.stringify(settings));
+}
+
+// Notification Settings
+export async function getNotificationSettings(): Promise<NotificationSettings> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_SETTINGS);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    newMediaNotification: true,
+    pushNotification: true,
+  };
+}
+
+export async function saveNotificationSettings(settings: NotificationSettings): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_SETTINGS, JSON.stringify(settings));
+}
+
+// Sleep Timer Settings
+export async function getSleepTimerSettings(): Promise<SleepTimerSettings> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.SLEEP_TIMER_SETTINGS);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    enabled: false,
+    mode: 'off',
+    minutes: 30,
+    playOneToEnd: false,
+  };
+}
+
+export async function saveSleepTimerSettings(settings: SleepTimerSettings): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.SLEEP_TIMER_SETTINGS, JSON.stringify(settings));
+}
+
+// Hidden Files Settings
+export async function getHiddenFilesSettings(): Promise<HiddenFilesSettings> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.HIDDEN_FILES_SETTINGS);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    hideShortSongs: true,
+    minDurationSeconds: 15,
+    hideOpus: true,
+    hideExtensions: ['opus'],
+  };
+}
+
+export async function saveHiddenFilesSettings(settings: HiddenFilesSettings): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.HIDDEN_FILES_SETTINGS, JSON.stringify(settings));
 }

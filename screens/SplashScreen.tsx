@@ -35,7 +35,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       <StatusBar hidden />
       <View style={styles.content}>
         <Image
-          source={require('../assets/lumora-name-logo.png')}
+          source={require('../assets/lumora.png')}
           style={styles.logo}
           resizeMode="contain"
         />

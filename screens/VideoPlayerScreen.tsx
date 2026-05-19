@@ -22,6 +22,9 @@ import {
 import { formatDuration, findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
 import { useTheme } from '../context/ThemeContext';
 import { useFiles } from '../context/FileContext';
+import { playbackManager } from '../services/Playback/PlaybackManager';
+import { usePlaybackStore } from '../stores/playbackStore';
+import { HistoryService } from '../services/History/HistoryService';
 import type { SubtitleEntry } from '../types';
 
 type VideoPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
@@ -56,7 +59,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const controlsAnim = useRef(new Animated.Value(1)).current;
 
-  const { videos } = useFiles();
+  const { videos, files } = useFiles();
   const currentVideoIndex = videos.findIndex((v) => v.uri === file.uri);
 
   const goToVideo = (index: number) => {
@@ -74,6 +77,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
   const duration = status && 'durationMillis' in status ? status.durationMillis : 0;
 
   useEffect(() => {
+    playbackManager.onVideoOpen();
     Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
       playsInSilentModeIOS: true,
@@ -81,6 +85,9 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
       shouldDuckAndroid: true,
     });
     loadSubtitles();
+    return () => {
+      playbackManager.onVideoClose();
+    };
   }, [isAudioOnly]);
 
   useEffect(() => {
@@ -95,13 +102,23 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 
   async function loadSubtitles() {
     try {
-      const subtitleUri = findSubtitleFile(file.uri, []);
+      const subtitleUri = findSubtitleFile(file.uri, files);
       if (subtitleUri) {
         const content = await readTextFile(subtitleUri);
         if (content) setSubtitleEntries(parseSRT(content));
       }
     } catch {}
   }
+
+  const { setCurrentFile, setIsPlaying, setSource, setPosition, setDuration } = usePlaybackStore();
+
+  useEffect(() => {
+    setCurrentFile(file);
+    setSource('video');
+    setPosition(position as number);
+    setDuration(duration as number);
+    setIsPlaying(isPlaying);
+  }, [file.uri, isPlaying, position, duration]);
 
   async function togglePlayback() {
     if (!videoRef.current) return;
@@ -133,6 +150,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
 
   function goBack() {
     videoRef.current?.stopAsync();
+    HistoryService.record(file, position as number, 'video');
     navigation.goBack();
   }
 

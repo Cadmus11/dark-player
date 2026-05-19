@@ -41,6 +41,7 @@ const EXTENSION_MAP: Record<string, FileType> = {
   m4a: 'audio',
   ogg: 'audio',
   wma: 'audio',
+  opus: 'audio',
   pdf: 'document',
   doc: 'document',
   docx: 'document',

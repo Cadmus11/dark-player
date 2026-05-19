@@ -42,7 +42,7 @@ export function HomeScreen() {
 
   async function loadLogo() {
     try {
-      const asset = Asset.fromModule(require('../../assets/images/lumora-name-logo.png'));
+      const asset = Asset.fromModule(require('../assets/lumora.png'));
       await asset.downloadAsync();
       setLogoUri(asset.localUri || asset.uri);
       setLogoLoaded(true);

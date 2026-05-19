@@ -94,7 +94,102 @@ export interface SavedSearch {
 
 export type LayoutMode = 'grid' | 'list';
 
-export type SortField = 'name' | 'date' | 'size' | 'type' | 'duration' | 'artist';
+export interface RecentlyDeleted {
+  file: FileItem;
+  deletedAt: number;
+}
+
+export interface PlaybackSettings {
+  playWithOtherApps: boolean;
+  crossFade: boolean;
+  crossFadeDuration: number;
+  gaplessPlayback: boolean;
+}
+
+export interface NotificationSettings {
+  newMediaNotification: boolean;
+  pushNotification: boolean;
+}
+
+export interface SleepTimerSettings {
+  enabled: boolean;
+  mode: 'off' | 'minutes' | 'endOfTrack' | 'endOfQueue';
+  minutes: number;
+  playOneToEnd: boolean;
+}
+
+export interface HiddenFilesSettings {
+  hideShortSongs: boolean;
+  minDurationSeconds: number;
+  hideOpus: boolean;
+  hideExtensions: string[];
+}
+
+export interface MediaMetadata {
+  title?: string;
+  artist?: string;
+  album?: string;
+  genre?: string;
+  year?: number;
+  bitrate?: number;
+  sampleRate?: number;
+  trackNumber?: number;
+  discNumber?: number;
+  composer?: string;
+  artwork?: string;
+  duration?: number;
+}
+
+export interface LyricsData {
+  songId: string;
+  title: string;
+  artist: string;
+  lyrics: string;
+  syncedLyrics: { time: number; text: string }[];
+  source: 'lrc' | 'embedded' | 'api' | 'none';
+  cachedAt: number;
+}
+
+export interface PlaylistData {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  artwork?: string;
+  songIds: string[];
+  totalDuration: number;
+  totalTracks: number;
+}
+
+export interface HistoryEntry {
+  file: FileItem;
+  playedAt: number;
+  playDuration: number;
+  source: 'music' | 'video' | 'audio';
+}
+
+export interface DocumentIndex {
+  id: string;
+  path: string;
+  name: string;
+  extension: string;
+  mimeType: string;
+  size: number;
+  modifiedAt: number;
+  folder: string;
+  iconType: DocumentSubType;
+}
+
+export interface ArtworkCache {
+  uri: string;
+  dataUri: string;
+  cachedAt: number;
+  fileUri: string;
+}
+
+export type PlaybackSource = 'music' | 'video' | 'none';
+
+export type SortField = 'name' | 'date' | 'size' | 'type' | 'duration' | 'artist' | 'album' | 'playCount' | 'recentlyPlayed';
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortConfig {
