@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { Play, Pause, SkipForward, SkipBack } from 'phosphor-react-native';
+import { Play, Pause, SkipForward } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { playbackManager } from '../../services/Playback/PlaybackManager';
-import { TrackPlayer } from '../../services/TrackPlayerSetup';
 
 export function NowPlayingBar() {
   const navigation = useNavigation<any>();
@@ -26,8 +25,7 @@ export function NowPlayingBar() {
 
   const handleNext = async () => {
     try {
-      await TrackPlayer.skipToNext();
-      await TrackPlayer.play();
+      await playbackManager.skipToNext();
     } catch {}
   };
 

@@ -24,13 +24,11 @@ import {
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
-import { setupTrackPlayer, TrackPlayer, addTracks, clearQueue } from '../services/TrackPlayerSetup';
 import { playbackManager } from '../services/Playback/PlaybackManager';
 import { usePlaybackStore } from '../stores/playbackStore';
 import { HistoryService } from '../services/History/HistoryService';
 import type { FileItem, Playlist } from '../types';
 import { NeonSlider } from '../components/NeonSlider';
-import TrackPlayerModule from 'react-native-track-player';
 
 type MusicPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'MusicPlayer'>;
 
@@ -41,18 +39,13 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
   const { file } = route.params;
   const { setMusicPlayer, playlists, createPlaylist, addToPlaylist, videos, audio, recordRecentlyPlayed, favoriteUris, favoriteFiles, toggleFavorite, isFavorite } = useFiles();
   const { primaryColor } = useTheme();
-  const [isTrackPlayerReady, setIsTrackPlayerReady] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showLyrics, setShowLyrics] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<'none' | 'one' | 'all'>('none');
-  const playbackStore = usePlaybackStore();
   const [showVideoQueue, setShowVideoQueue] = useState(false);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [showEqualizerModal, setShowEqualizerModal] = useState(false);
@@ -61,50 +54,54 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     '60Hz': 0, '170Hz': 0, '310Hz': 0, '600Hz': 0, '1kHz': 0, '3kHz': 0, '6kHz': 0, '12kHz': 0, '14kHz': 0, '16kHz': 0,
   });
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackEndHandlerRef = useRef<(() => void) | null>(null);
+
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const position = usePlaybackStore((s) => s.position);
+  const duration = usePlaybackStore((s) => s.duration);
 
   const audioWithVideos = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
   const queue = showVideoQueue ? audioWithVideos : (audio.length > 0 ? audio : [file]);
 
+  const handleTrackEnd = useCallback(() => {
+    setCurrentIndex((prev) => {
+      if (repeat === 'one') {
+        playbackManager.seekTo(0);
+        playbackManager.resumeMusic();
+        return prev;
+      }
+      let next = prev + 1;
+      if (next >= queue.length) {
+        if (repeat === 'all') {
+          next = 0;
+        } else {
+          return prev;
+        }
+      }
+      playbackManager.playIndex(next);
+      HistoryService.record(queue[next] || file, 0, 'audio');
+      return next;
+    });
+  }, [repeat, queue, file]);
+
   useEffect(() => {
     playbackManager.startAudioSession();
-    initializePlayer();
+    playbackManager.setOnTrackEnd(handleTrackEnd);
+    const idx = queue.findIndex((f) => f.uri === file.uri);
+    const startIdx = idx >= 0 ? idx : 0;
+    setCurrentIndex(startIdx);
+    playbackManager.playMusic(file, queue, startIdx);
+    recordRecentlyPlayed(file);
+    HistoryService.record(file, 0, 'audio');
+
     return () => {
-      playbackManager.stopPlayback();
-      if (progressPollRef.current) clearInterval(progressPollRef.current);
+      playbackManager.setOnTrackEnd(null);
     };
   }, []);
 
   useEffect(() => {
-    playbackStore.setCurrentFile(queue[currentIndex] || file);
-    playbackStore.setSource('music');
-    playbackStore.setIsPlaying(isPlaying);
-    playbackStore.setPosition(position);
-    playbackStore.setDuration(duration);
-  }, [currentIndex, isPlaying, position, duration]);
-
-  useEffect(() => {
-    const idx = queue.findIndex((f) => f.uri === file.uri);
-    if (idx >= 0) setCurrentIndex(idx);
-    if (isTrackPlayerReady) loadQueue(queue);
-  }, [file.uri, isTrackPlayerReady, showVideoQueue]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      progressPollRef.current = setInterval(async () => {
-        try {
-          const progress = await TrackPlayer.getProgress();
-          setPosition(progress.position * 1000);
-          setDuration(progress.duration * 1000);
-        } catch {}
-      }, 250);
-    } else {
-      if (progressPollRef.current) clearInterval(progressPollRef.current);
-    }
-    return () => {
-      if (progressPollRef.current) clearInterval(progressPollRef.current);
-    };
-  }, [isPlaying]);
+    playbackManager.setQueue(queue, currentIndex);
+  }, [queue, currentIndex]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -119,70 +116,12 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     }
   }, [isPlaying]);
 
-  useEffect(() => {
-    const sub = TrackPlayerModule.addEventListener('playback-queue-ended', async (event) => {
-      if (event.track === null) return;
-      if (repeat === 'one') {
-        await TrackPlayer.seekTo(0);
-        await TrackPlayer.play();
-      } else {
-        const nextIndex = currentIndex + 1;
-        if (nextIndex >= queue.length) {
-          if (repeat === 'all') {
-            setCurrentIndex(0);
-            await TrackPlayer.skip(0);
-            await TrackPlayer.play();
-          }
-        } else {
-          setCurrentIndex(nextIndex);
-        }
-      }
-    });
-    return () => sub.remove();
-  }, [currentIndex, queue.length, repeat]);
-
-  async function initializePlayer() {
-    const ready = await setupTrackPlayer();
-    if (ready) {
-      setIsTrackPlayerReady(true);
-      await loadQueue(queue);
-      recordRecentlyPlayed(file);
-    }
-  }
-
-  async function loadQueue(tracks: FileItem[]) {
-    await clearQueue();
-    const trackList = tracks.map((f, i) => ({
-      id: f.uri,
-      url: f.uri,
-      title: f.name,
-      artist: f.artist || 'Local File',
-      album: f.album || '',
-      artwork: f.thumbnail || undefined,
-      duration: f.duration ? f.duration / 1000 : undefined,
-    }));
-    await addTracks(trackList);
-    const idx = tracks.findIndex((f) => f.uri === file.uri);
-    if (idx >= 0) {
-      setCurrentIndex(idx);
-      await TrackPlayer.skip(idx);
-      await TrackPlayer.play();
-      setIsPlaying(true);
-      HistoryService.record(file, 0, 'audio');
-    }
-  }
-
   async function togglePlayback() {
-    try {
-      const state = await TrackPlayer.getPlaybackState();
-      if (state.state === 'playing') {
-        await TrackPlayer.pause();
-        setIsPlaying(false);
-      } else {
-        await TrackPlayer.play();
-        setIsPlaying(true);
-      }
-    } catch {}
+    if (isPlaying) {
+      await playbackManager.pauseMusic();
+    } else {
+      await playbackManager.resumeMusic();
+    }
   }
 
   async function handleNext() {
@@ -201,21 +140,16 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
       }
     }
     setCurrentIndex(next);
-    await TrackPlayer.skip(next);
-    await TrackPlayer.play();
-    setIsPlaying(true);
+    await playbackManager.playIndex(next);
     HistoryService.record(queue[next] || file, 0, 'audio');
   }
 
   async function handlePrev() {
     if (queue.length === 0) return;
-    try {
-      const progress = await TrackPlayer.getProgress();
-      if (progress.position > 3) {
-        await TrackPlayer.seekTo(0);
-        return;
-      }
-    } catch {}
+    if (position > 3000) {
+      await playbackManager.seekTo(0);
+      return;
+    }
     let prev: number;
     if (shuffle) {
       prev = Math.floor(Math.random() * queue.length);
@@ -226,23 +160,20 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
       }
     }
     setCurrentIndex(prev);
-    await TrackPlayer.skip(prev);
-    await TrackPlayer.play();
-    setIsPlaying(true);
+    await playbackManager.playIndex(prev);
     HistoryService.record(queue[prev] || file, 0, 'audio');
   }
 
   async function seekTo(percentage: number) {
     if (!duration) return;
-    try {
-      await TrackPlayer.seekTo(percentage * duration / 1000);
-    } catch {}
+    await playbackManager.seekTo(percentage * duration);
   }
 
   function toggleRepeat() {
     const modes: Array<'none' | 'one' | 'all'> = ['none', 'all', 'one'];
     const idx = modes.indexOf(repeat);
-    setRepeat(modes[(idx + 1) % modes.length]);
+    const next = modes[(idx + 1) % modes.length];
+    setRepeat(next);
   }
 
   async function selectFromQueue(item: FileItem) {
@@ -250,9 +181,7 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     if (index >= 0) {
       setCurrentIndex(index);
       setMusicPlayer({ currentFile: item });
-      await TrackPlayer.skip(index);
-      await TrackPlayer.play();
-      setIsPlaying(true);
+      await playbackManager.playIndex(index);
     }
     setShowQueueModal(false);
   }
@@ -271,9 +200,7 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   async function changeSpeed(speed: number) {
     setPlaybackSpeed(speed);
-    try {
-      await TrackPlayer.setRate(speed);
-    } catch {}
+    await playbackManager.setRate(speed);
     setShowSpeedModal(false);
   }
 

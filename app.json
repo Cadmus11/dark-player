@@ -59,8 +59,7 @@
           "savePhotosPermission": "Allow Lumora to save photos.",
           "isAccessMediaLocationEnabled": true
         }
-      ],
-      "./plugins/withReactNativeTrackPlayer"
+      ]
     ],
     "extra": {
       "eas": {
