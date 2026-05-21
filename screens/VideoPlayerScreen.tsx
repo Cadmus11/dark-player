@@ -17,7 +17,7 @@ import type { RootStackParamList } from '../App';
 import {
   CaretLeft, Rewind, FastForward, Play, Pause, MusicNote,
   VideoCamera, FrameCorners, Square, ArrowsOut, Sparkle,
-  Subtitles, Gear, SkipBack, SkipForward,
+  Subtitles, Gear, SkipBack, SkipForward, MagicWand,
 } from 'phosphor-react-native';
 import { formatDuration, findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
 import { useTheme } from '../context/ThemeContext';
@@ -25,7 +25,9 @@ import { useFiles } from '../context/FileContext';
 import { playbackManager } from '../services/Playback/PlaybackManager';
 import { usePlaybackStore } from '../stores/playbackStore';
 import { HistoryService } from '../services/History/HistoryService';
-import type { SubtitleEntry } from '../types';
+import { VideoEnhancementService } from '../services/VideoEnhancementService';
+import { VideoEnhancementModal } from '../components/player/VideoEnhancementModal';
+import type { SubtitleEntry, VideoEnhancementSettings } from '../types';
 
 type VideoPlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
@@ -57,6 +59,8 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
   const [showAiSubModal, setShowAiSubModal] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(initialAudioOnly || false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showEnhancementModal, setShowEnhancementModal] = useState(false);
+  const [enhancedUri, setEnhancedUri] = useState<string | null>(null);
   const controlsAnim = useRef(new Animated.Value(1)).current;
 
   const { videos, files } = useFiles();
@@ -110,7 +114,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
     } catch {}
   }
 
-  const { setCurrentFile, setIsPlaying, setSource, setPosition, setDuration } = usePlaybackStore();
+  const { setCurrentFile, setIsPlaying, setSource, setPosition, setDuration, videoEnhancement, setVideoEnhancement, setEnhancedFileUri } = usePlaybackStore();
 
   useEffect(() => {
     setCurrentFile(file);
@@ -119,6 +123,28 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
     setDuration(duration as number);
     setIsPlaying(isPlaying);
   }, [file.uri, isPlaying, position, duration]);
+
+  async function handleEnhancementApply(settings: VideoEnhancementSettings) {
+    setVideoEnhancement(settings);
+    if (!settings.enabled) {
+      setEnhancedUri(null);
+      setEnhancedFileUri(null);
+      return;
+    }
+    const existing = await VideoEnhancementService.getEnhancedFileUri(file.uri, settings);
+    if (existing) {
+      setEnhancedUri(existing);
+      setEnhancedFileUri(existing);
+      return;
+    }
+    const job = await VideoEnhancementService.enhanceVideo(file.uri, settings);
+    if (job.status === 'completed') {
+      setEnhancedUri(job.outputUri);
+      setEnhancedFileUri(job.outputUri);
+    }
+  }
+
+  const videoSourceUri = enhancedUri || file.uri;
 
   async function togglePlayback() {
     if (!videoRef.current) return;
@@ -184,7 +210,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
         {!isAudioOnly && (
           <Video
             ref={videoRef}
-            source={{ uri: file.uri }}
+            source={{ uri: videoSourceUri }}
             style={styles.video}
             resizeMode={getResizeModeEnum()}
             shouldPlay
@@ -226,10 +252,26 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowAiSubModal(true)}>
                 <Sparkle size={20} color={primaryColor} weight="bold" />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.headerIconBtn, videoEnhancement.enabled && { backgroundColor: `${primaryColor}25` }]}
+                onPress={() => setShowEnhancementModal(true)}
+              >
+                <MagicWand size={18} color={videoEnhancement.enabled ? primaryColor : '#ffffff'} weight={videoEnhancement.enabled ? 'fill' : 'regular'} />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowSettingsModal(true)}>
                 <Gear size={20} color="#ffffff" />
               </TouchableOpacity>
             </View>
+
+            {/* Enhancement Status */}
+            {videoEnhancement.enabled && (
+              <View style={[styles.enhancementBadge, { backgroundColor: `${primaryColor}20` }]}>
+                <MagicWand size={12} color={primaryColor} weight="fill" />
+                <Text style={[styles.enhancementBadgeText, { color: primaryColor }]}>
+                  {videoEnhancement.qualityTarget !== 'original' ? `${videoEnhancement.qualityTarget.toUpperCase()} ` : ''}Enhanced
+                </Text>
+              </View>
+            )}
 
             {/* Center Controls */}
             <View style={styles.centerControls}>
@@ -272,7 +314,7 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
                   }}
                 >
                   <View style={[styles.progressFill, { width: `${progress}%` as any, backgroundColor: primaryColor }]} />
-                  <View style={[styles.progressThumb, { backgroundColor: primaryColor }]} />
+                  <View style={[styles.progressThumb, { left: `${progress}%` as any, backgroundColor: primaryColor }]} />
                 </TouchableOpacity>
                 <Text style={styles.timeText}>{formatDuration(duration as number)}</Text>
               </View>
@@ -393,6 +435,16 @@ export function VideoPlayerScreen({ navigation, route }: VideoPlayerScreenProps)
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Video Enhancement Modal */}
+      <VideoEnhancementModal
+        visible={showEnhancementModal}
+        onClose={() => setShowEnhancementModal(false)}
+        currentSettings={videoEnhancement}
+        onApply={handleEnhancementApply}
+        fileUri={file.uri}
+        primaryColor={primaryColor}
+      />
     </View>
   );
 }
@@ -471,6 +523,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   speedLabel: { fontSize: 12, fontWeight: '700' },
+  enhancementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  enhancementBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
   audioOnlyBg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#0a0a0a',

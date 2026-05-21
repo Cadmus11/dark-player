@@ -18,7 +18,7 @@ import {
   SlidersHorizontal, Translate, ChatCenteredDots, Info,
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
   SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
-  Bell, Timer, MusicNote,
+  Bell, Timer,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -55,7 +55,7 @@ const ACCENT_COLORS = [
   '#8b5cf6', '#f59e0b', '#10b981', '#ec4899',
 ];
 
-type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification';
+type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification' | 'sleepTimer';
 
 export function SettingsScreen() {
   const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, primaryColor } = useTheme();
@@ -187,7 +187,7 @@ export function SettingsScreen() {
         setActiveView('notification');
         break;
       case 'sleepTimer':
-        setActiveView('notification');
+        setActiveView('sleepTimer');
         break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
@@ -625,6 +625,19 @@ export function SettingsScreen() {
         </View>
       </View>
 
+    </>
+  );
+
+  const renderSleepTimerView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.sleepTimer')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
       <Text style={styles.sectionTitle}>{t('settings.sleepTimer')}</Text>
       <View style={styles.card}>
         <TouchableOpacity
@@ -720,6 +733,7 @@ export function SettingsScreen() {
           {activeView === 'recentlyDeleted' && renderRecentlyDeletedView()}
           {activeView === 'playback' && renderPlaybackView()}
           {activeView === 'notification' && renderNotificationView()}
+          {activeView === 'sleepTimer' && renderSleepTimerView()}
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>

@@ -218,7 +218,6 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
 
     const allMedia = [...cachedImages, ...cachedVideos, ...cachedAudio];
-    setFiles([...allMedia, ...cachedDocuments, ...cachedOther]);
     setFolders(allMedia.filter((f) => f.type === 'folder'));
   }
 
@@ -241,7 +240,6 @@ export function FileProvider({ children }: { children: ReactNode }) {
       setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
       setEpubFiles(epubDocs);
       setOtherDocs([...uncategorizedDocs, ...otherFiles]);
-      setFiles([...mediaImages, ...mediaVideos, ...mediaAudio, ...allDocs, ...otherFiles]);
       setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
       setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
       setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));

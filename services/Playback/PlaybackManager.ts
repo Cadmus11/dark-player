@@ -128,6 +128,14 @@ class PlaybackManager {
   isVideoActive(): boolean {
     return this._videoActive;
   }
+
+  startAudioSession() {
+    // Audio session handled by TrackPlayer setup; no-op for now
+  }
+
+  stopPlayback() {
+    this.stopMusic();
+  }
 }
 
 export const playbackManager = PlaybackManager.getInstance();

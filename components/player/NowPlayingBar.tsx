@@ -4,6 +4,7 @@ import { Play, Pause, SkipForward, SkipBack } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { playbackManager } from '../../services/Playback/PlaybackManager';
+import { TrackPlayer } from '../../services/TrackPlayerSetup';
 
 export function NowPlayingBar() {
   const navigation = useNavigation<any>();
@@ -25,7 +26,6 @@ export function NowPlayingBar() {
 
   const handleNext = async () => {
     try {
-      const { TrackPlayer } = require('../../services/TrackPlayerSetup');
       await TrackPlayer.skipToNext();
       await TrackPlayer.play();
     } catch {}

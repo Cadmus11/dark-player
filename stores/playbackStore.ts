@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { FileItem, PlaybackSource } from '../types';
+import type { FileItem, PlaybackSource, VideoEnhancementSettings } from '../types';
 
 interface PlaybackState {
   currentFile: FileItem | null;
@@ -13,6 +13,8 @@ interface PlaybackState {
   repeat: 'none' | 'one' | 'all';
   playbackSpeed: number;
   equalizer: Record<string, number>;
+  videoEnhancement: VideoEnhancementSettings;
+  enhancedFileUri: string | null;
 
   setCurrentFile: (file: FileItem | null) => void;
   setIsPlaying: (playing: boolean) => void;
@@ -25,6 +27,8 @@ interface PlaybackState {
   cycleRepeat: () => void;
   setPlaybackSpeed: (speed: number) => void;
   setEqualizer: (eq: Record<string, number>) => void;
+  setVideoEnhancement: (settings: VideoEnhancementSettings) => void;
+  setEnhancedFileUri: (uri: string | null) => void;
   reset: () => void;
 }
 
@@ -40,6 +44,15 @@ const initialState = {
   repeat: 'none' as 'none' | 'one' | 'all',
   playbackSpeed: 1,
   equalizer: {},
+  videoEnhancement: {
+    enabled: false,
+    qualityTarget: 'original' as const,
+    colorEnhancement: false,
+    sharpening: false,
+    denoise: false,
+    hdr: false,
+  },
+  enhancedFileUri: null,
 };
 
 export const usePlaybackStore = create<PlaybackState>((set) => ({
@@ -61,5 +74,7 @@ export const usePlaybackStore = create<PlaybackState>((set) => ({
     }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
   setEqualizer: (eq) => set({ equalizer: eq }),
+  setVideoEnhancement: (settings) => set({ videoEnhancement: settings }),
+  setEnhancedFileUri: (uri) => set({ enhancedFileUri: uri }),
   reset: () => set(initialState),
 }));

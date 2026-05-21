@@ -25,26 +25,6 @@ const DOC_EXTENSIONS: Record<string, DocumentSubType> = {
   '7z': 'other',
 };
 
-const MIME_MAP: Record<string, DocumentSubType> = {
-  'application/pdf': 'pdf',
-  'application/msword': 'word',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'word',
-  'application/vnd.ms-excel': 'excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'excel',
-  'text/csv': 'excel',
-  'application/vnd.ms-powerpoint': 'powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'powerpoint',
-  'text/plain': 'text',
-  'text/rtf': 'text',
-  'text/markdown': 'text',
-  'application/epub+zip': 'epub',
-  'application/json': 'other',
-  'application/xml': 'other',
-  'application/zip': 'other',
-  'application/x-rar-compressed': 'other',
-  'application/x-7z-compressed': 'other',
-};
-
 const CACHE_KEY = '@documents_index';
 const SCAN_DEPTH = 5;
 

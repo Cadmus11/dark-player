@@ -20,7 +20,8 @@ export const usePlaylistStore = create<PlaylistStoreState>((set, get) => ({
   loading: false,
 
   load: () => {
-    set({ loading: true, playlists: PlaylistService.getAll(), loading: false });
+    set({ loading: true });
+    set({ playlists: PlaylistService.getAll(), loading: false });
   },
 
   create: (name, songs = []) => {

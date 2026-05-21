@@ -187,6 +187,29 @@ export interface ArtworkCache {
   fileUri: string;
 }
 
+export type VideoQualityTarget = 'original' | 'hd' | 'fullhd' | '4k';
+
+export interface VideoEnhancementSettings {
+  enabled: boolean;
+  qualityTarget: VideoQualityTarget;
+  colorEnhancement: boolean;
+  sharpening: boolean;
+  denoise: boolean;
+  hdr: boolean;
+}
+
+export type EnhancementStatus = 'idle' | 'processing' | 'completed' | 'failed';
+
+export interface EnhancementJob {
+  id: string;
+  sourceUri: string;
+  outputUri: string;
+  settings: VideoEnhancementSettings;
+  status: EnhancementStatus;
+  progress: number;
+  createdAt: number;
+}
+
 export type PlaybackSource = 'music' | 'video' | 'none';
 
 export type SortField = 'name' | 'date' | 'size' | 'type' | 'duration' | 'artist' | 'album' | 'playCount' | 'recentlyPlayed';

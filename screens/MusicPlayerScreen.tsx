@@ -187,27 +187,24 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   async function handleNext() {
     if (queue.length === 0) return;
+    let next: number;
     if (shuffle) {
-      const next = Math.floor(Math.random() * queue.length);
-      setCurrentIndex(next);
-      await TrackPlayer.skip(next);
+      next = Math.floor(Math.random() * queue.length);
     } else {
-      const next = currentIndex + 1;
+      next = currentIndex + 1;
       if (next >= queue.length) {
         if (repeat === 'all') {
-          setCurrentIndex(0);
-          await TrackPlayer.skip(0);
+          next = 0;
         } else {
           return;
         }
-      } else {
-        setCurrentIndex(next);
-        await TrackPlayer.skip(next);
       }
     }
+    setCurrentIndex(next);
+    await TrackPlayer.skip(next);
     await TrackPlayer.play();
     setIsPlaying(true);
-    HistoryService.record(queue[currentIndex] || file, 0, 'audio');
+    HistoryService.record(queue[next] || file, 0, 'audio');
   }
 
   async function handlePrev() {
@@ -219,28 +216,20 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
         return;
       }
     } catch {}
+    let prev: number;
     if (shuffle) {
-      const prev = Math.floor(Math.random() * queue.length);
-      setCurrentIndex(prev);
-      await TrackPlayer.skip(prev);
+      prev = Math.floor(Math.random() * queue.length);
     } else {
-      const prev = currentIndex - 1;
+      prev = currentIndex - 1;
       if (prev < 0) {
-        if (repeat === 'all') {
-          setCurrentIndex(queue.length - 1);
-          await TrackPlayer.skip(queue.length - 1);
-        } else {
-          setCurrentIndex(0);
-          await TrackPlayer.skip(0);
-        }
-      } else {
-        setCurrentIndex(prev);
-        await TrackPlayer.skip(prev);
+        prev = repeat === 'all' ? queue.length - 1 : 0;
       }
     }
+    setCurrentIndex(prev);
+    await TrackPlayer.skip(prev);
     await TrackPlayer.play();
     setIsPlaying(true);
-    HistoryService.record(queue[currentIndex] || file, 0, 'audio');
+    HistoryService.record(queue[prev] || file, 0, 'audio');
   }
 
   async function seekTo(percentage: number) {

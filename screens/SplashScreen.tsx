@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,7 +12,7 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onFinish }: SplashScreenProps) {
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
@@ -35,7 +35,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       <StatusBar hidden />
       <View style={styles.content}>
         <Image
-          source={require('../assets/lumora.png')}
+          source={require('../assets/splash.png')}
           style={styles.logo}
           resizeMode="contain"
         />
