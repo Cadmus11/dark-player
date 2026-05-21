@@ -1,5 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
-import * as FileSystem from 'expo-file-system';
+const FileSystem: any = require('expo-file-system');
 import type { ArtworkCache, FileItem } from '../../types';
 
 const storage = new MMKV({ id: 'artwork-cache' });

@@ -1,32 +1,53 @@
 import { MMKV } from 'react-native-mmkv';
-import type { PlaylistData, FileItem } from '../../types';
+import type { FileItem, PlaylistData } from '../types';
 
-const storage = new MMKV({ id: 'playlists' });
-const CACHE_KEY = '@playlists_data';
+const storage = new MMKV({ id: 'queue-engine' });
+const PLAYLISTS_KEY = '@queue_playlists';
 
-function generateId(): string {
-  return 'pl_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
-}
+type QueueListener = () => void;
 
-export const PlaylistService = {
+export class QueueEngine {
+  private static instance: QueueEngine;
+  private _listeners: Set<QueueListener> = new Set();
+
+  static getInstance(): QueueEngine {
+    if (!QueueEngine.instance) {
+      QueueEngine.instance = new QueueEngine();
+    }
+    return QueueEngine.instance;
+  }
+
+  subscribe(listener: QueueListener): () => void {
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
+  }
+
+  private _notify() {
+    this._listeners.forEach((cb) => cb());
+  }
+
   getAll(): PlaylistData[] {
     try {
-      const data = storage.getString(CACHE_KEY);
+      const data = storage.getString(PLAYLISTS_KEY);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
-  },
+  }
 
   getById(id: string): PlaylistData | undefined {
     return this.getAll().find((p) => p.id === id);
-  },
+  }
+
+  private _generateId(): string {
+    return 'pl_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
+  }
 
   create(name: string, songs: FileItem[] = []): PlaylistData {
     const playlists = this.getAll();
     const now = Date.now();
-    const newPlaylist: PlaylistData = {
-      id: generateId(),
+    const pl: PlaylistData = {
+      id: this._generateId(),
       name: name.trim(),
       createdAt: now,
       updatedAt: now,
@@ -35,10 +56,10 @@ export const PlaylistService = {
       totalTracks: songs.length,
       artwork: songs.find((s) => s.thumbnail)?.thumbnail,
     };
-    playlists.push(newPlaylist);
+    playlists.push(pl);
     this._saveAll(playlists);
-    return newPlaylist;
-  },
+    return pl;
+  }
 
   rename(id: string, newName: string): boolean {
     const playlists = this.getAll();
@@ -48,7 +69,7 @@ export const PlaylistService = {
     playlists[idx].updatedAt = Date.now();
     this._saveAll(playlists);
     return true;
-  },
+  }
 
   delete(id: string): boolean {
     const playlists = this.getAll();
@@ -56,7 +77,7 @@ export const PlaylistService = {
     if (filtered.length === playlists.length) return false;
     this._saveAll(filtered);
     return true;
-  },
+  }
 
   addSongs(id: string, songs: FileItem[]): boolean {
     const playlists = this.getAll();
@@ -74,7 +95,7 @@ export const PlaylistService = {
     }
     this._saveAll(playlists);
     return true;
-  },
+  }
 
   removeSong(id: string, songId: string): boolean {
     const playlists = this.getAll();
@@ -85,7 +106,7 @@ export const PlaylistService = {
     playlists[idx].updatedAt = Date.now();
     this._saveAll(playlists);
     return true;
-  },
+  }
 
   reorderSongs(id: string, songIds: string[]): boolean {
     const playlists = this.getAll();
@@ -96,7 +117,7 @@ export const PlaylistService = {
     playlists[idx].updatedAt = Date.now();
     this._saveAll(playlists);
     return true;
-  },
+  }
 
   updateArtwork(id: string, artworkUri: string): boolean {
     const playlists = this.getAll();
@@ -106,9 +127,12 @@ export const PlaylistService = {
     playlists[idx].updatedAt = Date.now();
     this._saveAll(playlists);
     return true;
-  },
+  }
 
-  _saveAll(playlists: PlaylistData[]) {
-    storage.set(CACHE_KEY, JSON.stringify(playlists));
-  },
-};
+  private _saveAll(playlists: PlaylistData[]) {
+    storage.set(PLAYLISTS_KEY, JSON.stringify(playlists));
+    this._notify();
+  }
+}
+
+export const queueEngine = QueueEngine.getInstance();

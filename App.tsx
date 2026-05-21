@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
@@ -24,6 +24,7 @@ import { DocumentReaderScreen } from './screens/DocumentReaderScreen';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MiniPlayer } from './components/player/MiniPlayer';
 import { NowPlayingBar } from './components/player/NowPlayingBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import type { FileItem, FileType, DocumentSubType } from './types';
 import './global.css';
 
@@ -50,8 +51,10 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
 function MainTabs() {
+  const { theme } = useTheme();
+  const bgColor = theme.backgroundColor || '#06060B';
   return (
-    <View style={{ flex: 1, backgroundColor: '#06060B' }}>
+    <View style={{ flex: 1, backgroundColor: bgColor }}>
       <Tab.Navigator
         tabBar={(props) => <BottomTabBar {...props} />}
         screenOptions={{ headerShown: false }}
@@ -71,7 +74,7 @@ function MainTabs() {
 
 const screenOptions = {
   headerShown: false,
-  contentStyle: { backgroundColor: '#06060B' },
+  cardStyle: { backgroundColor: 'transparent' },
 };
 
 export default function App() {
@@ -81,6 +84,7 @@ export default function App() {
       <FontProvider>
       <ThemeProvider>
         <FileProvider>
+          <ErrorBoundary>
           <NavigationContainer>
             <Stack.Navigator screenOptions={screenOptions}>
               <Stack.Screen name="MainTabs" component={MainTabs} />
@@ -93,6 +97,7 @@ export default function App() {
             </Stack.Navigator>
           </NavigationContainer>
           <StatusBar style="auto" />
+          </ErrorBoundary>
         </FileProvider>
       </ThemeProvider>
       </FontProvider>

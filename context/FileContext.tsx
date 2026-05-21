@@ -1,30 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import type { FileItem, Category, DocCategory, PlayerState, Playlist, SavedSearch, RecentlyPlayed, LayoutMode, RecentlyDeleted, HiddenFilesSettings } from '../types';
-import { getMediaFiles, scanDocuments, requestPermissions } from '../services/FileService';
-import { MediaCacheService } from '../services/MediaCacheService';
-import {
-  getRecentFiles,
-  addToRecentFiles,
-  getRecentlyPlayed,
-  addToRecentlyPlayed,
-  getPlaylists,
-  savePlaylists,
-  createPlaylist as createPlaylistStorage,
-  deletePlaylist as deletePlaylistStorage,
-  getSearchHistory,
-  saveSearch as saveSearchStorage,
-  removeSearch as removeSearchStorage,
-  clearSearchHistory as clearSearchHistoryStorage,
-  getPermissionsGranted as getPermissionsGrantedStorage,
-  setPermissionsGranted as setPermissionsGrantedStorage,
-  getRecentlyDeleted as getRecentlyDeletedStorage,
-  addToRecentlyDeleted as addToRecentlyDeletedStorage,
-  clearRecentlyDeleted as clearRecentlyDeletedStorage,
-  getHiddenFilesSettings as getHiddenFilesSettingsStorage,
-  saveHiddenFilesSettings as saveHiddenFilesSettingsStorage,
-  getFavorites as getFavoritesStorage,
-  toggleFavorite as toggleFavoriteStorage,
-} from '../services/StorageService';
+import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { FileItem, Category, DocCategory, Playlist, SavedSearch, RecentlyPlayed, HiddenFilesSettings, PlayerState, PlaylistData } from '../types';
+import { useMediaStore } from '../stores/mediaStore';
+import { usePlaylistStore } from '../stores/playlistStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { fileEngine } from '../engine/FileEngine';
+import { queueEngine } from '../engine/QueueEngine';
+import { StorageService } from '../services/StorageService';
+import { SearchService } from '../services/Search/SearchService';
 
 interface FileContextType {
   permissionsGranted: boolean;
@@ -33,9 +15,7 @@ interface FileContextType {
   images: FileItem[];
   videos: FileItem[];
   audio: FileItem[];
-  audioWithVideos: FileItem[];
   documents: FileItem[];
-  folders: FileItem[];
   pdfFiles: FileItem[];
   wordFiles: FileItem[];
   excelFiles: FileItem[];
@@ -45,38 +25,29 @@ interface FileContextType {
   otherDocs: FileItem[];
   recentFiles: FileItem[];
   recentlyPlayed: RecentlyPlayed[];
-  currentPath: string;
-  musicPlayer: PlayerState;
   playlists: Playlist[];
   docCategories: DocCategory[];
   searchHistory: SavedSearch[];
-  recentlyDeleted: RecentlyDeleted[];
-  hiddenFiles: FileItem[];
-  hiddenFilesCount: number;
-  hiddenFilesSettings: HiddenFilesSettings;
+  categories: Category[];
   isReady: boolean;
-  favoriteUris: string[];
-  toggleFavorite: (uri: string) => Promise<string[]>;
-  isFavorite: (uri: string) => boolean;
-  favoriteFiles: FileItem[];
+  musicPlayer: PlayerState;
+
   requestPermissions: () => Promise<void>;
   refreshFiles: () => Promise<void>;
-  setCurrentPath: (path: string) => void;
-  setMusicPlayer: (state: Partial<PlayerState>) => void;
-  addToQueue: (file: FileItem) => void;
   createPlaylist: (name: string, coverUri?: string) => Promise<Playlist>;
   addToPlaylist: (playlistId: string, file: FileItem) => Promise<void>;
   removeFromPlaylist: (playlistId: string, fileUri: string) => Promise<void>;
   removePlaylist: (playlistId: string) => Promise<void>;
-  setPlaylistCover: (playlistId: string, coverUri: string) => Promise<void>;
   recordRecentlyPlayed: (file: FileItem) => Promise<void>;
-  recordRecentlyDeleted: (file: FileItem) => Promise<void>;
-  clearRecentlyDeleted: () => Promise<void>;
-  updateHiddenFilesSettings: (settings: HiddenFilesSettings) => Promise<void>;
   saveSearch: (query: string) => Promise<void>;
   removeSearch: (id: string) => Promise<void>;
   clearSearchHistory: () => Promise<void>;
-  categories: Category[];
+  setMusicPlayer: (state: Partial<PlayerState>) => void;
+  addToQueue: (file: FileItem) => void;
+  toggleFavorite: (uri: string) => Promise<string[]>;
+  isFavorite: (uri: string) => boolean;
+  favoriteUris: string[];
+  favoriteFiles: FileItem[];
 }
 
 const FileContext = createContext<FileContextType | undefined>(undefined);
@@ -91,425 +62,186 @@ const DOC_CATEGORIES: DocCategory[] = [
   { id: 'other', name: 'Other', icon: 'other', ext: [], subType: 'other', count: 0, color: '#718096' },
 ];
 
-const DEFAULT_PLAYER: PlayerState = {
-  currentFile: null,
-  isPlaying: false,
-  position: 0,
-  duration: 0,
-  queue: [],
-  currentIndex: -1,
-  shuffle: false,
-  repeat: 'none',
-  audioOnly: false,
-  showLyrics: false,
-  playbackSpeed: 1,
-  equalizer: {},
-};
-
-function categorizeDocuments(scannedDocs: FileItem[]) {
-  const allDocs = scannedDocs.filter((f) => f.type === 'document');
-  const epubDocs = scannedDocs.filter((f) => f.docSubType === 'epub');
-  const otherFiles = scannedDocs.filter((f) => f.type === 'other');
-  const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
-  const categorizedDocs = allDocs.filter((f) => knownSubTypes.includes(f.docSubType || ''));
-  const uncategorizedDocs = allDocs.filter((f) => !knownSubTypes.includes(f.docSubType || ''));
-  return {
-    allDocs,
-    epubDocs,
-    otherFiles,
-    categorizedDocs,
-    uncategorizedDocs,
-  };
-}
-
 export function FileProvider({ children }: { children: ReactNode }) {
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isReady, setIsReady] = useState(false);
-  const [images, setImages] = useState<FileItem[]>([]);
-  const [videos, setVideos] = useState<FileItem[]>([]);
-  const [audio, setAudio] = useState<FileItem[]>([]);
-  const [documents, setDocuments] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<FileItem[]>([]);
-  const [pdfFiles, setPdfFiles] = useState<FileItem[]>([]);
-  const [wordFiles, setWordFiles] = useState<FileItem[]>([]);
-  const [excelFiles, setExcelFiles] = useState<FileItem[]>([]);
-  const [pptFiles, setPptFiles] = useState<FileItem[]>([]);
-  const [textFiles, setTextFiles] = useState<FileItem[]>([]);
-  const [epubFiles, setEpubFiles] = useState<FileItem[]>([]);
-  const [otherDocs, setOtherDocs] = useState<FileItem[]>([]);
-  const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
+  const mediaStore = useMediaStore();
+  const playlistStore = usePlaylistStore();
+  const settingsStore = useSettingsStore();
+  const mediaImages = useMediaStore((s) => s.images);
+  const mediaVideos = useMediaStore((s) => s.videos);
+  const mediaAudio = useMediaStore((s) => s.audio);
+  const mediaDocuments = useMediaStore((s) => s.documents);
+  const mediaPermissionsGranted = useMediaStore((s) => s.permissionsGranted);
+  const mediaLoading = useMediaStore((s) => s.loading);
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
-  const [currentPath, setCurrentPath] = useState('/');
-  const [musicPlayer, setMusicPlayerState] = useState<PlayerState>(DEFAULT_PLAYER);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
   const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
-  const [recentlyDeleted, setRecentlyDeleted] = useState<RecentlyDeleted[]>([]);
   const [favoriteUris, setFavoriteUris] = useState<string[]>([]);
-  const [hiddenFilesSettings, setHiddenFilesSettings] = useState<HiddenFilesSettings>({
-    hideShortSongs: true,
-    minDurationSeconds: 15,
-    hideOpus: true,
-    hideExtensions: ['opus'],
-  });
-  const backgroundRefreshRef = useRef(false);
+
+  const visibleAudio = useMemo(() =>
+    mediaStore.getFilteredAudio(settingsStore.hiddenFiles),
+    [mediaAudio, settingsStore.hiddenFiles]
+  );
+
+  const allFiles = useMemo(() =>
+    [...mediaImages, ...mediaVideos, ...visibleAudio, ...mediaDocuments],
+    [mediaImages, mediaVideos, visibleAudio, mediaDocuments]
+  );
+
+  const favoriteFiles = useMemo(() =>
+    allFiles.filter((f) => favoriteUris.includes(f.uri)),
+    [allFiles, favoriteUris]
+  );
 
   useEffect(() => {
-    initializeApp();
+    settingsStore.load();
+    playlistStore.load();
+
+    if (fileEngine.hasCache()) {
+      mediaStore.loadCache();
+    } else {
+      mediaStore.scanMedia();
+    }
+
+    StorageService.getRecentlyPlayed().then(setRecentlyPlayed);
+    StorageService.getRecentFiles().then(setRecentFiles);
+    StorageService.getSearchHistory().then(setSearchHistory);
+    StorageService.getFavorites().then(setFavoriteUris);
   }, []);
 
-  async function initializeApp() {
-    const hasCache = MediaCacheService.hasCachedData();
-
-    if (hasCache) {
-      loadCachedFilesInstantly();
-      setLoading(false);
-      setIsReady(true);
-    }
-
-    const [recent, played, pls, searches, permGranted, deleted, hfSettings, favs] = await Promise.all([
-      getRecentFiles(),
-      getRecentlyPlayed(),
-      getPlaylists(),
-      getSearchHistory(),
-      getPermissionsGrantedStorage(),
-      getRecentlyDeletedStorage(),
-      getHiddenFilesSettingsStorage(),
-      getFavoritesStorage(),
-    ]);
-
-    setRecentFiles(recent);
-    setRecentlyPlayed(played);
-    setPlaylists(pls);
-    setSearchHistory(searches);
-    setRecentlyDeleted(deleted);
-    setHiddenFilesSettings(hfSettings);
-    setFavoriteUris(favs);
-
-    if (permGranted) {
-      setPermissionsGranted(true);
-      if (hasCache) {
-        backgroundRefreshRef.current = true;
-        backgroundRefreshFiles();
-      } else {
-        setLoading(true);
-        await refreshFiles();
-        setLoading(false);
-        setIsReady(true);
-      }
-    } else if (hasCache) {
-      setLoading(false);
-      setIsReady(true);
-    }
-  }
-
-  function loadCachedFilesInstantly() {
-    const cachedImages = MediaCacheService.getImages();
-    const cachedVideos = MediaCacheService.getVideos();
-    const cachedAudio = MediaCacheService.getAudio();
-    const cachedDocuments = MediaCacheService.getDocuments();
-    const cachedEpub = MediaCacheService.getEpub();
-    const cachedOther = MediaCacheService.getOther();
-
-    setImages(cachedImages);
-    setVideos(cachedVideos);
-    setAudio(cachedAudio);
-    setDocuments(cachedDocuments);
-    setEpubFiles(cachedEpub);
-    setOtherDocs(cachedOther);
-
-    const knownSubTypes = ['pdf', 'word', 'excel', 'powerpoint', 'text', 'epub'];
-    const categorizedDocs = cachedDocuments.filter((f) => knownSubTypes.includes(f.docSubType || ''));
-    setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
-    setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
-    setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
-    setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
-    setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
-
-    const allMedia = [...cachedImages, ...cachedVideos, ...cachedAudio];
-    setFolders(allMedia.filter((f) => f.type === 'folder'));
-  }
-
-  async function backgroundRefreshFiles() {
-    try {
-      const [mediaImages, mediaVideos, mediaAudio, scannedDocs] = await Promise.all([
-        getMediaFiles('image'),
-        getMediaFiles('video'),
-        getMediaFiles('audio'),
-        scanDocuments(),
-      ]);
-
-      const { allDocs, epubDocs, otherFiles, categorizedDocs, uncategorizedDocs } = categorizeDocuments(scannedDocs);
-
-      MediaCacheService.saveAll(mediaImages, mediaVideos, mediaAudio, categorizedDocs.filter((f) => f.docSubType !== 'epub'), epubDocs, [...uncategorizedDocs, ...otherFiles]);
-
-      setImages(mediaImages);
-      setVideos(mediaVideos);
-      setAudio(mediaAudio);
-      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
-      setEpubFiles(epubDocs);
-      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
-      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
-      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
-      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
-      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
-      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
-      setFolders([...mediaImages, ...mediaVideos, ...mediaAudio].filter((f) => f.type === 'folder'));
-    } catch {
-    } finally {
-      backgroundRefreshRef.current = false;
-    }
-  }
-
-  const files = useMemo(() => {
-    const allMedia = [...images, ...videos, ...audio];
-    return [...allMedia, ...documents, ...epubFiles, ...otherDocs];
-  }, [images, videos, audio, documents, epubFiles, otherDocs]);
-
-  async function refreshFiles() {
-    setLoading(true);
-    try {
-      const [mediaImages, mediaVideos, mediaAudio, scannedDocs] = await Promise.all([
-        getMediaFiles('image'),
-        getMediaFiles('video'),
-        getMediaFiles('audio'),
-        scanDocuments(),
-      ]);
-
-      const { allDocs, epubDocs, otherFiles, categorizedDocs, uncategorizedDocs } = categorizeDocuments(scannedDocs);
-
-      MediaCacheService.saveAll(mediaImages, mediaVideos, mediaAudio, categorizedDocs.filter((f) => f.docSubType !== 'epub'), epubDocs, [...uncategorizedDocs, ...otherFiles]);
-
-      setImages(mediaImages);
-      setVideos(mediaVideos);
-      setAudio(mediaAudio);
-      setDocuments(categorizedDocs.filter((f) => f.docSubType !== 'epub'));
-      setEpubFiles(epubDocs);
-      setOtherDocs([...uncategorizedDocs, ...otherFiles]);
-      setPdfFiles(categorizedDocs.filter((f) => f.docSubType === 'pdf'));
-      setWordFiles(categorizedDocs.filter((f) => f.docSubType === 'word'));
-      setExcelFiles(categorizedDocs.filter((f) => f.docSubType === 'excel'));
-      setPptFiles(categorizedDocs.filter((f) => f.docSubType === 'powerpoint'));
-      setTextFiles(categorizedDocs.filter((f) => f.docSubType === 'text'));
-      setFolders([...mediaImages, ...mediaVideos, ...mediaAudio].filter((f) => f.type === 'folder'));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRequestPermissions() {
-    const granted = await requestPermissions();
-    setPermissionsGranted(granted);
-    await setPermissionsGrantedStorage(granted);
-    if (granted) {
-      await refreshFiles();
-    }
-  }
-
-  const audioWithVideos = useMemo(() => {
-    const sorted = [...audio, ...videos].sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0));
-    return sorted;
-  }, [audio, videos]);
-
   const categories = useMemo<Category[]>(() => [
-    { id: 'images', name: 'Images', icon: 'images', type: 'image', count: images.length, color: '#e17055' },
-    { id: 'videos', name: 'Videos', icon: 'videos', type: 'video', count: videos.length, color: '#6c5ce7' },
-    { id: 'music', name: 'Music', icon: 'music', type: 'audio', count: audio.length, color: '#00cec9' },
-    { id: 'documents', name: 'Documents', icon: 'documents', type: 'document', count: documents.length + epubFiles.length, color: '#fdcb6e' },
-  ], [images.length, videos.length, audio.length, documents.length, epubFiles.length]);
+    { id: 'images', name: 'Images', icon: 'images', type: 'image', count: mediaImages.length, color: '#e17055' },
+    { id: 'videos', name: 'Videos', icon: 'videos', type: 'video', count: mediaVideos.length, color: '#6c5ce7' },
+    { id: 'music', name: 'Music', icon: 'music', type: 'audio', count: visibleAudio.length, color: '#00cec9' },
+    { id: 'documents', name: 'Documents', icon: 'documents', type: 'document', count: mediaDocuments.length, color: '#fdcb6e' },
+  ], [mediaImages.length, mediaVideos.length, visibleAudio.length, mediaDocuments.length]);
 
   const docCategories = useMemo(() => DOC_CATEGORIES.map((cat) => ({
     ...cat,
-    count:
-      cat.subType === 'pdf'
-        ? pdfFiles.length
-        : cat.subType === 'word'
-        ? wordFiles.length
-        : cat.subType === 'excel'
-        ? excelFiles.length
-        : cat.subType === 'powerpoint'
-        ? pptFiles.length
-        : cat.subType === 'epub'
-        ? epubFiles.length
-        : cat.subType === 'other'
-        ? otherDocs.length
-        : textFiles.length,
-  })), [pdfFiles.length, wordFiles.length, excelFiles.length, pptFiles.length, textFiles.length, epubFiles.length, otherDocs.length]);
+    count: mediaDocuments.filter((d) => d.docSubType === cat.subType).length,
+  })), [mediaDocuments]);
 
-  function setMusicPlayer(state: Partial<PlayerState>) {
-    setMusicPlayerState((prev) => ({ ...prev, ...state }));
-  }
+  const pdfFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'pdf'), [mediaDocuments]);
+  const wordFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'word'), [mediaDocuments]);
+  const excelFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'excel'), [mediaDocuments]);
+  const pptFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'powerpoint'), [mediaDocuments]);
+  const textFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'text'), [mediaDocuments]);
+  const epubFiles = useMemo(() => mediaDocuments.filter((d) => d.docSubType === 'epub'), [mediaDocuments]);
+  const otherDocs = useMemo(() => mediaDocuments.filter((d) => !d.docSubType || d.docSubType === 'other'), [mediaDocuments]);
 
-  function addToQueue(file: FileItem) {
-    setMusicPlayerState((prev) => {
-      const queue = [...prev.queue, file];
+  const playlists = useMemo(() =>
+    playlistStore.playlists.map((p: PlaylistData) => ({
+      id: p.id,
+      name: p.name,
+      files: allFiles.filter((f) => p.songIds.includes(f.uri)),
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      coverUri: p.artwork,
+    })),
+    [playlistStore.playlists, allFiles]
+  );
+
+  const value = useMemo(() => ({
+    permissionsGranted: mediaPermissionsGranted,
+    loading: mediaLoading,
+    files: allFiles,
+    images: mediaImages,
+    videos: mediaVideos,
+    audio: visibleAudio,
+    documents: mediaDocuments,
+    pdfFiles,
+    wordFiles,
+    excelFiles,
+    pptFiles,
+    textFiles,
+    epubFiles,
+    otherDocs,
+    recentFiles,
+    recentlyPlayed,
+    playlists,
+    docCategories,
+    searchHistory,
+    categories,
+    isReady: !mediaLoading,
+    musicPlayer: {
+      currentFile: null,
+      isPlaying: false,
+      position: 0,
+      duration: 0,
+      queue: [],
+      currentIndex: -1,
+      shuffle: false,
+      repeat: 'none' as const,
+      audioOnly: false,
+      showLyrics: false,
+      playbackSpeed: 1,
+      equalizer: {},
+    },
+
+    requestPermissions: async () => {
+      await mediaStore.scanMedia();
+      await StorageService.getFavorites().then(setFavoriteUris);
+    },
+    refreshFiles: async () => {
+      await mediaStore.scanMedia();
+    },
+    createPlaylist: async (name: string, coverUri?: string) => {
+      const plData = queueEngine.create(name);
       return {
-        ...prev,
-        queue,
-        currentIndex: prev.currentIndex === -1 ? queue.length - 1 : prev.currentIndex,
+        id: plData.id,
+        name: plData.name,
+        coverUri,
+        files: [],
+        createdAt: plData.createdAt,
+        updatedAt: plData.updatedAt,
       };
-    });
-  }
-
-  async function createPlaylist(name: string, coverUri?: string) {
-    const newPlaylist = await createPlaylistStorage(name, coverUri);
-    setPlaylists((prev) => [...prev, newPlaylist]);
-    return newPlaylist;
-  }
-
-  async function addToPlaylist(playlistId: string, file: FileItem) {
-    const updated = playlists.map((p) =>
-      p.id === playlistId ? { ...p, files: [...p.files, file], updatedAt: Date.now() } : p
-    );
-    await savePlaylists(updated);
-    setPlaylists(updated);
-  }
-
-  async function removeFromPlaylist(playlistId: string, fileUri: string) {
-    const updated = playlists.map((p) =>
-      p.id === playlistId ? { ...p, files: p.files.filter((f) => f.uri !== fileUri), updatedAt: Date.now() } : p
-    );
-    await savePlaylists(updated);
-    setPlaylists(updated);
-  }
-
-  async function removePlaylist(playlistId: string) {
-    await deletePlaylistStorage(playlistId);
-    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
-  }
-
-  async function setPlaylistCover(playlistId: string, coverUri: string) {
-    const updated = playlists.map((p) =>
-      p.id === playlistId ? { ...p, coverUri, updatedAt: Date.now() } : p
-    );
-    await savePlaylists(updated);
-    setPlaylists(updated);
-  }
-
-  async function recordRecentlyPlayed(file: FileItem) {
-    await addToRecentlyPlayed(file);
-    const played = await getRecentlyPlayed();
-    setRecentlyPlayed(played);
-    await addToRecentFiles(file);
-    const recent = await getRecentFiles();
-    setRecentFiles(recent);
-  }
-
-  async function saveSearch(query: string) {
-    await saveSearchStorage(query);
-    const searches = await getSearchHistory();
-    setSearchHistory(searches);
-  }
-
-  async function removeSearch(id: string) {
-    await removeSearchStorage(id);
-    const searches = await getSearchHistory();
-    setSearchHistory(searches);
-  }
-
-  async function clearSearchHistory() {
-    await clearSearchHistoryStorage();
-    setSearchHistory([]);
-  }
-
-  async function recordRecentlyDeleted(file: FileItem) {
-    await addToRecentlyDeletedStorage(file);
-    const deleted = await getRecentlyDeletedStorage();
-    setRecentlyDeleted(deleted);
-  }
-
-  async function clearRecentlyDeleted() {
-    await clearRecentlyDeletedStorage();
-    setRecentlyDeleted([]);
-  }
-
-  async function handleToggleFavorite(uri: string) {
-    const updated = await toggleFavoriteStorage(uri);
-    setFavoriteUris(updated);
-    return updated;
-  }
-
-  function isFavorite(uri: string): boolean {
-    return favoriteUris.includes(uri);
-  }
-
-  const favoriteFiles = useMemo(() => {
-    return audio.filter((f) => favoriteUris.includes(f.uri));
-  }, [audio, favoriteUris]);
-
-  async function updateHiddenFilesSettings(settings: HiddenFilesSettings) {
-    await saveHiddenFilesSettingsStorage(settings);
-    setHiddenFilesSettings(settings);
-  }
-
-  const hiddenFiles = useMemo(() => {
-    const hidden: FileItem[] = [];
-    for (const item of audio) {
-      const isShortSong = hiddenFilesSettings.hideShortSongs && item.duration && item.duration < hiddenFilesSettings.minDurationSeconds * 1000;
-      const ext = item.name.split('.').pop()?.toLowerCase() || '';
-      const isHiddenExt = hiddenFilesSettings.hideExtensions.includes(ext);
-      if (isShortSong || isHiddenExt) {
-        hidden.push(item);
-      }
-    }
-    return hidden;
-  }, [audio, hiddenFilesSettings]);
+    },
+    addToPlaylist: async (playlistId: string, file: FileItem) => {
+      queueEngine.addSongs(playlistId, [file]);
+    },
+    removeFromPlaylist: async (playlistId: string, fileUri: string) => {
+      queueEngine.removeSong(playlistId, fileUri);
+    },
+    removePlaylist: async (playlistId: string) => {
+      queueEngine.delete(playlistId);
+    },
+    recordRecentlyPlayed: async (file: FileItem) => {
+      await StorageService.addToRecentlyPlayed(file);
+      const updated = await StorageService.getRecentlyPlayed();
+      setRecentlyPlayed(updated);
+    },
+    saveSearch: async (query: string) => {
+      SearchService.saveHistory(query);
+      await StorageService.saveSearch(query);
+      setSearchHistory(SearchService.getHistory());
+    },
+    removeSearch: async (id: string) => {
+      SearchService.removeHistory(id);
+      await StorageService.removeSearch(id);
+      setSearchHistory(SearchService.getHistory());
+    },
+    clearSearchHistory: async () => {
+      SearchService.clearHistory();
+      await StorageService.clearSearchHistory();
+      setSearchHistory([]);
+    },
+    setMusicPlayer: (state: Partial<PlayerState>) => {},
+    addToQueue: (file: FileItem) => {
+      const { audioEngine } = require('../engine/AudioEngine');
+      const q = audioEngine.getState().queue;
+      audioEngine.setQueue([...q, file], audioEngine.getState().currentIndex);
+    },
+    toggleFavorite: async (uri: string) => {
+      const updated = await StorageService.toggleFavorite(uri);
+      setFavoriteUris(updated);
+      return updated;
+    },
+    isFavorite: (uri: string) => favoriteUris.includes(uri),
+    favoriteUris,
+    favoriteFiles,
+  }), [mediaPermissionsGranted, mediaLoading, docCategories, categories, playlists, allFiles, recentlyPlayed, recentFiles, searchHistory, favoriteUris, favoriteFiles, mediaImages, mediaVideos, visibleAudio, mediaDocuments]);
 
   return (
-    <FileContext.Provider
-      value={{
-        permissionsGranted,
-        loading,
-        isReady,
-        files,
-        images,
-        videos,
-        audio,
-        audioWithVideos,
-        documents,
-        folders,
-        pdfFiles,
-        wordFiles,
-        excelFiles,
-        pptFiles,
-        textFiles,
-        epubFiles,
-        otherDocs,
-        recentFiles,
-        recentlyPlayed,
-        currentPath,
-        musicPlayer,
-        playlists,
-        docCategories,
-        searchHistory,
-        requestPermissions: handleRequestPermissions,
-        refreshFiles,
-        setCurrentPath,
-        setMusicPlayer,
-        addToQueue,
-        createPlaylist,
-        addToPlaylist,
-        removeFromPlaylist,
-        removePlaylist,
-        setPlaylistCover,
-        recordRecentlyPlayed,
-        recordRecentlyDeleted,
-        clearRecentlyDeleted,
-        updateHiddenFilesSettings,
-        saveSearch,
-        removeSearch,
-        clearSearchHistory,
-        categories,
-        recentlyDeleted,
-        hiddenFiles,
-        hiddenFilesCount: hiddenFiles.length,
-        hiddenFilesSettings,
-        favoriteUris,
-        toggleFavorite: handleToggleFavorite,
-        isFavorite,
-        favoriteFiles,
-      }}
-    >
+    <FileContext.Provider value={value}>
       {children}
     </FileContext.Provider>
   );

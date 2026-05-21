@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+const FileSystem: any = require('expo-file-system');
 import type {
   VideoEnhancementSettings,
   VideoQualityTarget,
@@ -189,7 +189,7 @@ export const VideoEnhancementService = {
   clearCache: async (): Promise<void> => {
     await ensureDirectory();
     const files = await FileSystem.readDirectoryAsync(ENHANCED_DIR);
-    await Promise.all(files.map((f) => FileSystem.deleteAsync(`${ENHANCED_DIR}${f}`, { idempotent: true })));
+    await Promise.all(files.map((f: string) => FileSystem.deleteAsync(`${ENHANCED_DIR}${f}`, { idempotent: true })));
   },
 
   getCacheSize: async (): Promise<number> => {

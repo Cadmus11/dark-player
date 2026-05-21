@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import type { FileItem } from '../types';
-import { MusicNote, MicrophoneStage } from 'phosphor-react-native';
+import { MusicNote, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
 import { formatFileSize, formatDuration } from '../services/FileService';
 
 interface FileListProps {
@@ -14,29 +14,49 @@ interface FileListProps {
   renderLeft?: (item: FileItem) => React.ReactNode;
   renderRight?: (item: FileItem) => React.ReactNode;
   renderMeta?: (item: FileItem) => React.ReactNode;
+  selectionMode?: boolean;
+  selectedUris?: Set<string>;
+  onLongPress?: (item: FileItem) => void;
+  onSelectionChange?: (uris: Set<string>) => void;
+  scrollRef?: React.RefObject<any>;
+  onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
 const ListItem = memo(function ListItem({
   item,
   onPress,
+  onLongPress,
   primaryColor,
   textColor,
   mutedColor,
+  isSelected,
   renderLeft,
   renderRight,
   renderMeta,
 }: {
   item: FileItem;
   onPress: (item: FileItem) => void;
+  onLongPress?: (item: FileItem) => void;
   primaryColor: string;
   textColor: string;
   mutedColor: string;
+  isSelected?: boolean;
   renderLeft?: (item: FileItem) => React.ReactNode;
   renderRight?: (item: FileItem) => React.ReactNode;
   renderMeta?: (item: FileItem) => React.ReactNode;
 }) {
   return (
-    <TouchableOpacity style={styles.listItem} onPress={() => onPress(item)}>
+    <TouchableOpacity
+      style={[styles.listItem, isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 10 }]}
+      onPress={() => onPress(item)}
+      onLongPress={() => onLongPress?.(item)}
+      delayLongPress={400}
+    >
+      {isSelected && (
+        <View style={[styles.checkCircle, { backgroundColor: primaryColor }]}>
+          <CheckCircle size={18} color="#ffffff" weight="fill" />
+        </View>
+      )}
       {renderLeft ? renderLeft(item) : (
         <View style={[styles.listItemArt, { backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }]}>
           {item.thumbnail ? (
@@ -81,21 +101,34 @@ function FileList({
   renderLeft,
   renderRight,
   renderMeta,
+  selectionMode,
+  selectedUris,
+  onLongPress,
+  onSelectionChange,
+  scrollRef,
+  onScroll,
 }: FileListProps) {
   const keyExtractor = useCallback((item: FileItem) => item.uri, []);
 
   const renderItem = useCallback(({ item }: { item: FileItem }) => (
     <ListItem
       item={item}
-      onPress={onPress}
+      onPress={selectionMode && onSelectionChange ? () => {
+        const next = new Set(selectedUris);
+        if (next.has(item.uri)) next.delete(item.uri);
+        else next.add(item.uri);
+        onSelectionChange(next);
+      } : onPress}
+      onLongPress={onLongPress}
       primaryColor={primaryColor}
       textColor={textColor}
       mutedColor={mutedColor}
+      isSelected={selectedUris?.has(item.uri)}
       renderLeft={renderLeft}
       renderRight={renderRight}
       renderMeta={renderMeta}
     />
-  ), [onPress, primaryColor, textColor, mutedColor, renderLeft, renderRight, renderMeta]);
+  ), [onPress, onLongPress, primaryColor, textColor, mutedColor, renderLeft, renderRight, renderMeta, selectionMode, selectedUris, onSelectionChange]);
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyContainer}>
@@ -106,12 +139,15 @@ function FileList({
 
   return (
     <FlatList
+      ref={scrollRef}
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmpty}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       removeClippedSubviews
       windowSize={7}
       maxToRenderPerBatch={10}
@@ -128,7 +164,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 4,
     gap: 12,
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listItemArt: {
     width: 44,

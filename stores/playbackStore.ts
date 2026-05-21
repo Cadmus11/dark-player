@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import type { FileItem, PlaybackSource, VideoEnhancementSettings } from '../types';
+import { audioEngine } from '../engine/AudioEngine';
+import type { FileItem, PlaybackSource, RepeatMode } from '../types';
 
-interface PlaybackState {
+interface PlaybackStoreState {
   currentFile: FileItem | null;
   isPlaying: boolean;
   source: PlaybackSource;
@@ -10,25 +11,24 @@ interface PlaybackState {
   queue: FileItem[];
   currentIndex: number;
   shuffle: boolean;
-  repeat: 'none' | 'one' | 'all';
+  repeat: RepeatMode;
   playbackSpeed: number;
-  equalizer: Record<string, number>;
-  videoEnhancement: VideoEnhancementSettings;
-  enhancedFileUri: string | null;
 
-  setCurrentFile: (file: FileItem | null) => void;
-  setIsPlaying: (playing: boolean) => void;
-  setSource: (source: PlaybackSource) => void;
-  setPosition: (pos: number) => void;
-  setDuration: (dur: number) => void;
-  setQueue: (queue: FileItem[], index: number) => void;
-  setCurrentIndex: (index: number) => void;
-  toggleShuffle: () => void;
+  play: (file?: FileItem, queue?: FileItem[], startIndex?: number) => void;
+  playIndex: (index: number) => void;
+  pause: () => void;
+  resume: () => void;
+  togglePlay: () => void;
+  stop: () => void;
+  seekTo: (millis: number) => void;
+  next: () => void;
+  previous: () => void;
+  setRate: (rate: number) => void;
+  setRepeat: (mode: RepeatMode) => void;
   cycleRepeat: () => void;
-  setPlaybackSpeed: (speed: number) => void;
-  setEqualizer: (eq: Record<string, number>) => void;
-  setVideoEnhancement: (settings: VideoEnhancementSettings) => void;
-  setEnhancedFileUri: (uri: string | null) => void;
+  toggleShuffle: () => void;
+  setQueue: (queue: FileItem[], startIndex?: number) => void;
+  setSource: (source: PlaybackSource) => void;
   reset: () => void;
 }
 
@@ -41,40 +41,142 @@ const initialState = {
   queue: [],
   currentIndex: -1,
   shuffle: false,
-  repeat: 'none' as 'none' | 'one' | 'all',
+  repeat: 'none' as RepeatMode,
   playbackSpeed: 1,
-  equalizer: {},
-  videoEnhancement: {
-    enabled: false,
-    qualityTarget: 'original' as const,
-    colorEnhancement: false,
-    sharpening: false,
-    denoise: false,
-    hdr: false,
-  },
-  enhancedFileUri: null,
 };
 
-export const usePlaybackStore = create<PlaybackState>((set) => ({
+export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
   ...initialState,
 
-  setCurrentFile: (file) => set({ currentFile: file }),
-  setIsPlaying: (playing) => set({ isPlaying: playing }),
+  play: (file, queue, startIndex) => {
+    const engineState = audioEngine.getState();
+    if (file && queue && startIndex !== undefined) {
+      audioEngine.play(file, queue, startIndex);
+    } else {
+      audioEngine.play();
+    }
+    const s = audioEngine.getState();
+    set({
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      position: s.position,
+      duration: s.duration,
+      queue: s.queue,
+      currentIndex: s.currentIndex,
+      shuffle: s.shuffle,
+      repeat: s.repeat,
+      playbackSpeed: s.playbackSpeed,
+      source: 'music',
+    });
+  },
+
+  playIndex: (index) => {
+    audioEngine.playIndex(index);
+    const s = audioEngine.getState();
+    set({
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      position: s.position,
+      duration: s.duration,
+      currentIndex: s.currentIndex,
+      source: 'music',
+    });
+  },
+
+  pause: () => {
+    audioEngine.pause();
+    set({ isPlaying: false });
+  },
+
+  resume: () => {
+    audioEngine.resume();
+    set({ isPlaying: true });
+  },
+
+  togglePlay: () => {
+    audioEngine.togglePlay();
+    const s = audioEngine.getState();
+    set({ isPlaying: s.isPlaying });
+  },
+
+  stop: () => {
+    audioEngine.stop();
+    set(initialState);
+  },
+
+  seekTo: (millis) => {
+    audioEngine.seekTo(millis);
+  },
+
+  next: () => {
+    audioEngine.next();
+    const s = audioEngine.getState();
+    set({
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      position: s.position,
+      duration: s.duration,
+      currentIndex: s.currentIndex,
+    });
+  },
+
+  previous: () => {
+    audioEngine.previous();
+    const s = audioEngine.getState();
+    set({
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      position: s.position,
+      duration: s.duration,
+      currentIndex: s.currentIndex,
+    });
+  },
+
+  setRate: (rate) => {
+    audioEngine.setRate(rate);
+    set({ playbackSpeed: rate });
+  },
+
+  setRepeat: (mode) => {
+    audioEngine.setRepeat(mode);
+    set({ repeat: mode });
+  },
+
+  cycleRepeat: () => {
+    audioEngine.cycleRepeat();
+    const s = audioEngine.getState();
+    set({ repeat: s.repeat });
+  },
+
+  toggleShuffle: () => {
+    audioEngine.toggleShuffle();
+    const s = audioEngine.getState();
+    set({ shuffle: s.shuffle });
+  },
+
+  setQueue: (queue, startIndex = 0) => {
+    audioEngine.setQueue(queue, startIndex);
+    set({ queue, currentIndex: startIndex });
+  },
+
   setSource: (source) => set({ source }),
-  setPosition: (pos) => set({ position: pos }),
-  setDuration: (dur) => set({ duration: dur }),
-  setQueue: (queue, index) => set({ queue, currentIndex: index }),
-  setCurrentIndex: (index) => set({ currentIndex: index }),
-  toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
-  cycleRepeat: () =>
-    set((s) => {
-      const modes: Array<'none' | 'one' | 'all'> = ['none', 'all', 'one'];
-      const idx = modes.indexOf(s.repeat);
-      return { repeat: modes[(idx + 1) % modes.length] };
-    }),
-  setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
-  setEqualizer: (eq) => set({ equalizer: eq }),
-  setVideoEnhancement: (settings) => set({ videoEnhancement: settings }),
-  setEnhancedFileUri: (uri) => set({ enhancedFileUri: uri }),
+
   reset: () => set(initialState),
 }));
+
+audioEngine.subscribe((state) => {
+  const store = usePlaybackStore.getState();
+  if (store.source === 'music') {
+    usePlaybackStore.setState({
+      currentFile: state.currentFile,
+      isPlaying: state.isPlaying,
+      position: state.position,
+      duration: state.duration,
+      queue: state.queue,
+      currentIndex: state.currentIndex,
+      shuffle: state.shuffle,
+      repeat: state.repeat,
+      playbackSpeed: state.playbackSpeed,
+    });
+  }
+});

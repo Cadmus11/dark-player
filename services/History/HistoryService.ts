@@ -3,7 +3,15 @@ import type { FileItem, HistoryEntry } from '../../types';
 
 const storage = new MMKV({ id: 'play-history' });
 const HISTORY_KEY = '@play_history';
+const PLAY_SESSIONS_KEY = '@play_sessions';
 const MAX_HISTORY = 200;
+
+interface PlaySession {
+  uri: string;
+  startedAt: number;
+  pausedAt: number | null;
+  accumulatedMs: number;
+}
 
 export const HistoryService = {
   getAll(): HistoryEntry[] {
@@ -26,6 +34,54 @@ export const HistoryService = {
     const filtered = history.filter((h) => h.file.uri !== file.uri);
     const updated = [entry, ...filtered].slice(0, MAX_HISTORY);
     storage.set(HISTORY_KEY, JSON.stringify(updated));
+  },
+
+  _sessions: new Map<string, PlaySession>(),
+
+  startPlaySession(uri: string) {
+    const existing = this._sessions.get(uri);
+    if (existing && existing.pausedAt !== null) {
+      existing.pausedAt = null;
+      return;
+    }
+    this._sessions.set(uri, { uri, startedAt: Date.now(), pausedAt: null, accumulatedMs: existing?.accumulatedMs || 0 });
+  },
+
+  pausePlaySession(uri: string) {
+    const session = this._sessions.get(uri);
+    if (!session || session.pausedAt !== null) return;
+    session.pausedAt = Date.now();
+    session.accumulatedMs += Date.now() - session.startedAt;
+  },
+
+  resumePlaySession(uri: string) {
+    const session = this._sessions.get(uri);
+    if (!session) {
+      this.startPlaySession(uri);
+      return;
+    }
+    session.startedAt = Date.now();
+    session.pausedAt = null;
+  },
+
+  endPlaySession(file: FileItem, source: 'music' | 'video' | 'audio') {
+    const session = this._sessions.get(file.uri);
+    if (!session) return;
+    if (session.pausedAt === null) {
+      session.accumulatedMs += Date.now() - session.startedAt;
+    }
+    const duration = Math.round(session.accumulatedMs);
+    if (duration > 1000) {
+      this.record(file, duration, source);
+    }
+    this._sessions.delete(file.uri);
+  },
+
+  getCumulativePlayTime(uri: string): number {
+    const history = this.getAll();
+    return history
+      .filter((h) => h.file.uri === uri)
+      .reduce((sum, h) => sum + h.playDuration, 0);
   },
 
   getRecentlyPlayed(limit = 20): HistoryEntry[] {

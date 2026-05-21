@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MagnifyingGlass, Clock, X, Image as ImageIcon, VideoCamera, MusicNote, FileText, Folder } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
-import type { FileItem, FileType } from '../types';
+import type { FileItem, FileType, SavedSearch } from '../types';
 import { FileIcon } from '../components/FileIcon';
-import { TopBar } from '../components/TopBar';
+import { ScreenLayout } from '../components/ScreenLayout';
+import { SearchService } from '../services/Search/SearchService';
 
 const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.ElementType }[] = [
   { type: 'all', label: 'All', Icon: MagnifyingGlass },
@@ -27,26 +29,28 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 
 export function SearchScreen() {
   const navigation = useNavigation<any>();
-  const { files, searchHistory, saveSearch, removeSearch, clearSearchHistory } = useFiles();
+  const { files } = useFiles();
   const { primaryColor, textColor, mutedColor } = useTheme();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
   const [isFocused, setIsFocused] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setSearchHistory(SearchService.getHistory());
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    let filtered = files.filter(
-      (f) =>
-        f.name.toLowerCase().includes(q) ||
-        (f.artist && f.artist.toLowerCase().includes(q)) ||
-        (f.type && f.type.toLowerCase().includes(q))
-    );
+    const searched = SearchService.search(query, files);
     if (activeFilter !== 'all') {
-      filtered = filtered.filter((f) => f.type === activeFilter);
+      return searched.filter((f) => f.type === activeFilter);
     }
-    return filtered;
+    return searched;
   }, [query, files, activeFilter]);
 
   const showHistory = !query.trim() && isFocused;
@@ -72,13 +76,27 @@ export function SearchScreen() {
     setQuery(text);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (text.trim()) {
-      searchTimer.current = setTimeout(() => saveSearch(text.trim()), 500);
+      searchTimer.current = setTimeout(() => {
+        SearchService.saveHistory(text.trim());
+        setSearchHistory(SearchService.getHistory());
+      }, 500);
     }
   };
 
   const handleHistoryTap = (searchQuery: string) => {
     setQuery(searchQuery);
-    saveSearch(searchQuery);
+    SearchService.saveHistory(searchQuery);
+    setSearchHistory(SearchService.getHistory());
+  };
+
+  const removeSearch = (id: string) => {
+    SearchService.removeHistory(id);
+    setSearchHistory(SearchService.getHistory());
+  };
+
+  const clearSearchHistory = () => {
+    SearchService.clearHistory();
+    setSearchHistory([]);
   };
 
   const renderItem = ({ item }: { item: FileItem }) => (
@@ -95,8 +113,7 @@ export function SearchScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: '#18181b' }]}>
-      <TopBar />
+    <ScreenLayout>
       <View style={styles.searchSection}>
         <View style={[styles.searchBar, isFocused && { borderColor: primaryColor }]}>
           <MagnifyingGlass size={20} color={isFocused ? primaryColor : mutedColor} weight="bold" />
@@ -119,8 +136,8 @@ export function SearchScreen() {
           ) : null}
         </View>
 
-        {/* Type Filters */}
-        <View style={styles.filterRow}>
+        {/* Type Filters - Scrollable */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {TYPE_FILTERS.map(({ type, label, Icon }) => (
             <TouchableOpacity
               key={type}
@@ -131,7 +148,7 @@ export function SearchScreen() {
               <Text style={[styles.filterLabel, activeFilter === type && { color: '#18181b', fontWeight: '700' }, { color: mutedColor }]}>{label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       {/* Search History */}
@@ -191,7 +208,7 @@ export function SearchScreen() {
           )
         }
       />
-    </View>
+    </ScreenLayout>
   );
 }
 
@@ -210,7 +227,7 @@ const styles = StyleSheet.create({
     borderColor: '#3f3f46',
   },
   searchInput: { flex: 1, fontSize: 15 },
-  filterRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',

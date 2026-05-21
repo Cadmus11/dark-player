@@ -11,6 +11,8 @@ import {
   Switch,
   TextInput,
   FlatList,
+  Share,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -18,13 +20,15 @@ import {
   SlidersHorizontal, Translate, ChatCenteredDots, Info,
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
   SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
-  Bell, Timer, ShieldCheck,
+  Bell, Timer, ShieldCheck, Folder, Star, ShareNetwork,
+  Sun, Palette, Gradient, Globe,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useFont, FONT_OPTIONS } from '../context/FontContext';
-import { useFiles } from '../context/FileContext';
-import { TopBar } from '../components/TopBar';
+import { useMediaStore } from '../stores/mediaStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { ScreenLayout } from '../components/ScreenLayout';
 import {
   getPlaybackSettings,
   savePlaybackSettings,
@@ -32,21 +36,20 @@ import {
   saveNotificationSettings,
   getSleepTimerSettings,
   saveSleepTimerSettings,
+  getRemoveAds,
+  setRemoveAds,
+  getRecentlyPlayed,
+  getRecentlyDeleted,
+  clearRecentlyDeleted,
+  removeFromRecentlyDeleted,
+  restoreFromTrash,
+  permanentlyDeleteTrashFile,
 } from '../services/StorageService';
-import type { PlaybackSettings, NotificationSettings, SleepTimerSettings } from '../types';
+import type { PlaybackSettings, NotificationSettings, SleepTimerSettings, RecentlyPlayed, RecentlyDeleted, FileItem } from '../types';
+import { COLOR_THEMES } from '../types';
+import { PrivateFolderService } from '../services/PrivateFolderService';
 
 const APP_VERSION = '1.0.0';
-
-const COLOR_PRESETS = [
-  { name: 'Dark Matter', colors: ['#06060B', '#1D1D21', '#0a0a0f'], primary: '#C2FC4A' },
-  { name: 'Neon Pulse', colors: ['#06060B', '#1D1D21', '#2d1b69'], primary: '#C2FC4A' },
-  { name: 'Cyberpunk', colors: ['#0a0a0a', '#ff006e', '#8338ec'], primary: '#ff006e' },
-  { name: 'Ocean Deep', colors: ['#03045e', '#0077b6', '#00b4d8'], primary: '#00b4d8' },
-  { name: 'Forest', colors: ['#0d1b2a', '#1b4332', '#2d6a4f'], primary: '#52b788' },
-  { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'], primary: '#e44d6e' },
-  { name: 'Midnight', colors: ['#0f0f1a', '#1a1a2e', '#16213e'], primary: '#e94560' },
-  { name: 'Nordic', colors: ['#0d1117', '#21262d', '#30363d'], primary: '#58a6ff' },
-];
 
 const ACCENT_COLORS = [
   '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
@@ -55,13 +58,26 @@ const ACCENT_COLORS = [
   '#8b5cf6', '#f59e0b', '#10b981', '#ec4899',
 ];
 
-type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification' | 'sleepTimer';
+type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification' | 'sleepTimer' | 'removeAds' | 'privateFolder' | 'futureUpdates';
 
 export function SettingsScreen() {
-  const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, primaryColor } = useTheme();
+  const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, setBackgroundBlur, setBackgroundImageFit, setAccentColor, setGradient, setColorTheme, setDarkMode, isDarkMode, primaryColor, availableColorThemes, currentColorThemeName } = useTheme();
   const { t, language, setLanguage, languages } = useLanguage();
   const { fontKey, setFont } = useFont();
-  const { recentlyPlayed, recentlyDeleted, clearRecentlyDeleted, hiddenFiles, hiddenFilesCount, hiddenFilesSettings, updateHiddenFilesSettings } = useFiles();
+  const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
+  const [recentlyDeleted, setRecentlyDeleted] = useState<RecentlyDeleted[]>([]);
+  useEffect(() => { getRecentlyPlayed().then(setRecentlyPlayed); }, []);
+  useEffect(() => { getRecentlyDeleted().then(setRecentlyDeleted); }, []);
+  const handleClearRecentlyDeleted = async () => { await clearRecentlyDeleted(); setRecentlyDeleted([]); };
+  const settingsStore = useSettingsStore();
+  const hiddenFilesSettings = settingsStore.hiddenFiles;
+  const mediaAudio = useMediaStore((s) => s.audio);
+  const hiddenFiles = useMemo(() => {
+    if (!hiddenFilesSettings.hideShortSongs) return [];
+    const minMs = (hiddenFilesSettings.minDurationSeconds || 15) * 1000;
+    return mediaAudio.filter((f) => f.duration !== undefined && f.duration < minMs);
+  }, [mediaAudio, hiddenFilesSettings.hideShortSongs, hiddenFilesSettings.minDurationSeconds]);
+  const hiddenFilesCount = hiddenFiles.length;
   const [activeView, setActiveView] = useState<ActiveView>('list');
   const [playbackSettings, setPlaybackSettingsState] = useState<PlaybackSettings>({
     playWithOtherApps: false,
@@ -81,10 +97,18 @@ export function SettingsScreen() {
   });
   const [crossFadeInput, setCrossFadeInput] = useState('3');
   const [sleepMinutesInput, setSleepMinutesInput] = useState('30');
+  const [adsRemoved, setAdsRemoved] = useState(false);
+  const [showAllThemes, setShowAllThemes] = useState(false);
 
   useEffect(() => {
     loadSettings();
+    loadRemoveAds();
   }, []);
+
+  async function loadRemoveAds() {
+    const value = await getRemoveAds();
+    setAdsRemoved(value);
+  }
 
   async function loadSettings() {
     const pb = await getPlaybackSettings();
@@ -109,10 +133,12 @@ export function SettingsScreen() {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    if (hours > 0) return `${hours}${t('playtime.hours', { h: 0 }).replace('0', String(hours))} ${minutes}${t('playtime.minutes', { m: 0 }).replace('0', String(minutes))} ${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
-    if (minutes > 0) return `${minutes}${t('playtime.minutes', { m: 0 }).replace('0', String(minutes))} ${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
-    return `${seconds}${t('playtime.seconds', { s: 0 }).replace('0', String(seconds))}`;
-  }, [recentlyPlayed, t]);
+    return hours > 0
+      ? `${hours}h ${minutes}m ${seconds}s`
+      : minutes > 0
+        ? `${minutes}m ${seconds}s`
+        : `${seconds}s`;
+  }, [recentlyPlayed]);
 
   const SETTINGS_ITEMS = [
     { id: 'playtime', Icon: Clock, label: t('settings.playtime') },
@@ -124,7 +150,12 @@ export function SettingsScreen() {
     { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
     { id: 'language', Icon: Translate, label: t('settings.language') },
     { id: 'fonts', Icon: TextAa, label: t('settings.fonts') },
+    { id: 'privateFolder', Icon: Folder, label: 'Private Folder' },
     { id: 'feedback', Icon: ChatCenteredDots, label: t('settings.feedback') },
+    { id: 'removeAds', Icon: ShieldCheck, label: t('settings.removeAds') },
+    { id: 'share', Icon: ShareNetwork, label: 'Share Lumora' },
+    { id: 'rate', Icon: Star, label: 'Rate Lumora' },
+    { id: 'futureUpdates', Icon: Star, label: 'Future Updates' },
     { id: 'about', Icon: Info, label: t('settings.about') },
   ];
 
@@ -134,7 +165,6 @@ export function SettingsScreen() {
       Alert.alert('Permission Required', 'Please grant photo library access to select a background image.');
       return;
     }
-
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -142,7 +172,6 @@ export function SettingsScreen() {
         aspect: [16, 9],
         quality: 0.8,
       });
-
       if (!result.canceled && result.assets[0]) {
         await setBackgroundImage(result.assets[0].uri);
       }
@@ -151,49 +180,42 @@ export function SettingsScreen() {
     }
   };
 
-  const applyColorPreset = async (preset: (typeof COLOR_PRESETS)[0]) => {
+  const applyColorPreset = async (preset: typeof COLOR_THEMES[0]) => {
+    const isLight = preset.name === 'Light';
+    const bg = isLight ? '#F5F5F5' : '#0a0a0a';
     await updateTheme({
-      backgroundType: 'gradient',
-      gradientColors: preset.colors,
-      primaryColor: preset.primary,
+      backgroundType: 'solid',
+      backgroundColor: bg,
+      gradientColors: undefined,
       backgroundImageUri: undefined,
+      primaryColor: preset.primary,
     });
   };
 
   const handleSettingPress = (id: string) => {
     switch (id) {
-      case 'theme':
-        setActiveView('theme');
-        break;
-      case 'about':
-        setActiveView('about');
-        break;
-      case 'language':
-        setActiveView('language');
-        break;
-      case 'fonts':
-        setActiveView('fonts');
-        break;
-      case 'hiddenFiles':
-        setActiveView('hiddenFiles');
-        break;
-      case 'recentlyDeleted':
-        setActiveView('recentlyDeleted');
-        break;
-      case 'playback':
-        setActiveView('playback');
-        break;
-      case 'notification':
-        setActiveView('notification');
-        break;
-      case 'sleepTimer':
-        setActiveView('sleepTimer');
-        break;
+      case 'theme': setActiveView('theme'); break;
+      case 'futureUpdates': setActiveView('futureUpdates'); break;
+      case 'about': setActiveView('about'); break;
+      case 'language': setActiveView('language'); break;
+      case 'fonts': setActiveView('fonts'); break;
+      case 'hiddenFiles': setActiveView('hiddenFiles'); break;
+      case 'recentlyDeleted': setActiveView('recentlyDeleted'); break;
+      case 'playback': setActiveView('playback'); break;
+      case 'notification': setActiveView('notification'); break;
+      case 'sleepTimer': setActiveView('sleepTimer'); break;
+      case 'privateFolder': setActiveView('privateFolder'); break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
         break;
-      case 'playtime':
+      case 'removeAds': setActiveView('removeAds'); break;
+      case 'share':
+        Share.share({ message: 'Check out Lumora - a beautiful media player!', url: 'https://lumora.app' });
         break;
+      case 'rate':
+        Linking.openURL(Platform.OS === 'ios' ? 'https://apps.apple.com/app/id12345' : 'https://play.google.com/store/apps/details?id=com.lumora.app');
+        break;
+      case 'playtime': break;
     }
   };
 
@@ -263,6 +285,20 @@ export function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
 
+      {/* Dark/Light Mode Toggle */}
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <Sun size={22} color="#ffffff" />
+          <Text style={styles.settingText}>Dark Mode</Text>
+          <Switch
+            value={isDarkMode}
+            onValueChange={setDarkMode}
+            trackColor={{ false: '#3f3f46', true: primaryColor }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      </View>
+
       <Text style={styles.sectionTitle}>{t('settings.background')}</Text>
       <View style={styles.card}>
         <TouchableOpacity style={styles.settingRow} onPress={pickBackgroundImage}>
@@ -281,31 +317,115 @@ export function SettingsScreen() {
 
         <TouchableOpacity
           style={styles.settingRow}
-          onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: '#06060B' })}
+          onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: isDarkMode ? '#06060B' : '#F5F5F5' })}
         >
-          <View style={styles.deepBlackIcon} />
-          <Text style={styles.settingText}>{t('settings.deepBlack')}</Text>
+          <View style={[styles.deepBlackIcon, { backgroundColor: isDarkMode ? '#06060B' : '#F5F5F5' }]} />
+          <Text style={styles.settingText}>Solid Color</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>{t('settings.colorThemes')}</Text>
-      <View style={styles.card}>
-        {COLOR_PRESETS.map((preset) => (
-          <TouchableOpacity
-            key={preset.name}
-            style={styles.colorPreset}
-            onPress={() => applyColorPreset(preset)}
-          >
-            <View style={styles.colorPreview}>
-              {preset.colors.map((color, i) => (
-                <View key={i} style={[styles.colorSwatch, { backgroundColor: color }]} />
-              ))}
+      {theme.backgroundType === 'image' && theme.backgroundImageUri && (
+        <>
+          <Text style={styles.sectionTitle}>Background Adjustments</Text>
+          <View style={styles.card}>
+            <View style={styles.blurSection}>
+              <Text style={styles.blurLabel}>Blur Intensity: {theme.backgroundBlur ?? 20}%</Text>
+              <View style={styles.blurTrackContainer}>
+                <TouchableOpacity
+                  style={[styles.blurTrack, { backgroundColor: '#3f3f46' }]}
+                  onPress={(e) => {
+                    const x = (e.nativeEvent as any).locationX;
+                    const trackWidth = 280;
+                    const pct = Math.round((x / trackWidth) * 100);
+                    setBackgroundBlur(Math.max(0, Math.min(100, pct)));
+                  }}
+                >
+                  <View style={[styles.blurThumb, { left: `${theme.backgroundBlur ?? 20}%` as any }]} />
+                </TouchableOpacity>
+                <View style={styles.blurLabels}>
+                  <Text style={styles.blurLabelSmall}>0%</Text>
+                  <Text style={styles.blurLabelSmall}>50%</Text>
+                  <Text style={styles.blurLabelSmall}>100%</Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.presetName}>{preset.name}</Text>
-          </TouchableOpacity>
-        ))}
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setBackgroundImageFit(theme.backgroundImageFit === 'cover' ? 'contain' : 'cover')}
+            >
+              <ImageIcon size={22} color="#ffffff" />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.settingText}>Image Fit</Text>
+                <Text style={styles.settingDesc}>
+                  {theme.backgroundImageFit === 'cover' ? 'Fill screen (may crop)' : 'Full image (no crop)'}
+                </Text>
+              </View>
+              <View style={[styles.fitBadge, { backgroundColor: primaryColor + '20' }]}>
+                <Text style={[styles.fitBadgeText, { color: primaryColor }]}>
+                  {theme.backgroundImageFit === 'cover' ? 'COVER' : 'CONTAIN'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {/* Gradient Themes */}
+      <Text style={styles.sectionTitle}>Gradients</Text>
+      <View style={styles.card}>
+        <View style={styles.gradientPresetRow}>
+          {[
+            { name: 'Deep Space', colors: ['#06060B', '#1D1D21', '#0a0a0f'] },
+            { name: 'Neon', colors: ['#06060B', '#1D1D21', '#2d1b69'] },
+            { name: 'Cyber', colors: ['#0a0a0a', '#ff006e', '#8338ec'] },
+            { name: 'Ocean', colors: ['#03045e', '#0077b6', '#00b4d8'] },
+            { name: 'Forest', colors: ['#0d1b2a', '#1b4332', '#2d6a4f'] },
+            { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'] },
+          ].map((g) => (
+            <TouchableOpacity
+              key={g.name}
+              style={styles.gradientPreset}
+              onPress={() => setGradient(g.colors)}
+            >
+              <View style={styles.gradientPreview}>
+                {g.colors.map((c, i) => (
+                  <View key={i} style={[styles.gradientSwatch, { backgroundColor: c, zIndex: g.colors.length - i }]} />
+                ))}
+              </View>
+              <Text style={styles.gradientLabel} numberOfLines={1}>{g.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
+      {/* Color Themes */}
+      <Text style={styles.sectionTitle}>{t('settings.colorThemes')}</Text>
+      <View style={styles.card}>
+        <View style={styles.themeGrid}>
+          {(showAllThemes ? availableColorThemes : availableColorThemes.slice(0, 4)).map((ct) => (
+            <TouchableOpacity
+              key={ct.name}
+              style={[styles.themeCard, currentColorThemeName === ct.name && { borderColor: primaryColor }]}
+              onPress={() => setColorTheme(ct.name)}
+            >
+              <View style={[styles.themePreview, { backgroundColor: ct.background }]}>
+                <View style={[styles.themeAccentDot, { backgroundColor: ct.primary }]} />
+              </View>
+              <Text style={[styles.themeCardName, currentColorThemeName === ct.name && { color: primaryColor }]}>
+                {ct.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllThemes(!showAllThemes)}>
+          <Text style={[styles.showMoreText, { color: primaryColor }]}>
+            {showAllThemes ? 'Show Less' : `Show All (${availableColorThemes.length})`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Accent Colors */}
       <Text style={styles.sectionTitle}>{t('settings.accentColor')}</Text>
       <View style={styles.card}>
         <View style={styles.accentPreview}>
@@ -321,7 +441,7 @@ export function SettingsScreen() {
                 { backgroundColor: color },
                 theme.primaryColor === color && styles.accentCircleActive,
               ]}
-              onPress={() => updateTheme({ primaryColor: color })}
+              onPress={() => setAccentColor(color)}
             >
               {theme.primaryColor === color && (
                 <Check size={16} color="#0a0a0a" weight="bold" />
@@ -367,11 +487,15 @@ export function SettingsScreen() {
         </View>
         <View style={styles.aboutFooter}>
           <Image
-            source={require('../assets/lumora.png')}
+            source={require('../assets/app.png')}
             style={styles.aboutLogo}
             resizeMode="contain"
           />
           <Text style={styles.aboutCredit}>By Cadmus Labs</Text>
+          <TouchableOpacity style={styles.rateBtn} onPress={() => Linking.openURL(Platform.OS === 'ios' ? 'https://apps.apple.com/app/id12345' : 'https://play.google.com/store/apps/details?id=com.lumora.app')}>
+            <Star size={16} color="#C2FC4A" weight="fill" />
+            <Text style={styles.rateBtnText}>Rate Lumora</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </>
@@ -393,10 +517,7 @@ export function SettingsScreen() {
             style={styles.languageRow}
             onPress={() => setLanguage(lang.code)}
           >
-            <Text style={[
-              styles.languageName,
-              language === lang.code && { color: primaryColor },
-            ]}>
+            <Text style={[styles.languageName, language === lang.code && { color: primaryColor }]}>
               {lang.nativeName}
             </Text>
             <Text style={styles.languageEnglishName}>{lang.name}</Text>
@@ -425,10 +546,7 @@ export function SettingsScreen() {
             style={styles.languageRow}
             onPress={() => setFont(opt.key)}
           >
-            <Text style={[
-              styles.languageName,
-              fontKey === opt.key && { color: primaryColor },
-            ]}>
+            <Text style={[styles.languageName, fontKey === opt.key && { color: primaryColor }]}>
               {t(opt.labelKey)}
             </Text>
             {fontKey === opt.key && (
@@ -460,7 +578,7 @@ export function SettingsScreen() {
           keyExtractor={(item) => item.uri}
           renderItem={({ item }) => (
             <View style={styles.hiddenFileRow}>
-              <MusicNote size={18} color="rgba(255,255,255,0.5)" />
+              <MusicNotes size={18} color="rgba(255,255,255,0.5)" />
               <View style={styles.hiddenFileInfo}>
                 <Text style={styles.hiddenFileName} numberOfLines={1}>{item.name}</Text>
                 {item.duration && (
@@ -489,7 +607,7 @@ export function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
       {recentlyDeleted.length > 0 && (
-        <TouchableOpacity style={styles.clearAllBtn} onPress={clearRecentlyDeleted}>
+        <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearRecentlyDeleted}>
           <Text style={styles.clearAllText}>Clear All</Text>
         </TouchableOpacity>
       )}
@@ -503,7 +621,7 @@ export function SettingsScreen() {
           data={recentlyDeleted}
           keyExtractor={(item, idx) => item.file.uri + idx}
           renderItem={({ item }) => (
-            <View style={styles.hiddenFileRow}>
+            <View style={[styles.hiddenFileRow, { flexWrap: 'wrap' }]}>
               <Trash size={18} color="rgba(255,255,255,0.5)" />
               <View style={styles.hiddenFileInfo}>
                 <Text style={styles.hiddenFileName} numberOfLines={1}>{item.file.name}</Text>
@@ -511,12 +629,165 @@ export function SettingsScreen() {
                   {new Date(item.deletedAt).toLocaleDateString()}
                 </Text>
               </View>
+              <View style={{ flexDirection: 'row', gap: 8, marginLeft: 40, marginTop: 6 }}>
+                <TouchableOpacity
+                  style={[styles.restoreSmallBtn, { backgroundColor: `${primaryColor}15` }]}
+                  onPress={async () => {
+                    const ok = await restoreFromTrash(item.file.uri);
+                    if (ok) {
+                      await removeFromRecentlyDeleted(item.file.uri);
+                      setRecentlyDeleted(await getRecentlyDeleted());
+                      Alert.alert('Restored', 'File has been restored to its original location.');
+                    } else {
+                      await removeFromRecentlyDeleted(item.file.uri);
+                      setRecentlyDeleted(await getRecentlyDeleted());
+                      Alert.alert('Info', 'File entry removed. The original file could not be restored (no trash backup found).');
+                    }
+                  }}
+                >
+                  <Text style={[styles.restoreSmallText, { color: primaryColor }]}>Restore</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.restoreSmallBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                  onPress={async () => {
+                    Alert.alert('Permanently Delete', 'This will permanently delete the backed-up file. This cannot be undone.', [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: async () => {
+                          await permanentlyDeleteTrashFile(item.file.uri);
+                          await removeFromRecentlyDeleted(item.file.uri);
+                          setRecentlyDeleted(await getRecentlyDeleted());
+                        },
+                      },
+                    ]);
+                  }}
+                >
+                  <Text style={[styles.restoreSmallText, { color: '#ef4444' }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           scrollEnabled={false}
         />
       ) : (
         <Text style={styles.emptyText}>No recently deleted files</Text>
+      )}
+    </>
+  );
+
+  const [privateFolderInfo, setPrivateFolderInfo] = useState({ fileCount: 0, totalSize: 0 });
+  const [privateFolderExists, setPrivateFolderExists] = useState(false);
+  const [privateFilesList, setPrivateFilesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const exists = await PrivateFolderService.isSetup();
+      setPrivateFolderExists(exists);
+      if (exists) {
+        const info = await PrivateFolderService.getFolderInfo();
+        setPrivateFolderInfo(info);
+        const files = await PrivateFolderService.getPrivateFiles();
+        setPrivateFilesList(files);
+      }
+    })();
+  }, [activeView]);
+
+  const renderPrivateFolderView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>Private Folder</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      {!privateFolderExists ? (
+        <View style={styles.card}>
+          <Text style={styles.privateFolderInfo}>
+            Create a private folder on your device to hide sensitive files from the main library.
+            Files in this folder will only appear when accessed from this screen.
+          </Text>
+          <TouchableOpacity
+            style={[styles.privateFolderBtn, { backgroundColor: primaryColor }]}
+            onPress={async () => {
+              const ok = await PrivateFolderService.setupFolder();
+              if (ok) {
+                setPrivateFolderExists(true);
+                const info = await PrivateFolderService.getFolderInfo();
+                setPrivateFolderInfo(info);
+                Alert.alert('Created', 'Private folder has been created successfully.');
+              } else {
+                Alert.alert('Error', 'Failed to create private folder. Please check storage permissions.');
+              }
+            }}
+          >
+            <Folder size={20} color="#06060B" weight="bold" />
+            <Text style={styles.privateFolderBtnText}>Create Private Folder</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.card}>
+            <View style={{ padding: 12, gap: 6 }}>
+              <Text style={styles.badgeSummary}>
+                {privateFilesList.length} file{privateFilesList.length !== 1 ? 's' : ''} in private folder
+              </Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 12 }}>
+                Size: {(privateFolderInfo.totalSize / 1024 / 1024).toFixed(1)} MB
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.privateFolderBtn, { backgroundColor: 'rgba(239,68,68,0.15)', marginHorizontal: 16, marginBottom: 16 }]}
+              onPress={() => {
+                Alert.alert('Delete Private Folder', 'This will permanently delete the folder and all files in it. This cannot be undone.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await PrivateFolderService.deleteFolder();
+                      setPrivateFolderExists(false);
+                      setPrivateFilesList([]);
+                    },
+                  },
+                ]);
+              }}
+            >
+              <Trash size={16} color="#ef4444" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#ef4444' }}>Delete Private Folder</Text>
+            </TouchableOpacity>
+          </View>
+          {privateFilesList.length > 0 && (
+            <View style={styles.card}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#ffffff', padding: 12 }}>Files</Text>
+              {privateFilesList.map((pf) => (
+                <View key={pf.uri} style={styles.hiddenFileRow}>
+                  <Folder size={18} color="rgba(255,255,255,0.5)" />
+                  <View style={styles.hiddenFileInfo}>
+                    <Text style={styles.hiddenFileName} numberOfLines={1}>{pf.name}</Text>
+                    <Text style={styles.hiddenFileMeta}>
+                      {new Date(pf.addedAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.restoreSmallBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                    onPress={async () => {
+                      await PrivateFolderService.removeFile(pf.uri);
+                      const files = await PrivateFolderService.getPrivateFiles();
+                      setPrivateFilesList(files);
+                      const info = await PrivateFolderService.getFolderInfo();
+                      setPrivateFolderInfo(info);
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
       )}
     </>
   );
@@ -624,7 +895,6 @@ export function SettingsScreen() {
           />
         </View>
       </View>
-
     </>
   );
 
@@ -638,7 +908,6 @@ export function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <Text style={styles.sectionTitle}>{t('settings.sleepTimer')}</Text>
       <View style={styles.card}>
         <TouchableOpacity
           style={[styles.modeRow, sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }]}
@@ -683,7 +952,7 @@ export function SettingsScreen() {
           style={[styles.modeRow, sleepTimerSettings.mode === 'endOfTrack' && { backgroundColor: `${primaryColor}15` }]}
           onPress={() => updateSleepTimerSetting('mode', 'endOfTrack')}
         >
-          <MusicNote size={20} color={sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <MusicNotes size={20} color={sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'} />
           <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfTrack' && { color: primaryColor }]}>
             {t('settings.sleepTimerEndOfTrack')}
           </Text>
@@ -694,7 +963,7 @@ export function SettingsScreen() {
           style={[styles.modeRow, sleepTimerSettings.mode === 'endOfQueue' && { backgroundColor: `${primaryColor}15` }]}
           onPress={() => updateSleepTimerSetting('mode', 'endOfQueue')}
         >
-          <MusicNote size={20} color={sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'} />
+          <MusicNotes size={20} color={sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'} />
           <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfQueue' && { color: primaryColor }]}>
             {t('settings.sleepTimerEndOfQueue')}
           </Text>
@@ -702,7 +971,6 @@ export function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>{t('settings.sleepTimerEndOfTrack')}</Text>
       <View style={styles.card}>
         <View style={styles.switchRow}>
           <View style={styles.switchLabel}>
@@ -720,40 +988,146 @@ export function SettingsScreen() {
     </>
   );
 
+  const renderRemoveAdsView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>{t('settings.removeAds')}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.removeAdsHero}>
+          <ShieldCheck size={64} color={adsRemoved ? primaryColor : 'rgba(255,255,255,0.2)'} weight={adsRemoved ? 'fill' : 'regular'} />
+          <Text style={[styles.removeAdsTitle, adsRemoved && { color: primaryColor }]}>
+            {adsRemoved ? t('settings.removeAdsPurchased') : t('settings.removeAdsPurchase')}
+          </Text>
+          <Text style={styles.removeAdsDesc}>{t('settings.removeAdsDesc')}</Text>
+        </View>
+
+        {!adsRemoved && (
+          <TouchableOpacity
+            style={[styles.purchaseButton, { backgroundColor: primaryColor }]}
+            onPress={async () => {
+              await setRemoveAds(true);
+              setAdsRemoved(true);
+            }}
+          >
+            <Text style={styles.purchaseButtonText}>{t('settings.removeAdsPurchase')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {adsRemoved && (
+          <View style={styles.purchasedBadge}>
+            <Check size={20} color={primaryColor} weight="bold" />
+            <Text style={[styles.purchasedText, { color: primaryColor }]}>{t('settings.removeAdsPurchased')}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.restoreButton} onPress={async () => {
+          const value = await getRemoveAds();
+          setAdsRemoved(value);
+          if (value) {
+            Alert.alert('Restored', 'Your purchase has been restored.');
+          } else {
+            Alert.alert('No Purchase Found', 'No previous purchase was found to restore.');
+          }
+        }}>
+          <Text style={styles.restoreText}>{t('settings.removeAdsRestore')}</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  const FUTURE_UPDATES: { Icon: any; title: string; desc: string }[] = [
+    { Icon: MusicNotes, title: 'Lyrics & Karaoke', desc: 'Synced lyrics display with auto-fetch and karaoke-style highlighting' },
+    { Icon: SlidersHorizontal, title: '10-Band Equalizer', desc: 'Professional EQ with custom presets, bass boost, and reverb effects' },
+    { Icon: VideoCamera, title: 'Chromecast & AirPlay', desc: 'Stream media to TV and speakers via Chromecast, AirPlay, and DLNA' },
+    { Icon: ShareNetwork, title: 'Local Network Share', desc: 'Share/receive media between devices on the same Wi-Fi network' },
+    { Icon: SquaresFour, title: 'Smart Playlists', desc: 'Auto-generated playlists by genre, mood, play count, and habits' },
+    { Icon: Globe, title: 'Full Offline Mode', desc: 'Download from cloud, stream from Plex, Jellyfin, and SMB shares' },
+    { Icon: Bell, title: 'Podcast Support', desc: 'Podcast discovery, subscriptions, and episode auto-downloads' },
+    { Icon: Timer, title: 'Advanced Sleep Timer', desc: 'Fade-out volume, smart quiet-section detection, scheduled times' },
+    { Icon: PaintBrush, title: 'Live Wallpaper Backdrops', desc: 'Animated/motion wallpapers as app background' },
+    { Icon: Translate, title: 'More Languages', desc: 'Arabic, Hindi, Bengali, Turkish, Vietnamese, and more' },
+    { Icon: TextAa, title: 'Custom Font Upload', desc: 'Import .ttf font files in-app without rebuilding' },
+    { Icon: Star, title: 'Android Auto & CarPlay', desc: 'Optimized driving interface with voice control' },
+    { Icon: MusicNotes, title: 'Crossfade Playback', desc: 'Seamless track transitions with configurable duration' },
+    { Icon: FileText, title: 'PDF Bookmarks & Annotations', desc: 'Bookmark pages, highlight text, add notes to PDFs' },
+    { Icon: ImageIcon, title: 'Photo Editing Tools', desc: 'Crop, rotate, filters, and adjustment sliders' },
+    { Icon: ImageIcon, title: 'Manual Cover Upload', desc: 'Upload custom cover art for songs and albums via ImagePicker' },
+  ];
+
+  const renderFutureUpdatesView = () => (
+    <>
+      <View style={styles.themeHeader}>
+        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+          <CaretLeft size={28} color="#ffffff" />
+        </TouchableOpacity>
+        <Text style={styles.themeHeaderTitle}>Future Updates</Text>
+        <View style={{ width: 44 }} />
+      </View>
+      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16, paddingHorizontal: 4 }}>
+        Features planned for upcoming releases. Vote and suggest on our GitHub.
+      </Text>
+      <View style={styles.card}>
+        {FUTURE_UPDATES.map((item, idx) => (
+          <View key={idx} style={[styles.settingRow, idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }]}>
+            <item.Icon size={22} color={primaryColor} />
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={styles.settingText}>{item.title}</Text>
+              <Text style={[styles.settingDesc, { marginLeft: 0, marginTop: 2 }]}>{item.desc}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'theme': return renderThemeView();
+      case 'about': return renderAboutView();
+      case 'language': return renderLanguageView();
+      case 'fonts': return renderFontsView();
+      case 'hiddenFiles': return renderHiddenFilesView();
+      case 'recentlyDeleted': return renderRecentlyDeletedView();
+      case 'privateFolder': return renderPrivateFolderView();
+      case 'playback': return renderPlaybackView();
+      case 'notification': return renderNotificationView();
+      case 'sleepTimer': return renderSleepTimerView();
+      case 'removeAds': return renderRemoveAdsView();
+      case 'futureUpdates': return renderFutureUpdatesView();
+      default: return null;
+    }
+  };
+
   if (activeView !== 'list') {
     return (
-      <View style={styles.container}>
-        <TopBar />
+      <ScreenLayout>
         <ScrollView contentContainerStyle={styles.content}>
-          {activeView === 'theme' && renderThemeView()}
-          {activeView === 'about' && renderAboutView()}
-          {activeView === 'language' && renderLanguageView()}
-          {activeView === 'fonts' && renderFontsView()}
-          {activeView === 'hiddenFiles' && renderHiddenFilesView()}
-          {activeView === 'recentlyDeleted' && renderRecentlyDeletedView()}
-          {activeView === 'playback' && renderPlaybackView()}
-          {activeView === 'notification' && renderNotificationView()}
-          {activeView === 'sleepTimer' && renderSleepTimerView()}
+          {renderActiveView()}
           <View style={{ height: 100 }} />
         </ScrollView>
-      </View>
+      </ScreenLayout>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <TopBar />
+    <ScreenLayout>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>{t('settings.title')}</Text>
         <View style={styles.card}>{renderMainList()}</View>
         <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06060B' },
+  container: { flex: 1 },
   content: { paddingHorizontal: 20 },
   pageTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff', marginBottom: 16 },
   card: {
@@ -893,7 +1267,6 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 4,
-    backgroundColor: '#06060B',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -923,6 +1296,21 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.4)',
     fontWeight: '500',
     letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(194, 252, 74, 0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  rateBtnText: {
+    fontSize: 14,
+    color: '#C2FC4A',
+    fontWeight: '600',
   },
   languageName: { fontSize: 16, color: '#ffffff', flex: 1 },
   languageEnglishName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)', marginRight: 12 },
@@ -987,4 +1375,217 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   clearAllText: { fontSize: 14, color: '#ef4444', fontWeight: '600' },
+  removeAdsHero: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 12,
+  },
+  removeAdsTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  removeAdsDesc: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  purchaseButton: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  purchaseButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#06060B',
+  },
+  purchasedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: 'rgba(194, 252, 74, 0.1)',
+    borderRadius: 14,
+  },
+  purchasedText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  restoreButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  restoreText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '500',
+  },
+
+  // Background adjustments
+  blurSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  blurLabel: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  blurTrackContainer: {
+    alignItems: 'center',
+  },
+  blurTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: 3,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  blurThumb: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#C2FC4A',
+    top: -7,
+    transform: [{ translateX: -10 }],
+  },
+  blurLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 8,
+  },
+  blurLabelSmall: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  fitBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  fitBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  // Theme grid
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    padding: 8,
+  },
+  themeCard: {
+    width: 70,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  themePreview: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  themeAccentDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  themeCardName: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  showMoreBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  showMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Gradient presets
+  gradientPresetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    padding: 8,
+  },
+  gradientPreset: {
+    width: 100,
+    alignItems: 'center',
+  },
+  gradientPreview: {
+    width: 88,
+    height: 44,
+    borderRadius: 10,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  gradientSwatch: {
+    flex: 1,
+    height: '100%',
+  },
+  gradientLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+  },
+
+  // Private folder
+  privateFolderInfo: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: 22,
+    padding: 16,
+    textAlign: 'center',
+  },
+  privateFolderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  privateFolderBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#06060B',
+  },
+  restoreSmallBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  restoreSmallText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

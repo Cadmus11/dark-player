@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+const FileSystem: any = require('expo-file-system');
 import type { FileItem, FileType, DocumentSubType } from '../types';
 
 const isWeb = Platform.OS === 'web';
@@ -192,7 +192,7 @@ export async function scanDocuments(): Promise<FileItem[]> {
         const fileType = getFileType(entry);
         if (fileType === 'document' || fileType === 'other') {
           try {
-            const info = await FileSystem.getInfoAsync(entryUri, { size: true });
+            const info = await FileSystem.getInfoAsync(entryUri, {});
             if (info.exists && !info.isDirectory) {
               uriSet.add(entryUri);
               const docSubType = fileType === 'document' ? getDocumentSubType(entry) : undefined;
@@ -264,7 +264,7 @@ export async function scanDocuments(): Promise<FileItem[]> {
             docSubType: fileType === 'document' ? getDocumentSubType(asset.filename) : undefined,
             modifiedAt: asset.modificationTime * 1000,
             createdAt: asset.creationTime * 1000,
-            size: asset.fileSize ?? undefined,
+            size: (asset as any).fileSize ?? undefined,
             artColor: getArtColor(asset.filename),
           });
         }

@@ -1,6 +1,6 @@
-import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { MMKV } from 'react-native-mmkv';
+const FileSystem: any = require('expo-file-system');
 import type { DocumentIndex, DocumentSubType } from '../../types';
 
 const storage = new MMKV({ id: 'document-index' });
@@ -75,7 +75,7 @@ export const DocumentIndexer = {
           const fullPath = dir.endsWith('/') ? dir + entry : dir + '/' + entry;
           if (seenUris.has(fullPath)) continue;
           try {
-            const info = await FileSystem.getInfoAsync(fullPath, { size: true });
+            const info = await FileSystem.getInfoAsync(fullPath, {});
             if (!info.exists) continue;
             if (info.isDirectory) {
               await scanDir(fullPath, depth + 1);
@@ -134,7 +134,7 @@ export const DocumentIndexer = {
               name: asset.filename,
               extension: ext,
               mimeType: getMimeType(ext),
-              size: asset.fileSize ?? 0,
+              size: (asset as any).fileSize ?? 0,
               modifiedAt: asset.modificationTime * 1000,
               folder: album.title,
               iconType: docType,

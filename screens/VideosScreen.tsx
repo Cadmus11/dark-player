@@ -12,7 +12,8 @@ import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import type { FileItem, SortField, SortDirection, LayoutMode } from '../types';
-import { TopBar } from '../components/TopBar';
+import { ScreenLayout } from '../components/ScreenLayout';
+import { Sorting } from '../services/Sorting';
 import LayoutToggle from '../components/LayoutToggle';
 import FileGrid from '../components/FileGrid';
 import FileList from '../components/FileList';
@@ -39,29 +40,7 @@ export function VideosScreen() {
   }, []);
 
   const sortedVideos = useMemo(() => {
-    const arr = [...videos];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      switch (sortField) {
-        case 'name':
-          cmp = a.name.localeCompare(b.name);
-          break;
-        case 'date':
-          cmp = (b.modifiedAt || 0) - (a.modifiedAt || 0);
-          break;
-        case 'duration':
-          cmp = (b.duration || 0) - (a.duration || 0);
-          break;
-        case 'size':
-          cmp = (b.size || 0) - (a.size || 0);
-          break;
-        case 'type':
-          cmp = (a.mimeType || a.name.split('.').pop() || '').localeCompare(b.mimeType || b.name.split('.').pop() || '');
-          break;
-      }
-      return sortDirection === 'asc' ? cmp : -cmp;
-    });
-    return arr;
+    return Sorting.sort(videos, sortField, sortDirection);
   }, [videos, sortField, sortDirection]);
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.field === sortField)?.label || 'Date';
@@ -132,8 +111,7 @@ export function VideosScreen() {
   ), [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]);
 
   return (
-    <View style={[styles.container, { backgroundColor: '#18181b' }]}>
-      <TopBar />
+    <ScreenLayout>
       <View style={styles.headerRow}>
         <Text style={[styles.title, { color: textColor }]}>Videos</Text>
         <View style={styles.headerActions}>
@@ -172,7 +150,7 @@ export function VideosScreen() {
         )}
       </View>
       {renderSortModal}
-    </View>
+    </ScreenLayout>
   );
 }
 

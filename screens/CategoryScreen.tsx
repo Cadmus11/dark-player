@@ -12,6 +12,7 @@ import type { RootStackParamList } from '../App';
 import { CaretLeft, Image as ImageIcon, VideoCamera, MusicNote, FileText, FilePdf, FileDoc, FileXls, FilePpt, FileTxt } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { formatFileSize, formatDuration } from '../services/FileService';
+import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
 import type { FileItem, DocumentSubType } from '../types';
 
@@ -175,7 +176,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenLayout noTopBar>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <CaretLeft size={24} color="#ffffff" />
@@ -203,7 +204,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
           </View>
         }
       />
-    </View>
+    </ScreenLayout>
   );
 }
 
@@ -225,7 +226,7 @@ function getDocSubTypeColor(subType: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06060B' },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

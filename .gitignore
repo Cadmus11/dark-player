@@ -56,6 +56,9 @@ yarn-error.*
 coverage/
 .nyc_output/
 
+# Agent instructions (AI-generated, environment-specific)
+AGENTS.md
+
 # Lock files (optional - uncomment if you want to ignore)
 # package-lock.json
 # yarn.lock

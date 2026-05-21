@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { PlaylistData, FileItem } from '../types';
-import { PlaylistService } from '../services/Playlist/PlaylistService';
+import { queueEngine } from '../engine/QueueEngine';
 
 interface PlaylistStoreState {
   playlists: PlaylistData[];
@@ -15,48 +15,52 @@ interface PlaylistStoreState {
   reorderSongs: (id: string, songIds: string[]) => boolean;
 }
 
-export const usePlaylistStore = create<PlaylistStoreState>((set, get) => ({
+export const usePlaylistStore = create<PlaylistStoreState>((set) => ({
   playlists: [],
   loading: false,
 
   load: () => {
     set({ loading: true });
-    set({ playlists: PlaylistService.getAll(), loading: false });
+    set({ playlists: queueEngine.getAll(), loading: false });
   },
 
   create: (name, songs = []) => {
-    const pl = PlaylistService.create(name, songs);
-    set({ playlists: PlaylistService.getAll() });
+    const pl = queueEngine.create(name, songs);
+    set({ playlists: queueEngine.getAll() });
     return pl;
   },
 
   rename: (id, name) => {
-    const result = PlaylistService.rename(id, name);
-    if (result) set({ playlists: PlaylistService.getAll() });
+    const result = queueEngine.rename(id, name);
+    if (result) set({ playlists: queueEngine.getAll() });
     return result;
   },
 
   delete: (id) => {
-    const result = PlaylistService.delete(id);
-    if (result) set({ playlists: PlaylistService.getAll() });
+    const result = queueEngine.delete(id);
+    if (result) set({ playlists: queueEngine.getAll() });
     return result;
   },
 
   addSongs: (id, songs) => {
-    const result = PlaylistService.addSongs(id, songs);
-    if (result) set({ playlists: PlaylistService.getAll() });
+    const result = queueEngine.addSongs(id, songs);
+    if (result) set({ playlists: queueEngine.getAll() });
     return result;
   },
 
   removeSong: (id, songId) => {
-    const result = PlaylistService.removeSong(id, songId);
-    if (result) set({ playlists: PlaylistService.getAll() });
+    const result = queueEngine.removeSong(id, songId);
+    if (result) set({ playlists: queueEngine.getAll() });
     return result;
   },
 
   reorderSongs: (id, songIds) => {
-    const result = PlaylistService.reorderSongs(id, songIds);
-    if (result) set({ playlists: PlaylistService.getAll() });
+    const result = queueEngine.reorderSongs(id, songIds);
+    if (result) set({ playlists: queueEngine.getAll() });
     return result;
   },
 }));
+
+queueEngine.subscribe(() => {
+  usePlaylistStore.setState({ playlists: queueEngine.getAll() });
+});

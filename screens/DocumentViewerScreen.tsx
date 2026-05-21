@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,147 +6,283 @@ import {
   TouchableOpacity,
   Linking,
   ScrollView,
+  Share,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { CaretLeft, FilePdf, FileTxt, FileDoc, FileXls, Upload } from 'phosphor-react-native';
+const FileSystem: any = require('expo-file-system');
+import { CaretLeft, FilePdf, FileTxt, FileDoc, FileXls, FilePpt, Upload, BookOpen, TextAa } from 'phosphor-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
+import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
 import { formatFileSize } from '../services/FileService';
+import { useTheme } from '../context/ThemeContext';
 
-type DocumentViewerScreenProps = NativeStackScreenProps<RootStackParamList, 'DocumentViewer'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'DocumentViewer'>;
 
-export function DocumentViewerScreen({ navigation, route }: DocumentViewerScreenProps) {
+type DocType = 'pdf' | 'word' | 'excel' | 'ppt' | 'text' | 'epub' | 'other';
+
+function detectDocType(name: string): DocType {
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx'].includes(ext)) return 'word';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+  if (['ppt', 'pptx'].includes(ext)) return 'ppt';
+  if (['txt', 'md', 'json', 'xml', 'rtf', 'log', 'yaml', 'yml', 'toml', 'ini', 'cfg'].includes(ext)) return 'text';
+  if (ext === 'epub') return 'epub';
+  return 'other';
+}
+
+function isReadableText(name: string): boolean {
+  return ['txt', 'md', 'json', 'xml', 'rtf', 'log', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'csv'].includes(
+    name.split('.').pop()?.toLowerCase() || ''
+  );
+}
+
+export function DocumentViewerScreen({ navigation, route }: Props) {
   const { file } = route.params;
+  const { primaryColor, textColor, mutedColor } = useTheme();
+  const [textPreview, setTextPreview] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const openDocument = async () => {
+  const docType = detectDocType(file.name);
+  const isText = isReadableText(file.name);
+
+  useEffect(() => {
+    if (isText) loadTextPreview();
+  }, [file.uri]);
+
+  async function loadTextPreview() {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const text = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      setTextPreview(text.substring(0, 2000));
+    } catch {
+      setPreviewError('Could not read file contents');
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  const openInAppReader = () => {
+    navigation.navigate('DocumentReader', { file });
+  };
+
+  const openExternally = async () => {
     try {
       await Linking.openURL(file.uri);
     } catch {
-      console.warn('Could not open document');
+      try {
+        await Share.share({ url: file.uri, title: file.name });
+      } catch {}
     }
   };
 
-  const isPdf = file.name.toLowerCase().endsWith('.pdf');
-  const isText = /\.(txt|md|json|xml|csv)$/i.test(file.name);
-  const isWord = /\.(doc|docx)$/i.test(file.name);
-  const isExcel = /\.(xls|xlsx)$/i.test(file.name);
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        url: Platform.OS === 'ios' ? file.uri : file.uri,
+        title: file.name,
+      });
+    } catch {}
+  };
+
+  const renderAction = (icon: React.ReactNode, label: string, onPress: () => void, accent = false) => (
+    <TouchableOpacity
+      style={[styles.actionBtn, accent && { backgroundColor: primaryColor }]}
+      onPress={onPress}
+    >
+      {icon}
+      <Text style={[styles.actionLabel, accent && { color: '#06060B' }]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
+    <ScreenLayout noTopBar>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <CaretLeft size={28} color="#ffffff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <CaretLeft size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Document</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>{file.name}</Text>
         <View style={{ width: 44 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.documentIconContainer}>
-          <FileIcon type={file.type} docSubType={file.docSubType} size={56} />
+        <View style={styles.iconWrap}>
+          <FileIcon type="document" docSubType={file.docSubType} size={56} />
         </View>
 
-        <Text style={styles.fileName} numberOfLines={2}>
-          {file.name}
-        </Text>
+        <Text style={styles.fileName} numberOfLines={2}>{file.name}</Text>
 
-        <View style={styles.fileInfo}>
-          {file.size && <Text style={styles.infoText}>{formatFileSize(file.size)}</Text>}
-          {file.mimeType && <Text style={styles.infoText}>{file.mimeType}</Text>}
+        <View style={styles.metaRow}>
+          {file.size ? <Text style={styles.metaText}>{formatFileSize(file.size)}</Text> : null}
+          <Text style={styles.metaText}>{docType.toUpperCase()}</Text>
+          {file.modifiedAt ? (
+            <Text style={styles.metaText}>{new Date(file.modifiedAt).toLocaleDateString()}</Text>
+          ) : null}
         </View>
 
-        <TouchableOpacity style={styles.openButton} onPress={openDocument}>
-          <Text style={styles.openButtonText}>Open Document</Text>
-        </TouchableOpacity>
+        {/* Actions */}
+        <View style={styles.actions}>
+          {isText && renderAction(
+            <TextAa size={22} color="#06060B" />,
+            'Read In-App',
+            openInAppReader,
+            true,
+          )}
+          {renderAction(
+            <Upload size={22} color="#ffffff" />,
+            'Share',
+            handleShare,
+          )}
+          {renderAction(
+            <Upload size={22} color="#ffffff" />,
+            'Open Externally',
+            openExternally,
+          )}
+        </View>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Supported Actions</Text>
-          {isPdf && (
-            <View style={styles.infoRow}>
-              <FilePdf size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text style={styles.infoCardItem}>PDF Viewer</Text>
+        {/* Text Preview */}
+        {isText && (
+          <View style={styles.previewCard}>
+            <View style={styles.previewHeader}>
+              <FileTxt size={16} color={primaryColor} />
+              <Text style={[styles.previewTitle, { color: primaryColor }]}>Preview</Text>
             </View>
-          )}
-          {isText && (
-            <View style={styles.infoRow}>
-              <FileTxt size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text style={styles.infoCardItem}>Text Preview</Text>
-            </View>
-          )}
-          {isWord && (
-            <View style={styles.infoRow}>
-              <FileDoc size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text style={styles.infoCardItem}>Document Viewer</Text>
-            </View>
-          )}
-          {isExcel && (
-            <View style={styles.infoRow}>
-              <FileXls size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text style={styles.infoCardItem}>Spreadsheet Viewer</Text>
-            </View>
-          )}
-          <View style={styles.infoRow}>
-            <Upload size={16} color="rgba(255, 255, 255, 0.7)" />
-            <Text style={styles.infoCardItem}>Share with other apps</Text>
+            {previewLoading ? (
+              <ActivityIndicator color={primaryColor} style={{ padding: 20 }} />
+            ) : previewError ? (
+              <Text style={styles.previewError}>{previewError}</Text>
+            ) : textPreview ? (
+              <>
+                <Text style={styles.previewText} numberOfLines={15} selectable>{textPreview}</Text>
+                {textPreview.length >= 2000 && (
+                  <TouchableOpacity onPress={openInAppReader}>
+                    <Text style={[styles.readMore, { color: primaryColor }]}>Read full document →</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : null}
           </View>
-        </View>
+        )}
+
+        {/* File-specific info */}
+        {!isText && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>About this file</Text>
+            {docType === 'pdf' && (
+              <View style={styles.infoRow}>
+                <FilePdf size={16} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.infoText}>PDF document — open externally or share to view</Text>
+              </View>
+            )}
+            {docType === 'word' && (
+              <View style={styles.infoRow}>
+                <FileDoc size={16} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.infoText}>Word document — open in Word or Google Docs</Text>
+              </View>
+            )}
+            {docType === 'excel' && (
+              <View style={styles.infoRow}>
+                <FileXls size={16} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.infoText}>Spreadsheet — open in Excel or Sheets</Text>
+              </View>
+            )}
+            {docType === 'ppt' && (
+              <View style={styles.infoRow}>
+                <FilePpt size={16} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.infoText}>Presentation — open in PowerPoint or Slides</Text>
+              </View>
+            )}
+            {docType === 'epub' && (
+              <View style={styles.infoRow}>
+                <BookOpen size={16} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.infoText}>EPUB ebook — open in a reader app</Text>
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
-    </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06060B' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
-  content: { alignItems: 'center', paddingHorizontal: 30, paddingBottom: 40 },
-  documentIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#ffffff', marginHorizontal: 8 },
+  content: { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 60 },
+  iconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  fileName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    textAlign: 'center',
+    marginTop: 24,
     marginBottom: 16,
-    paddingHorizontal: 20,
   },
-  fileInfo: { flexDirection: 'row', gap: 12, marginBottom: 32 },
-  infoText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' },
-  openButton: {
-    backgroundColor: '#C2FC4A',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
+  fileName: { fontSize: 18, fontWeight: '700', color: '#ffffff', textAlign: 'center', marginBottom: 8, paddingHorizontal: 20 },
+  metaRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
+  metaText: { fontSize: 13, color: 'rgba(255,255,255,0.45)' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 28 },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#27272a',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     borderRadius: 12,
-    marginBottom: 32,
-    width: '100%',
+    borderWidth: 1,
+    borderColor: '#3f3f46',
   },
-  openButtonText: { color: '#06060B', fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  actionLabel: { fontSize: 14, fontWeight: '600', color: '#ffffff' },
+
+  // Preview
+  previewCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 16,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  previewTitle: { fontSize: 14, fontWeight: '700' },
+  previewText: { color: '#d4d4d8', fontSize: 13, lineHeight: 20, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  previewError: { color: '#ef4444', fontSize: 13, textAlign: 'center', padding: 12 },
+  readMore: { fontSize: 13, fontWeight: '600', marginTop: 12, textAlign: 'center' },
+
+  // Info
   infoCard: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 16,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  infoCardTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff', marginBottom: 12 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  infoCardItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginLeft: 8 },
+  infoTitle: { fontSize: 14, fontWeight: '700', color: '#ffffff', marginBottom: 12 },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
+  infoText: { fontSize: 13, color: 'rgba(255,255,255,0.6)', flex: 1, lineHeight: 18 },
 });

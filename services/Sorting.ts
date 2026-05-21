@@ -10,8 +10,22 @@ function compareString(a: string, b: string, locale: string = 'en'): number {
   return a.localeCompare(b, locale, { sensitivity: 'base' });
 }
 
-function compareNumber(a: number | undefined, b: number | undefined): number {
-  return (a || 0) - (b || 0);
+function compareOptionalNumber(a: number | undefined, b: number | undefined, dir: number): number {
+  if (a === undefined && b === undefined) return 0;
+  if (a === undefined) return 1 * dir;
+  if (b === undefined) return -1 * dir;
+  return a - b;
+}
+
+function compareNumber(a: number, b: number): number {
+  return a - b;
+}
+
+function compareDate(a: number | undefined, b: number | undefined): number {
+  if (a === undefined && b === undefined) return 0;
+  if (a === undefined) return 1;
+  if (b === undefined) return -1;
+  return a - b;
 }
 
 export const Sorting = {
@@ -34,10 +48,11 @@ export const Sorting = {
           cmp = compareString(fileA.name, fileB.name, locale);
           break;
         case 'date':
-          cmp = compareNumber(fileA.modifiedAt, fileB.modifiedAt);
+          cmp = compareOptionalNumber(fileA.modifiedAt, fileB.modifiedAt, dir);
+          if (cmp === 0) cmp = compareOptionalNumber(fileA.createdAt, fileB.createdAt, dir);
           break;
         case 'size':
-          cmp = compareNumber(fileA.size, fileB.size);
+          cmp = compareOptionalNumber(fileA.size, fileB.size, dir);
           break;
         case 'type': {
           const typeA = fileA.mimeType || fileA.name.split('.').pop() || '';
@@ -46,7 +61,7 @@ export const Sorting = {
           break;
         }
         case 'duration':
-          cmp = compareNumber(fileA.duration, fileB.duration);
+          cmp = compareOptionalNumber(fileA.duration, fileB.duration, dir);
           break;
         case 'artist':
           cmp = compareString(fileA.artist || '', fileB.artist || '', locale);
@@ -62,9 +77,15 @@ export const Sorting = {
           break;
         }
         case 'recentlyPlayed': {
-          const dateA = 'lastPlayedAt' in a ? (a as any).lastPlayedAt || 0 : fileA.modifiedAt || 0;
-          const dateB = 'lastPlayedAt' in b ? (b as any).lastPlayedAt || 0 : fileB.modifiedAt || 0;
-          cmp = dateA - dateB;
+          const dateA = 'lastPlayedAt' in a ? (a as any).lastPlayedAt || 0 : fileA.modifiedAt;
+          const dateB = 'lastPlayedAt' in b ? (b as any).lastPlayedAt || 0 : fileB.modifiedAt;
+          cmp = compareOptionalNumber(dateA, dateB, dir);
+          break;
+        }
+        case 'newest': {
+          const modA = fileA.modifiedAt ?? fileA.createdAt ?? 0;
+          const modB = fileB.modifiedAt ?? fileB.createdAt ?? 0;
+          cmp = modB - modA;
           break;
         }
       }
