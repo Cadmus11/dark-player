@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View,
   StyleSheet,
   Animated,
   Image,
@@ -33,13 +32,11 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <StatusBar hidden />
-      <View style={styles.content}>
-        <Image
-          source={require('../assets/splash.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
+      <Image
+        source={require('../assets/splash.png')}
+        style={styles.image}
+        resizeMode="cover"
+      />
     </Animated.View>
   );
 }
@@ -49,13 +46,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#18181b',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 200,
-    height: 80,
+  image: {
+    ...StyleSheet.absoluteFillObject,
   },
 });

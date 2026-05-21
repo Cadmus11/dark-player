@@ -18,7 +18,7 @@ import {
   SlidersHorizontal, Translate, ChatCenteredDots, Info,
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
   SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
-  Bell, Timer,
+  Bell, Timer, ShieldCheck,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';

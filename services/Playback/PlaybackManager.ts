@@ -39,6 +39,7 @@ class PlaybackManager {
   }
 
   private storeUpdate() {
+    if (this._videoActive) return;
     usePlaybackStore.getState().setCurrentFile(this._currentFile);
     usePlaybackStore.getState().setIsPlaying(this._isPlaying);
     usePlaybackStore.getState().setSource(this._currentSource);
@@ -87,10 +88,13 @@ class PlaybackManager {
   };
 
   private _handleTrackEnd() {
+    if (this._videoActive) return;
     if (this._onTrackEnd) {
       this._onTrackEnd();
     } else {
-      this._advanceToNext();
+      this._isPlaying = false;
+      this.storeUpdate();
+      this.notify();
     }
   }
 
@@ -236,17 +240,14 @@ class PlaybackManager {
   onVideoOpen() {
     this._musicWasPlayingBeforeVideo = this._isPlaying && this._currentSource === 'music';
     if (this._musicWasPlayingBeforeVideo) {
-      this.pauseMusic();
+      this.stop();
     }
     this._videoActive = true;
   }
 
   onVideoClose() {
     this._videoActive = false;
-    if (this._musicWasPlayingBeforeVideo) {
-      this.resumeMusic();
-      this._musicWasPlayingBeforeVideo = false;
-    }
+    this._musicWasPlayingBeforeVideo = false;
   }
 
   getCurrentSource(): PlaybackSource {

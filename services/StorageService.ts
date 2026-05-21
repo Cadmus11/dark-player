@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   NOTIFICATION_SETTINGS: '@lumora_notification_settings',
   SLEEP_TIMER_SETTINGS: '@lumora_sleep_timer_settings',
   HIDDEN_FILES_SETTINGS: '@lumora_hidden_files_settings',
+  REMOVE_ADS: '@lumora_remove_ads',
 } as const;
 
 export async function getThemeSettings(): Promise<ThemeSettings> {
@@ -279,4 +280,18 @@ export async function getHiddenFilesSettings(): Promise<HiddenFilesSettings> {
 
 export async function saveHiddenFilesSettings(settings: HiddenFilesSettings): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.HIDDEN_FILES_SETTINGS, JSON.stringify(settings));
+}
+
+// Remove Ads
+export async function getRemoveAds(): Promise<boolean> {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEYS.REMOVE_ADS);
+    return stored === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setRemoveAds(value: boolean): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEYS.REMOVE_ADS, value ? 'true' : 'false');
 }

@@ -87,6 +87,11 @@ const en: TranslationMap = {
   'settings.hiddenFilesCount': '{count} files hidden',
   'settings.recentlyDeletedCount': '{count} files',
   'settings.notification': 'Notification',
+  'settings.removeAds': 'Remove Ads',
+  'settings.removeAdsDesc': 'Enjoy an ad-free experience',
+  'settings.removeAdsPurchased': 'Ads Removed',
+  'settings.removeAdsPurchase': 'Remove Ads',
+  'settings.removeAdsRestore': 'Restore Purchase',
 };
 
 const es: TranslationMap = {
@@ -159,6 +164,11 @@ const es: TranslationMap = {
   'settings.hiddenFilesCount': '{count} archivos ocultos',
   'settings.recentlyDeletedCount': '{count} archivos',
   'settings.notification': 'Notificación',
+  'settings.removeAds': 'Quitar Anuncios',
+  'settings.removeAdsDesc': 'Disfruta de una experiencia sin anuncios',
+  'settings.removeAdsPurchased': 'Anuncios Eliminados',
+  'settings.removeAdsPurchase': 'Quitar Anuncios',
+  'settings.removeAdsRestore': 'Restaurar Compra',
 };
 
 const fr: TranslationMap = {
@@ -231,6 +241,11 @@ const fr: TranslationMap = {
   'settings.hiddenFilesCount': '{count} fichiers cachés',
   'settings.recentlyDeletedCount': '{count} fichiers',
   'settings.notification': 'Notification',
+  'settings.removeAds': 'Supprimer les pubs',
+  'settings.removeAdsDesc': 'Profitez d\'une expérience sans publicité',
+  'settings.removeAdsPurchased': 'Pubs Supprimées',
+  'settings.removeAdsPurchase': 'Supprimer les pubs',
+  'settings.removeAdsRestore': 'Restaurer l\'achat',
 };
 
 const ar: TranslationMap = {
@@ -303,6 +318,11 @@ const ar: TranslationMap = {
   'settings.hiddenFilesCount': '{count} ملفات مخفية',
   'settings.recentlyDeletedCount': '{count} ملفات',
   'settings.notification': 'إشعار',
+  'settings.removeAds': 'إزالة الإعلانات',
+  'settings.removeAdsDesc': 'استمتع بتجربة خالية من الإعلانات',
+  'settings.removeAdsPurchased': 'تمت إزالة الإعلانات',
+  'settings.removeAdsPurchase': 'إزالة الإعلانات',
+  'settings.removeAdsRestore': 'استعادة الشراء',
 };
 
 const zh: TranslationMap = {
@@ -375,6 +395,11 @@ const zh: TranslationMap = {
   'settings.hiddenFilesCount': '{count}个隐藏文件',
   'settings.recentlyDeletedCount': '{count}个文件',
   'settings.notification': '通知',
+  'settings.removeAds': '移除广告',
+  'settings.removeAdsDesc': '享受无广告体验',
+  'settings.removeAdsPurchased': '广告已移除',
+  'settings.removeAdsPurchase': '移除广告',
+  'settings.removeAdsRestore': '恢复购买',
 };
 
 const de: TranslationMap = {
@@ -426,6 +451,11 @@ const de: TranslationMap = {
   'font.serif': 'Serif',
   'font.sansSerif': 'Sans Serif',
   'font.rounded': 'Abgerundet',
+  'settings.removeAds': 'Werbung entfernen',
+  'settings.removeAdsDesc': 'Genießen Sie ein werbefreies Erlebnis',
+  'settings.removeAdsPurchased': 'Werbung entfernt',
+  'settings.removeAdsPurchase': 'Werbung entfernen',
+  'settings.removeAdsRestore': 'Kauf wiederherstellen',
 };
 
 const ALL_TRANSLATIONS: Record<LanguageCode, TranslationMap> = {

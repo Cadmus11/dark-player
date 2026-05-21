@@ -86,7 +86,6 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
 
   useEffect(() => {
     playbackManager.startAudioSession();
-    playbackManager.setOnTrackEnd(handleTrackEnd);
     const idx = queue.findIndex((f) => f.uri === file.uri);
     const startIdx = idx >= 0 ? idx : 0;
     setCurrentIndex(startIdx);
@@ -95,9 +94,13 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
     HistoryService.record(file, 0, 'audio');
 
     return () => {
-      playbackManager.setOnTrackEnd(null);
+      playbackManager.stopPlayback();
     };
   }, []);
+
+  useEffect(() => {
+    playbackManager.setOnTrackEnd(handleTrackEnd);
+  }, [handleTrackEnd]);
 
   useEffect(() => {
     playbackManager.setQueue(queue, currentIndex);
