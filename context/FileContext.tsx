@@ -22,6 +22,8 @@ import {
   clearRecentlyDeleted as clearRecentlyDeletedStorage,
   getHiddenFilesSettings as getHiddenFilesSettingsStorage,
   saveHiddenFilesSettings as saveHiddenFilesSettingsStorage,
+  getFavorites as getFavoritesStorage,
+  toggleFavorite as toggleFavoriteStorage,
 } from '../services/StorageService';
 
 interface FileContextType {
@@ -53,6 +55,10 @@ interface FileContextType {
   hiddenFilesCount: number;
   hiddenFilesSettings: HiddenFilesSettings;
   isReady: boolean;
+  favoriteUris: string[];
+  toggleFavorite: (uri: string) => Promise<string[]>;
+  isFavorite: (uri: string) => boolean;
+  favoriteFiles: FileItem[];
   requestPermissions: () => Promise<void>;
   refreshFiles: () => Promise<void>;
   setCurrentPath: (path: string) => void;
@@ -139,6 +145,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
   const [recentlyDeleted, setRecentlyDeleted] = useState<RecentlyDeleted[]>([]);
+  const [favoriteUris, setFavoriteUris] = useState<string[]>([]);
   const [hiddenFilesSettings, setHiddenFilesSettings] = useState<HiddenFilesSettings>({
     hideShortSongs: true,
     minDurationSeconds: 15,
@@ -160,7 +167,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
       setIsReady(true);
     }
 
-    const [recent, played, pls, searches, permGranted, deleted, hfSettings] = await Promise.all([
+    const [recent, played, pls, searches, permGranted, deleted, hfSettings, favs] = await Promise.all([
       getRecentFiles(),
       getRecentlyPlayed(),
       getPlaylists(),
@@ -168,6 +175,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
       getPermissionsGrantedStorage(),
       getRecentlyDeletedStorage(),
       getHiddenFilesSettingsStorage(),
+      getFavoritesStorage(),
     ]);
 
     setRecentFiles(recent);
@@ -176,6 +184,7 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setSearchHistory(searches);
     setRecentlyDeleted(deleted);
     setHiddenFilesSettings(hfSettings);
+    setFavoriteUris(favs);
 
     if (permGranted) {
       setPermissionsGranted(true);
@@ -414,6 +423,20 @@ export function FileProvider({ children }: { children: ReactNode }) {
     setRecentlyDeleted([]);
   }
 
+  async function handleToggleFavorite(uri: string) {
+    const updated = await toggleFavoriteStorage(uri);
+    setFavoriteUris(updated);
+    return updated;
+  }
+
+  function isFavorite(uri: string): boolean {
+    return favoriteUris.includes(uri);
+  }
+
+  const favoriteFiles = useMemo(() => {
+    return audio.filter((f) => favoriteUris.includes(f.uri));
+  }, [audio, favoriteUris]);
+
   async function updateHiddenFilesSettings(settings: HiddenFilesSettings) {
     await saveHiddenFilesSettingsStorage(settings);
     setHiddenFilesSettings(settings);
@@ -481,6 +504,10 @@ export function FileProvider({ children }: { children: ReactNode }) {
         hiddenFiles,
         hiddenFilesCount: hiddenFiles.length,
         hiddenFilesSettings,
+        favoriteUris,
+        toggleFavorite: handleToggleFavorite,
+        isFavorite,
+        favoriteFiles,
       }}
     >
       {children}

@@ -19,7 +19,7 @@ import {
   CaretLeft, List, ShuffleAngular, SkipBack, Play, Pause,
   SkipForward, Repeat, RepeatOnce, VideoCamera, MusicNote,
   Plus, NotePencil, X, MusicNotes, SlidersHorizontal, Speedometer,
-  MicrophoneStage, Palette, ArrowLeft, ArrowRight,
+  MicrophoneStage, Palette, ArrowLeft, ArrowRight, Heart,
 } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
@@ -39,7 +39,7 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps) {
   const { file } = route.params;
-  const { setMusicPlayer, playlists, createPlaylist, addToPlaylist, videos, audio, recordRecentlyPlayed } = useFiles();
+  const { setMusicPlayer, playlists, createPlaylist, addToPlaylist, videos, audio, recordRecentlyPlayed, favoriteUris, favoriteFiles, toggleFavorite, isFavorite } = useFiles();
   const { primaryColor } = useTheme();
   const [isTrackPlayerReady, setIsTrackPlayerReady] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -385,6 +385,9 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
             <TouchableOpacity style={styles.extraBtn} onPress={() => setShowEqualizerModal(true)}>
               <SlidersHorizontal size={18} color="#e4e4e7" />
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.extraBtn, isFavorite(currentItem.uri) && { backgroundColor: `${primaryColor}25` }]} onPress={() => toggleFavorite(currentItem.uri)}>
+              <Heart size={18} color={isFavorite(currentItem.uri) ? primaryColor : '#e4e4e7'} weight={isFavorite(currentItem.uri) ? 'fill' : 'regular'} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.extraBtn} onPress={() => setShowAddToPlaylistModal(true)}>
               <Plus size={18} color="#e4e4e7" />
             </TouchableOpacity>
@@ -476,6 +479,15 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.playlistList}>
+              {favoriteFiles.length > 0 && (
+                <TouchableOpacity style={[styles.playlistItem, { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
+                  <Heart size={20} color={primaryColor} weight="fill" />
+                  <View style={styles.playlistInfo}>
+                    <Text style={[styles.playlistName, { color: primaryColor }]}>Favorites</Text>
+                    <Text style={[styles.playlistCount, { color: '#a1a1aa' }]}>{favoriteFiles.length} songs</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
               {playlists.map((playlist) => (
                 <TouchableOpacity key={playlist.id} style={styles.playlistItem} onPress={() => handleAddToPlaylist(playlist)}>
                   <MusicNotes size={20} color="#ffffff" />
@@ -485,7 +497,7 @@ export function MusicPlayerScreen({ navigation, route }: MusicPlayerScreenProps)
                   </View>
                 </TouchableOpacity>
               ))}
-              {playlists.length === 0 && <Text style={[styles.emptyPlaylistText, { color: '#a1a1aa' }]}>No playlists yet</Text>}
+              {playlists.length === 0 && favoriteFiles.length === 0 && <Text style={[styles.emptyPlaylistText, { color: '#a1a1aa' }]}>No playlists yet</Text>}
             </ScrollView>
             <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: '#27272a' }]} onPress={() => setShowAddToPlaylistModal(false)}>
               <Text style={[styles.modalCloseText, { color: '#ffffff' }]}>Cancel</Text>

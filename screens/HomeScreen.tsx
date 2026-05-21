@@ -11,7 +11,7 @@ import {
   Image as RNImage,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Play, MusicNote, Clock, Star, Sparkle } from 'phosphor-react-native';
+import { Play, MusicNote, Clock, Star, Sparkle, Heart } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { FileIcon } from '../components/FileIcon';
@@ -26,7 +26,7 @@ const { width } = Dimensions.get('window');
 
 export function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { permissionsGranted, loading, categories, recentFiles, recentlyPlayed, playlists, requestPermissions } = useFiles();
+  const { permissionsGranted, loading, categories, recentFiles, recentlyPlayed, playlists, favoriteUris, favoriteFiles, requestPermissions } = useFiles();
   const { theme, textColor, mutedColor, cardBg, borderColor, primaryColor } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -233,7 +233,7 @@ export function HomeScreen() {
           )}
 
           {/* Playlists */}
-          {playlists.length > 0 && (
+          {(favoriteFiles.length > 0 || playlists.length > 0) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Playlists</Text>
@@ -242,6 +242,18 @@ export function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {favoriteFiles.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.playlistCard, { backgroundColor: cardBg, borderColor: primaryColor + '40' }]}
+                    onPress={() => navigation.navigate('MusicTab')}
+                  >
+                    <View style={[styles.playlistCover, { backgroundColor: `${primaryColor}20`, justifyContent: 'center', alignItems: 'center' }]}>
+                      <Heart size={28} color={primaryColor} weight="fill" />
+                    </View>
+                    <Text style={[styles.playlistName, { color: textColor }]} numberOfLines={1}>Favorites</Text>
+                    <Text style={[styles.playlistCount, { color: mutedColor }]}>{favoriteFiles.length} tracks</Text>
+                  </TouchableOpacity>
+                )}
                 {playlists.slice(0, 5).map((playlist: Playlist) => (
                   <TouchableOpacity
                     key={playlist.id}
