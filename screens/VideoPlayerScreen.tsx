@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StatusBar, Modal, Platform, Animated, Alert, Share, ScrollView } from 'react-native';
 import { Video, ResizeMode, Audio } from 'expo-av';
 const FileSystem: any = require('expo-file-system');
@@ -15,6 +15,7 @@ import { VideoEnhancementModal } from '../components/player/VideoEnhancementModa
 import { HistoryService } from '../services/History/HistoryService';
 import { StorageService } from '../services/StorageService';
 import { findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
+import { Sorting } from '../services/Sorting';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
@@ -33,8 +34,10 @@ type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
   const { primaryColor } = useTheme();
-  const { videos } = useFiles();
+  const { videos, files } = useFiles();
   const videoRef = useRef<Video>(null);
+
+  const sortedVideos = useMemo(() => Sorting.sort(videos, 'date', 'desc'), [videos]);
 
   const [showControls, setShowControls] = useState(true);
   const [resizeMode, setResizeMode] = useState<ResizeMode>(ResizeMode.CONTAIN);
@@ -69,8 +72,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     { id: 'language:hi', label: 'Hindi' },
   ];
 
-  const currentVideoIndexRef = useRef(videos.findIndex((v) => v.uri === file.uri));
-  currentVideoIndexRef.current = videos.findIndex((v) => v.uri === file.uri);
+  const currentVideoIndexRef = useRef(sortedVideos.findIndex((v) => v.uri === file.uri));
+  currentVideoIndexRef.current = sortedVideos.findIndex((v) => v.uri === file.uri);
 
   const isPlaying = status?.isLoaded ? status.isPlaying : false;
   const position = status?.isLoaded ? (status.positionMillis || 0) : 0;
@@ -80,8 +83,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   // Play mode logic
   const playModeRef = useRef(playMode);
   playModeRef.current = playMode;
-  const videosRef = useRef(videos);
-  videosRef.current = videos;
+  const videosRef = useRef(sortedVideos);
+  videosRef.current = sortedVideos;
 
   useEffect(() => {
     if (!status?.isLoaded || !status.didJustFinish) return;
@@ -122,10 +125,10 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   }, []);
 
   const goToVideo = useCallback((index: number) => {
-    if (index < 0 || index >= videos.length) return;
+    if (index < 0 || index >= sortedVideos.length) return;
     try { videoRef.current?.stopAsync(); } catch {}
-    navigation.replace('VideoPlayer', { file: videos[index] });
-  }, [videos, navigation]);
+    navigation.replace('VideoPlayer', { file: sortedVideos[index] });
+  }, [sortedVideos, navigation]);
 
   useEffect(() => {
     Audio.setAudioModeAsync({
@@ -151,7 +154,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
   async function loadSubtitles() {
     try {
-      const subtitleFile = findSubtitleFile(file.uri, []);
+      const subtitleFile = findSubtitleFile(file.uri, files);
       if (subtitleFile) {
         const content = await readTextFile(subtitleFile);
         if (content) {
@@ -313,7 +316,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 <FastForward size={24} color="#ffffff" weight="fill" />
                 <Text style={styles.skipLabel}>10</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.prevNextBtn, currentVideoIndexRef.current >= videos.length - 1 && { opacity: 0.3 }]} onPress={() => goToVideo(currentVideoIndexRef.current + 1)} disabled={currentVideoIndexRef.current >= videos.length - 1}>
+              <TouchableOpacity style={[styles.prevNextBtn, currentVideoIndexRef.current >= sortedVideos.length - 1 && { opacity: 0.3 }]} onPress={() => goToVideo(currentVideoIndexRef.current + 1)} disabled={currentVideoIndexRef.current >= sortedVideos.length - 1}>
                 <SkipForward size={24} color="#ffffff" weight="fill" />
               </TouchableOpacity>
             </View>

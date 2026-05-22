@@ -24,17 +24,23 @@ const EXTENSION_MAP: Record<string, FileType> = {
   mp3: 'audio', wav: 'audio', aac: 'audio', flac: 'audio',
   m4a: 'audio', ogg: 'audio', wma: 'audio', opus: 'audio',
   pdf: 'document', doc: 'document', docx: 'document',
-  txt: 'document', rtf: 'document',
+  txt: 'document', rtf: 'document', md: 'document',
   xls: 'document', xlsx: 'document', csv: 'document',
   ppt: 'document', pptx: 'document',
   json: 'document', xml: 'document', epub: 'document',
+  log: 'document', yaml: 'document', yml: 'document',
+  toml: 'document', ini: 'document', cfg: 'document',
+  srt: 'document', vtt: 'document', ass: 'document',
 };
 
 const DOC_SUBTYPE_MAP: Record<string, DocumentSubType> = {
   pdf: 'pdf', doc: 'word', docx: 'word',
   xls: 'excel', xlsx: 'excel', csv: 'excel',
   ppt: 'powerpoint', pptx: 'powerpoint',
-  txt: 'text', rtf: 'text', md: 'text', epub: 'epub',
+  txt: 'text', rtf: 'text', md: 'text',
+  json: 'text', xml: 'text',
+  srt: 'text', vtt: 'text', ass: 'text',
+  epub: 'epub',
 };
 
 const ART_COLORS = [

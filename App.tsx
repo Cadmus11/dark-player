@@ -21,6 +21,7 @@ import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { ImageViewerScreen } from './screens/ImageViewerScreen';
 import { DocumentViewerScreen } from './screens/DocumentViewerScreen';
 import { DocumentReaderScreen } from './screens/DocumentReaderScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MiniPlayer } from './components/player/MiniPlayer';
 import { NowPlayingBar } from './components/player/NowPlayingBar';
@@ -39,6 +40,7 @@ export type MainTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
+  Profile: undefined;
   Category: { type: FileType; title: string; icon: string; subType?: DocumentSubType };
   VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
   MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
@@ -94,6 +96,7 @@ export default function App() {
               <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
               <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
               <Stack.Screen name="DocumentReader" component={DocumentReaderScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
             </Stack.Navigator>
           </NavigationContainer>
           <StatusBar style="auto" />

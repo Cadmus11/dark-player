@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Modal,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { CaretLeft, Image as ImageIcon, VideoCamera, MusicNote, FileText, FilePdf, FileDoc, FileXls, FilePpt, FileTxt } from 'phosphor-react-native';
+import { CaretLeft, FunnelSimple, ArrowUp, ArrowDown, Image as ImageIcon, VideoCamera, MusicNote, FileText, FilePdf, FileDoc, FileXls, FilePpt, FileTxt } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { formatFileSize, formatDuration } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
-import type { FileItem, DocumentSubType } from '../types';
+import { Sorting } from '../services/Sorting';
+import type { FileItem, DocumentSubType, SortField, SortDirection } from '../types';
 
 type CategoryScreenProps = NativeStackScreenProps<RootStackParamList, 'Category'>;
 
@@ -69,6 +71,31 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         return [];
     }
   })();
+
+  const IMAGE_SORT_OPTIONS: { field: SortField; label: string }[] = [
+    { field: 'name', label: 'Name' },
+    { field: 'date', label: 'Date' },
+    { field: 'size', label: 'Size' },
+    { field: 'newest', label: 'Newest' },
+  ];
+
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [showSortModal, setShowSortModal] = useState(false);
+
+  const toggleDirection = useCallback(() => {
+    setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
+  const currentSortLabel = useMemo(
+    () => IMAGE_SORT_OPTIONS.find((o) => o.field === sortField)?.label ?? 'Name',
+    [sortField]
+  );
+
+  const sortedFiles = useMemo(() => {
+    if (type !== 'image') return files;
+    return Sorting.sort(files, sortField, sortDirection);
+  }, [files, sortField, sortDirection, type]);
 
   const navigateToFile = (file: FileItem) => {
     switch (type) {
@@ -151,10 +178,14 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
             <CategoryIcon size={20} color="#ffffff" />
             <Text style={styles.headerTitle}> {title}</Text>
           </View>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
+            <FunnelSimple size={16} color="rgba(255, 255, 255, 0.7)" />
+            <Text style={[styles.sortBtnText, { color: 'rgba(255, 255, 255, 0.7)' }]}>{currentSortLabel}</Text>
+            {sortDirection === 'asc' ? <ArrowUp size={14} color="rgba(255, 255, 255, 0.7)" /> : <ArrowDown size={14} color="rgba(255, 255, 255, 0.7)" />}
+          </TouchableOpacity>
         </View>
         <FlatList
-          data={files}
+          data={sortedFiles}
           renderItem={renderImageItem}
           keyExtractor={(item) => item.uri}
           numColumns={3}
@@ -171,6 +202,35 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
             </View>
           }
         />
+        <Modal visible={showSortModal} transparent animationType="fade">
+          <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Sort by</Text>
+              {IMAGE_SORT_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.field}
+                  style={[styles.modalOption, sortField === opt.field && { backgroundColor: 'rgba(255, 255, 255, 0.08)' }]}
+                  onPress={() => {
+                    if (sortField === opt.field) {
+                      toggleDirection();
+                    } else {
+                      setSortField(opt.field);
+                      setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
+                    }
+                    setShowSortModal(false);
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, { color: sortField === opt.field ? '#ffffff' : 'rgba(255, 255, 255, 0.7)' }, sortField === opt.field && { fontWeight: '700' }]}>
+                    {opt.label}
+                  </Text>
+                  {sortField === opt.field && (
+                    sortDirection === 'asc' ? <ArrowUp size={18} color="#ffffff" /> : <ArrowDown size={18} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     );
   }
@@ -220,6 +280,8 @@ function getDocSubTypeColor(subType: string): string {
       return '#f39c12';
     case 'text':
       return '#9b59b6';
+    case 'epub':
+      return '#e67e22';
     default:
       return '#999';
   }
@@ -284,4 +346,11 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 20, color: 'rgba(255, 255, 255, 0.3)' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
   emptyText: { fontSize: 16, color: 'rgba(255, 255, 255, 0.5)', marginTop: 16 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 },
+  sortBtnText: { fontSize: 11, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { borderRadius: 24, padding: 24, width: '80%', maxWidth: 320, backgroundColor: '#27272a' },
+  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center', color: '#ffffff' },
+  modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 8 },
+  modalOptionText: { fontSize: 16, fontWeight: '500' },
 });

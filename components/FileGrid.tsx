@@ -1,7 +1,8 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import type { FileItem } from '../types';
-import { MusicNote, Play } from 'phosphor-react-native';
+import { MusicNote, FileText, Image as PhosphorImage, VideoCamera, Play } from 'phosphor-react-native';
+import type { FileType } from '../types';
 import { formatDuration } from '../services/FileService';
 
 interface FileGridProps {
@@ -14,6 +15,14 @@ interface FileGridProps {
   columns?: number;
   renderOverlay?: (item: FileItem) => React.ReactNode;
   renderSubtitle?: (item: FileItem) => React.ReactNode;
+}
+
+function FileTypeIcon({ type, size, color }: { type?: FileType; size: number; color: string }) {
+  const Icon = type === 'document' ? FileText :
+    type === 'image' ? PhosphorImage :
+    type === 'video' ? VideoCamera :
+    MusicNote;
+  return <Icon size={size} color={color} weight="fill" />;
 }
 
 const GridItem = memo(function GridItem({
@@ -39,7 +48,7 @@ const GridItem = memo(function GridItem({
         {item.thumbnail ? (
           <Image source={{ uri: item.thumbnail }} style={styles.gridItemArtImage} />
         ) : (
-          <MusicNote size={32} color={primaryColor} weight="fill" />
+          <FileTypeIcon type={item.type} size={32} color={primaryColor} />
         )}
         {item.duration && (
           <View style={styles.gridDurationBadge}>
@@ -84,7 +93,7 @@ function FileGrid({
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyContainer}>
-      <MusicNote size={64} color={mutedColor} />
+      <FileText size={64} color={mutedColor} />
       <Text style={[styles.emptyText, { color: mutedColor }]}>{emptyMessage}</Text>
     </View>
   ), [mutedColor, emptyMessage]);

@@ -324,6 +324,34 @@ export function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      <Text style={styles.sectionTitle}>Preset Backgrounds</Text>
+      <View style={styles.card}>
+        <View style={styles.gradientPresetRow}>
+          {[
+            { name: 'Green', file: require('../assets/green.png') },
+            { name: 'Splash', file: require('../assets/splash.png') },
+            { name: 'Lumora', file: require('../assets/lumora.png'), contain: true },
+            { name: 'Future', file: require('../assets/future.png') },
+            { name: 'App', file: require('../assets/app.png') },
+          ].map((bg) => (
+            <TouchableOpacity
+              key={bg.name}
+              style={styles.bgPreset}
+              onPress={() => {
+                const resolved = Image.resolveAssetSource(bg.file);
+                if (resolved?.uri) {
+                  setBackgroundImage(resolved.uri);
+                  if (bg.contain) setBackgroundImageFit('contain');
+                }
+              }}
+            >
+              <Image source={bg.file} style={styles.bgPresetThumb} />
+              <Text style={styles.bgPresetLabel}>{bg.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       {theme.backgroundType === 'image' && theme.backgroundImageUri && (
         <>
           <Text style={styles.sectionTitle}>Background Adjustments</Text>
@@ -1587,5 +1615,25 @@ const styles = StyleSheet.create({
   restoreSmallText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+
+  // Preset backgrounds
+  bgPreset: {
+    width: 90,
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  bgPresetThumb: {
+    width: 80,
+    height: 56,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  bgPresetLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

@@ -1,7 +1,8 @@
 import React, { memo, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import type { FileItem } from '../types';
-import { MusicNote, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
+import { MusicNote, FileText, Image as PhosphorImage, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
+import type { FileType } from '../types';
 import { formatFileSize, formatDuration } from '../services/FileService';
 
 interface FileListProps {
@@ -20,6 +21,14 @@ interface FileListProps {
   onSelectionChange?: (uris: Set<string>) => void;
   scrollRef?: React.RefObject<any>;
   onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+}
+
+function FileTypeIcon({ type, size, color }: { type?: FileType; size: number; color: string }) {
+  const Icon = type === 'document' ? FileText :
+    type === 'image' ? PhosphorImage :
+    type === 'video' ? VideoCamera :
+    MusicNote;
+  return <Icon size={size} color={color} weight="fill" />;
 }
 
 const ListItem = memo(function ListItem({
@@ -62,7 +71,7 @@ const ListItem = memo(function ListItem({
           {item.thumbnail ? (
             <Image source={{ uri: item.thumbnail }} style={styles.listItemArtImage} />
           ) : (
-            <MusicNote size={20} color={primaryColor} weight="fill" />
+            <FileTypeIcon type={item.type} size={20} color={primaryColor} />
           )}
         </View>
       )}

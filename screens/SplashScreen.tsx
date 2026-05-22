@@ -44,9 +44,10 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#18181b',
   },
   image: {
     ...StyleSheet.absoluteFillObject,
+    width: undefined,
+    height: undefined,
   },
 });
