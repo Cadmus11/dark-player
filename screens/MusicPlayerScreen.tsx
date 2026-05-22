@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, ScrollView, FlatList, TextInput, Animated, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { CaretLeft, List, ShuffleAngular, SkipBack, Play, Pause, SkipForward, Repeat, RepeatOnce, VideoCamera, MusicNote, Plus, X, MusicNotes, SlidersHorizontal, Speedometer, MicrophoneStage, Heart } from 'phosphor-react-native';
+import { CaretLeft, List, ShuffleAngular, SkipBack, Play, Pause, SkipForward, Repeat, RepeatOnce, VideoCamera, MusicNote, Plus, X, MusicNotes, SlidersHorizontal, Speedometer, MicrophoneStage } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
@@ -37,7 +37,6 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const [showEq, setShowEq] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [favoriteUris, setFavoriteUris] = useState<string[]>([]);
   const [localArtwork, setLocalArtwork] = useState<string | null>(null);
 
   const pulseAnim = useState(() => new Animated.Value(0))[0];

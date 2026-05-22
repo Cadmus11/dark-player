@@ -98,7 +98,7 @@ export function DocumentsScreen() {
   }, [pdfFiles, wordFiles, excelFiles, pptFiles, textFiles, epubFiles, otherDocs, sortField, sortDirection]);
 
   const flatData = useMemo(() => {
-    const items: any[] = docCategories;
+    const items: (DocCategory | FileItem | { id: string; isDivider: boolean })[] = [...docCategories];
     if (allDocs.length > 0) {
       items.push({ id: 'divider', isDivider: true });
       for (const doc of allDocs) items.push(doc);

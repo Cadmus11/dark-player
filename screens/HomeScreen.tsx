@@ -11,15 +11,13 @@ import {
   Image as RNImage,
   Alert,
   Linking,
-  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MagnifyingGlass, Play, MusicNote, Clock, Heart, TrendUp, Microphone, Disc, VideoCamera, HardDrives, ArrowCounterClockwise, CaretRight } from 'phosphor-react-native';
 import * as MediaLibrary from 'expo-media-library';
+import { MagnifyingGlass, Play, MusicNote, Heart, TrendUp, Microphone, Disc, VideoCamera, HardDrives, ArrowCounterClockwise, CaretRight } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import { FileIcon } from '../components/FileIcon';
-import { GlassCard } from '../components/GlassCard';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { SplashScreen } from './SplashScreen';
 import { HistoryService } from '../services/History/HistoryService';
@@ -677,7 +675,8 @@ export function HomeScreen() {
               <View style={[styles.storageBar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
                 {categories.slice(0, 4).map((cat, i) => {
                   const barColors = ['#8B5CF6', '#EF4444', '#C2FC4A', '#3B82F6'];
-                  const pct = totalStorage > 0 ? ((cat.count / (categories.reduce((s, c) => s + c.count, 0))) * 30) : 0;
+                  const totalCount = categories.reduce((s, c) => s + c.count, 0);
+                  const pct = totalCount > 0 ? ((cat.count / totalCount) * 30) : 0;
                   if (pct < 1) return null;
                   return (
                     <View
@@ -712,7 +711,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#18181b' },
   center: { justifyContent: 'center', alignItems: 'center' },
   scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 100 },
+  scrollContent: { paddingTop: 8, paddingBottom: 100 },
   loadingText: { marginTop: 16, fontSize: 15, letterSpacing: 1 },
 
   // Header
@@ -734,6 +733,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   searchPlaceholder: { fontSize: 14, color: 'rgba(255,255,255,0.3)', flex: 1 },
+  headerBottom: { marginBottom: 8 },
 
   // Sections
   section: { marginBottom: 28, paddingHorizontal: 16 },

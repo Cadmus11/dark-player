@@ -14,6 +14,7 @@ import {
   Share,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Clock, PaintBrush, Moon, EyeSlash, Trash,
@@ -21,7 +22,7 @@ import {
   MusicNotes, VideoCamera, FileText, Image as ImageIcon,
   SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
   Bell, Timer, ShieldCheck, Folder, Star, ShareNetwork,
-  Sun, Palette, Gradient, Globe,
+  Sun, Palette, Gradient, Globe, User,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -70,6 +71,7 @@ export function SettingsScreen() {
   useEffect(() => { getRecentlyDeleted().then(setRecentlyDeleted); }, []);
   const handleClearRecentlyDeleted = async () => { await clearRecentlyDeleted(); setRecentlyDeleted([]); };
   const settingsStore = useSettingsStore();
+  const navigation = useNavigation<any>();
   const hiddenFilesSettings = settingsStore.hiddenFiles;
   const mediaAudio = useMediaStore((s) => s.audio);
   const hiddenFiles = useMemo(() => {
@@ -141,6 +143,7 @@ export function SettingsScreen() {
   }, [recentlyPlayed]);
 
   const SETTINGS_ITEMS = [
+    { id: 'profile', Icon: User, label: 'Profile' },
     { id: 'playtime', Icon: Clock, label: t('settings.playtime') },
     { id: 'theme', Icon: PaintBrush, label: t('settings.theme') },
     { id: 'hiddenFiles', Icon: EyeSlash, label: t('settings.hiddenFiles'), badge: hiddenFilesCount > 0 ? String(hiddenFilesCount) : undefined },
@@ -194,6 +197,7 @@ export function SettingsScreen() {
 
   const handleSettingPress = (id: string) => {
     switch (id) {
+      case 'profile': navigation.navigate('Profile'); break;
       case 'theme': setActiveView('theme'); break;
       case 'futureUpdates': setActiveView('futureUpdates'); break;
       case 'about': setActiveView('about'); break;
