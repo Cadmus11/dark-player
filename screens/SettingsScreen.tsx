@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Image,
@@ -15,14 +14,33 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
 import {
-  Clock, PaintBrush, Moon, EyeSlash, Trash,
-  SlidersHorizontal, Translate, ChatCenteredDots, Info,
-  MusicNotes, VideoCamera, FileText, Image as ImageIcon,
-  SpeakerHigh, SquaresFour, CaretLeft, Check, TextAa,
-  Bell, Timer, ShieldCheck, Folder, Star, ShareNetwork,
-  Sun, Palette, Gradient, Globe, User,
+  Clock,
+  PaintBrush,
+  Moon,
+  EyeSlash,
+  Trash,
+  SlidersHorizontal,
+  Translate,
+  ChatCenteredDots,
+  Info,
+  MusicNotes,
+  VideoCamera,
+  SpeakerHigh,
+  SquaresFour,
+  CaretLeft,
+  Check,
+  TextAa,
+  Bell,
+  Timer,
+  ShieldCheck,
+  Folder,
+  Star,
+  ShareNetwork,
+  Sun,
+  Palette,
+  Gradient,
+  Globe,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -46,30 +64,84 @@ import {
   restoreFromTrash,
   permanentlyDeleteTrashFile,
 } from '../services/StorageService';
-import type { PlaybackSettings, NotificationSettings, SleepTimerSettings, RecentlyPlayed, RecentlyDeleted, FileItem } from '../types';
+import type {
+  PlaybackSettings,
+  NotificationSettings,
+  SleepTimerSettings,
+  RecentlyPlayed,
+  RecentlyDeleted,
+  FileItem,
+} from '../types';
 import { COLOR_THEMES } from '../types';
 import { PrivateFolderService } from '../services/PrivateFolderService';
 
 const APP_VERSION = '1.0.0';
 
 const ACCENT_COLORS = [
-  '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
-  '#74b9ff', '#ff7675', '#a29bfe', '#55efc4',
-  '#fdcb6e', '#fd79a8', '#e94560', '#58a6ff',
-  '#8b5cf6', '#f59e0b', '#10b981', '#ec4899',
+  '#C2FC4A',
+  '#6c5ce7',
+  '#00cec9',
+  '#e17055',
+  '#74b9ff',
+  '#ff7675',
+  '#a29bfe',
+  '#55efc4',
+  '#fdcb6e',
+  '#fd79a8',
+  '#e94560',
+  '#58a6ff',
+  '#8b5cf6',
+  '#f59e0b',
+  '#10b981',
+  '#ec4899',
 ];
 
-type ActiveView = 'list' | 'theme' | 'about' | 'language' | 'fonts' | 'hiddenFiles' | 'recentlyDeleted' | 'playback' | 'notification' | 'sleepTimer' | 'removeAds' | 'privateFolder' | 'futureUpdates';
+type ActiveView =
+  | 'list'
+  | 'theme'
+  | 'about'
+  | 'language'
+  | 'fonts'
+  | 'hiddenFiles'
+  | 'recentlyDeleted'
+  | 'playback'
+  | 'notification'
+  | 'sleepTimer'
+  | 'removeAds'
+  | 'privateFolder'
+  | 'futureUpdates';
 
 export function SettingsScreen() {
-  const { theme, updateTheme, setBackgroundImage, clearBackgroundImage, setBackgroundBlur, setBackgroundImageFit, setAccentColor, setGradient, setColorTheme, setDarkMode, isDarkMode, primaryColor, availableColorThemes, currentColorThemeName } = useTheme();
+  const {
+    setBackgroundImage,
+    clearBackgroundImage,
+    setBackgroundBlur,
+    setBackgroundFit,
+    theme,
+    updateTheme,
+    setAccentColor,
+    setGradient,
+    setColorTheme,
+    setDarkMode,
+    isDarkMode,
+    primaryColor,
+    availableColorThemes,
+    currentColorThemeName,
+  } = useTheme();
   const { t, language, setLanguage, languages } = useLanguage();
   const { fontKey, setFont } = useFont();
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
   const [recentlyDeleted, setRecentlyDeleted] = useState<RecentlyDeleted[]>([]);
-  useEffect(() => { getRecentlyPlayed().then(setRecentlyPlayed); }, []);
-  useEffect(() => { getRecentlyDeleted().then(setRecentlyDeleted); }, []);
-  const handleClearRecentlyDeleted = async () => { await clearRecentlyDeleted(); setRecentlyDeleted([]); };
+  useEffect(() => {
+    getRecentlyPlayed().then(setRecentlyPlayed);
+  }, []);
+  useEffect(() => {
+    getRecentlyDeleted().then(setRecentlyDeleted);
+  }, []);
+  const handleClearRecentlyDeleted = async () => {
+    await clearRecentlyDeleted();
+    setRecentlyDeleted([]);
+  };
   const settingsStore = useSettingsStore();
   const navigation = useNavigation<any>();
   const hiddenFilesSettings = settingsStore.hiddenFiles;
@@ -143,11 +215,20 @@ export function SettingsScreen() {
   }, [recentlyPlayed]);
 
   const SETTINGS_ITEMS = [
-    { id: 'profile', Icon: User, label: 'Profile' },
     { id: 'playtime', Icon: Clock, label: t('settings.playtime') },
     { id: 'theme', Icon: PaintBrush, label: t('settings.theme') },
-    { id: 'hiddenFiles', Icon: EyeSlash, label: t('settings.hiddenFiles'), badge: hiddenFilesCount > 0 ? String(hiddenFilesCount) : undefined },
-    { id: 'recentlyDeleted', Icon: Trash, label: t('settings.recentlyDeleted'), badge: recentlyDeleted.length > 0 ? String(recentlyDeleted.length) : undefined },
+    {
+      id: 'hiddenFiles',
+      Icon: EyeSlash,
+      label: t('settings.hiddenFiles'),
+      badge: hiddenFilesCount > 0 ? String(hiddenFilesCount) : undefined,
+    },
+    {
+      id: 'recentlyDeleted',
+      Icon: Trash,
+      label: t('settings.recentlyDeleted'),
+      badge: recentlyDeleted.length > 0 ? String(recentlyDeleted.length) : undefined,
+    },
     { id: 'playback', Icon: SlidersHorizontal, label: t('settings.playback') },
     { id: 'notification', Icon: Bell, label: t('settings.notification') },
     { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
@@ -162,64 +243,73 @@ export function SettingsScreen() {
     { id: 'about', Icon: Info, label: t('settings.about') },
   ];
 
-  const pickBackgroundImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please grant photo library access to select a background image.');
-      return;
-    }
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]) {
-        await setBackgroundImage(result.assets[0].uri);
-      }
-    } catch {
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
-
-  const applyColorPreset = async (preset: typeof COLOR_THEMES[0]) => {
+  const applyColorPreset = async (preset: (typeof COLOR_THEMES)[0]) => {
     const isLight = preset.name === 'Light';
-    const bg = isLight ? '#F5F5F5' : '#0a0a0a';
+    const bg = isLight ? '#F0F8FF' : '#0a0a0a';
     await updateTheme({
       backgroundType: 'solid',
       backgroundColor: bg,
       gradientColors: undefined,
-      backgroundImageUri: undefined,
       primaryColor: preset.primary,
     });
   };
 
   const handleSettingPress = (id: string) => {
     switch (id) {
-      case 'profile': navigation.navigate('Profile'); break;
-      case 'theme': setActiveView('theme'); break;
-      case 'futureUpdates': setActiveView('futureUpdates'); break;
-      case 'about': setActiveView('about'); break;
-      case 'language': setActiveView('language'); break;
-      case 'fonts': setActiveView('fonts'); break;
-      case 'hiddenFiles': setActiveView('hiddenFiles'); break;
-      case 'recentlyDeleted': setActiveView('recentlyDeleted'); break;
-      case 'playback': setActiveView('playback'); break;
-      case 'notification': setActiveView('notification'); break;
-      case 'sleepTimer': setActiveView('sleepTimer'); break;
-      case 'privateFolder': setActiveView('privateFolder'); break;
+      case 'theme':
+        setActiveView('theme');
+        break;
+      case 'futureUpdates':
+        setActiveView('futureUpdates');
+        break;
+      case 'about':
+        setActiveView('about');
+        break;
+      case 'language':
+        setActiveView('language');
+        break;
+      case 'fonts':
+        setActiveView('fonts');
+        break;
+      case 'hiddenFiles':
+        setActiveView('hiddenFiles');
+        break;
+      case 'recentlyDeleted':
+        setActiveView('recentlyDeleted');
+        break;
+      case 'playback':
+        setActiveView('playback');
+        break;
+      case 'notification':
+        setActiveView('notification');
+        break;
+      case 'sleepTimer':
+        setActiveView('sleepTimer');
+        break;
+      case 'privateFolder':
+        setActiveView('privateFolder');
+        break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
         break;
-      case 'removeAds': setActiveView('removeAds'); break;
+      case 'removeAds':
+        setActiveView('removeAds');
+        break;
       case 'share':
-        Share.share({ message: 'Check out Lumora - a beautiful media player!', url: 'https://lumora.app' });
+        Share.share({
+          message: 'Check out Lumora - a beautiful media player!',
+          url: 'https://lumora.app',
+        });
         break;
       case 'rate':
-        Linking.openURL(Platform.OS === 'ios' ? 'https://apps.apple.com/app/id12345' : 'https://play.google.com/store/apps/details?id=com.lumora.app');
+        Linking.openURL(
+          Platform.OS === 'ios'
+            ? 'https://apps.apple.com/app/id12345'
+            : 'https://play.google.com/store/apps/details?id=com.lumora.app'
+        );
         break;
-      case 'playtime': break;
+      case 'playtime':
+        break;
     }
   };
 
@@ -260,20 +350,19 @@ export function SettingsScreen() {
       {SETTINGS_ITEMS.map((item) => (
         <TouchableOpacity
           key={item.id}
-          style={styles.settingRow}
-          onPress={() => handleSettingPress(item.id)}
-        >
+          className="flex-row items-center border-b border-b-white/5 px-2 py-[14]"
+          onPress={() => handleSettingPress(item.id)}>
           <item.Icon size={22} color="#ffffff" />
-          <Text style={styles.settingText}>{item.label}</Text>
+          <Text className="ml-[14] flex-1 text-[15px] text-white">{item.label}</Text>
           {item.id === 'playtime' && totalPlaytime !== '0s' && (
-            <Text style={styles.badgeValue}>{totalPlaytime}</Text>
+            <Text className="mr-2 text-[13px] text-white/50">{totalPlaytime}</Text>
           )}
           {item.badge && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.badge}</Text>
+            <View className="mr-2 rounded-[10] bg-[#C2FC4A]/20 px-2 py-0.5">
+              <Text className="text-xs font-semibold text-[#C2FC4A]">{item.badge}</Text>
             </View>
           )}
-          <Text style={styles.chevron}>›</Text>
+          <Text className="text-[22px] text-white/30">›</Text>
         </TouchableOpacity>
       ))}
     </>
@@ -281,19 +370,21 @@ export function SettingsScreen() {
 
   const renderThemeView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.theme')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.theme')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
       {/* Dark/Light Mode Toggle */}
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
           <Sun size={22} color="#ffffff" />
-          <Text style={styles.settingText}>Dark Mode</Text>
+          <Text className="ml-[14] flex-1 text-[15px] text-white">Dark Mode</Text>
           <Switch
             value={isDarkMode}
             onValueChange={setDarkMode}
@@ -303,110 +394,10 @@ export function SettingsScreen() {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>{t('settings.background')}</Text>
-      <View style={styles.card}>
-        <TouchableOpacity style={styles.settingRow} onPress={pickBackgroundImage}>
-          <ImageIcon size={22} color="#ffffff" />
-          <Text style={styles.settingText}>{t('settings.chooseBgImage')}</Text>
-        </TouchableOpacity>
-
-        {theme.backgroundImageUri && (
-          <View style={styles.currentBgContainer}>
-            <Image source={{ uri: theme.backgroundImageUri }} style={styles.currentBgImage} />
-            <TouchableOpacity style={styles.removeBgButton} onPress={clearBackgroundImage}>
-              <Text style={styles.removeBgText}>{t('settings.remove')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => updateTheme({ backgroundType: 'solid', backgroundColor: isDarkMode ? '#06060B' : '#F5F5F5' })}
-        >
-          <View style={[styles.deepBlackIcon, { backgroundColor: isDarkMode ? '#06060B' : '#F5F5F5' }]} />
-          <Text style={styles.settingText}>Solid Color</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionTitle}>Preset Backgrounds</Text>
-      <View style={styles.card}>
-        <View style={styles.gradientPresetRow}>
-          {[
-            { name: 'Green', file: require('../assets/green.png') },
-            { name: 'Splash', file: require('../assets/splash.png') },
-            { name: 'Lumora', file: require('../assets/lumora.png'), contain: true },
-            { name: 'Future', file: require('../assets/future.png') },
-            { name: 'App', file: require('../assets/app.png') },
-          ].map((bg) => (
-            <TouchableOpacity
-              key={bg.name}
-              style={styles.bgPreset}
-              onPress={() => {
-                const resolved = Image.resolveAssetSource(bg.file);
-                if (resolved?.uri) {
-                  setBackgroundImage(resolved.uri);
-                  if (bg.contain) setBackgroundImageFit('contain');
-                }
-              }}
-            >
-              <Image source={bg.file} style={styles.bgPresetThumb} />
-              <Text style={styles.bgPresetLabel}>{bg.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {theme.backgroundType === 'image' && theme.backgroundImageUri && (
-        <>
-          <Text style={styles.sectionTitle}>Background Adjustments</Text>
-          <View style={styles.card}>
-            <View style={styles.blurSection}>
-              <Text style={styles.blurLabel}>Blur Intensity: {theme.backgroundBlur ?? 20}%</Text>
-              <View style={styles.blurTrackContainer}>
-                <TouchableOpacity
-                  style={[styles.blurTrack, { backgroundColor: '#3f3f46' }]}
-                  onPress={(e) => {
-                    const x = (e.nativeEvent as any).locationX;
-                    const trackWidth = 280;
-                    const pct = Math.round((x / trackWidth) * 100);
-                    setBackgroundBlur(Math.max(0, Math.min(100, pct)));
-                  }}
-                >
-                  <View style={[styles.blurThumb, { left: `${theme.backgroundBlur ?? 20}%` as any }]} />
-                </TouchableOpacity>
-                <View style={styles.blurLabels}>
-                  <Text style={styles.blurLabelSmall}>0%</Text>
-                  <Text style={styles.blurLabelSmall}>50%</Text>
-                  <Text style={styles.blurLabelSmall}>100%</Text>
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={() => setBackgroundImageFit(theme.backgroundImageFit === 'cover' ? 'contain' : 'cover')}
-            >
-              <ImageIcon size={22} color="#ffffff" />
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.settingText}>Image Fit</Text>
-                <Text style={styles.settingDesc}>
-                  {theme.backgroundImageFit === 'cover' ? 'Fill screen (may crop)' : 'Full image (no crop)'}
-                </Text>
-              </View>
-              <View style={[styles.fitBadge, { backgroundColor: primaryColor + '20' }]}>
-                <Text style={[styles.fitBadgeText, { color: primaryColor }]}>
-                  {theme.backgroundImageFit === 'cover' ? 'COVER' : 'CONTAIN'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-
       {/* Gradient Themes */}
-      <Text style={styles.sectionTitle}>Gradients</Text>
-      <View style={styles.card}>
-        <View style={styles.gradientPresetRow}>
+      <Text className="mb-3 mt-2 text-lg font-semibold text-white">Gradients</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row flex-wrap gap-2.5 p-2">
           {[
             { name: 'Deep Space', colors: ['#06060B', '#1D1D21', '#0a0a0f'] },
             { name: 'Neon', colors: ['#06060B', '#1D1D21', '#2d1b69'] },
@@ -417,116 +408,308 @@ export function SettingsScreen() {
           ].map((g) => (
             <TouchableOpacity
               key={g.name}
-              style={styles.gradientPreset}
-              onPress={() => setGradient(g.colors)}
-            >
-              <View style={styles.gradientPreview}>
+              className="w-[100] items-center"
+              onPress={() => setGradient(g.colors)}>
+              <View className="h-11 w-[88] flex-row overflow-hidden rounded-[10] border border-white/10">
                 {g.colors.map((c, i) => (
-                  <View key={i} style={[styles.gradientSwatch, { backgroundColor: c, zIndex: g.colors.length - i }]} />
+                  <View
+                    key={i}
+                    className="h-full flex-1"
+                    style={{ backgroundColor: c, zIndex: g.colors.length - i }}
+                  />
                 ))}
               </View>
-              <Text style={styles.gradientLabel} numberOfLines={1}>{g.name}</Text>
+              <Text className="mt-1 text-[10px] text-white/50" numberOfLines={1}>
+                {g.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       {/* Color Themes */}
-      <Text style={styles.sectionTitle}>{t('settings.colorThemes')}</Text>
-      <View style={styles.card}>
-        <View style={styles.themeGrid}>
+      <Text className="mb-3 mt-2 text-lg font-semibold text-white">
+        {t('settings.colorThemes')}
+      </Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row flex-wrap gap-2.5 p-2">
           {(showAllThemes ? availableColorThemes : availableColorThemes.slice(0, 4)).map((ct) => (
             <TouchableOpacity
               key={ct.name}
-              style={[styles.themeCard, currentColorThemeName === ct.name && { borderColor: primaryColor }]}
-              onPress={() => setColorTheme(ct.name)}
-            >
-              <View style={[styles.themePreview, { backgroundColor: ct.background }]}>
-                <View style={[styles.themeAccentDot, { backgroundColor: ct.primary }]} />
+              className="w-[70] items-center rounded-xl border-2 border-white/10 py-[10]"
+              style={currentColorThemeName === ct.name && { borderColor: primaryColor }}
+              onPress={() => setColorTheme(ct.name)}>
+              <View
+                className="h-10 w-10 items-center justify-center rounded-[10] border border-white/10"
+                style={{ backgroundColor: ct.background }}>
+                <View className="h-3 w-3 rounded-full" style={{ backgroundColor: ct.primary }} />
               </View>
-              <Text style={[styles.themeCardName, currentColorThemeName === ct.name && { color: primaryColor }]}>
+              <Text
+                className="mt-1 text-center text-[10px] text-white/60"
+                style={currentColorThemeName === ct.name && { color: primaryColor }}>
                 {ct.name}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllThemes(!showAllThemes)}>
-          <Text style={[styles.showMoreText, { color: primaryColor }]}>
+        <TouchableOpacity
+          className="items-center py-3"
+          onPress={() => setShowAllThemes(!showAllThemes)}>
+          <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>
             {showAllThemes ? 'Show Less' : `Show All (${availableColorThemes.length})`}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Accent Colors */}
-      <Text style={styles.sectionTitle}>{t('settings.accentColor')}</Text>
-      <View style={styles.card}>
-        <View style={styles.accentPreview}>
-          <View style={[styles.accentPreviewSwatch, { backgroundColor: primaryColor }]} />
-          <Text style={styles.accentPreviewLabel}>{primaryColor}</Text>
+      <Text className="mb-3 mt-2 text-lg font-semibold text-white">
+        {t('settings.accentColor')}
+      </Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="mb-2 flex-row items-center rounded-xl bg-white/[0.03] px-3 py-[10]">
+          <View
+            className="mr-3 h-7 w-7 rounded-full border-2 border-white/20"
+            style={{ backgroundColor: primaryColor }}
+          />
+          <Text className="font-mono text-sm text-white/60">{primaryColor}</Text>
         </View>
-        <View style={styles.accentRow}>
+        <View className="flex-row flex-wrap justify-start gap-2.5 px-1 py-1">
           {ACCENT_COLORS.map((color) => (
             <TouchableOpacity
               key={color}
+              className="h-[38] w-[38] items-center justify-center rounded-full border-[3] border-transparent"
               style={[
-                styles.accentCircle,
                 { backgroundColor: color },
-                theme.primaryColor === color && styles.accentCircleActive,
+                theme.primaryColor === color && { borderColor: '#ffffff' },
               ]}
-              onPress={() => setAccentColor(color)}
-            >
-              {theme.primaryColor === color && (
-                <Check size={16} color="#0a0a0a" weight="bold" />
-              )}
+              onPress={() => setAccentColor(color)}>
+              {theme.primaryColor === color && <Check size={16} color="#0a0a0a" weight="bold" />}
             </TouchableOpacity>
           ))}
         </View>
+      </View>
+
+      {/* Layout Size */}
+      <Text className="mb-3 mt-5 text-lg font-semibold text-white">Layout Size</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row gap-2 p-1">
+          {(['small', 'medium', 'big'] as const).map((size) => (
+            <TouchableOpacity
+              key={size}
+              className="flex-1 items-center rounded-xl py-3"
+              style={
+                settingsStore.layoutSize === size
+                  ? { backgroundColor: primaryColor }
+                  : { backgroundColor: 'rgba(255,255,255,0.05)' }
+              }
+              onPress={() => settingsStore.setLayoutSize(size)}>
+              <SquaresFour
+                size={18}
+                color={settingsStore.layoutSize === size ? '#18181b' : '#e4e4e7'}
+                weight={settingsStore.layoutSize === size ? 'fill' : 'regular'}
+              />
+              <Text
+                className="mt-1 text-[11px] font-semibold"
+                style={{
+                  color: settingsStore.layoutSize === size ? '#18181b' : '#e4e4e7',
+                  textTransform: 'capitalize',
+                }}>
+                {size}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text className="mt-1 text-center text-[11px] text-white/40">
+          Small (4 cols) / Medium (3 cols) / Big (2 cols)
+        </Text>
+      </View>
+
+      {/* Background Image */}
+      <Text className="mb-3 mt-2 text-lg font-semibold text-white">Background Image</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+        {theme.backgroundImageUri ? (
+          <View className="mb-3">
+            <Image
+              source={{ uri: theme.backgroundImageUri }}
+              className="mb-2 h-[140] w-full rounded-xl"
+              style={{ resizeMode: 'cover' }}
+            />
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl bg-white/10 py-2.5"
+                onPress={async () => {
+                  const {
+                    launchImageLibraryAsync,
+                    MediaTypeOptions,
+                  } = require('expo-image-picker');
+                  const result = await launchImageLibraryAsync({
+                    mediaTypes: MediaTypeOptions.Images,
+                    quality: 1,
+                  });
+                  if (!result.canceled && result.assets?.[0]) {
+                    await setBackgroundImage(result.assets[0].uri);
+                  }
+                }}>
+                <Text className="text-[13px] font-semibold text-white">Change</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl bg-red-500/20 py-2.5"
+                onPress={clearBackgroundImage}>
+                <Text className="text-[13px] font-semibold text-red-400">Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            className="items-center rounded-xl border-2 border-dashed border-white/20 py-4"
+            onPress={async () => {
+              const { launchImageLibraryAsync, MediaTypeOptions } = require('expo-image-picker');
+              const result = await launchImageLibraryAsync({
+                mediaTypes: MediaTypeOptions.Images,
+                quality: 1,
+              });
+              if (!result.canceled && result.assets?.[0]) {
+                await setBackgroundImage(result.assets[0].uri);
+              }
+            }}>
+            <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white/10">
+              <Text className="text-lg">🖼</Text>
+            </View>
+            <Text className="text-[13px] font-semibold text-white/60">
+              Tap to add background image
+            </Text>
+            <Text className="mt-1 text-[11px] text-white/30">
+              Supports HD images (wallpaper / spotlight)
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {theme.backgroundImageUri && (
+          <View className="mt-4">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="text-[13px] text-white/70">Blur</Text>
+              <Text className="text-[13px] text-white/70">{theme.backgroundBlur ?? 0}</Text>
+            </View>
+            <View className="h-8 justify-center">
+              <TouchableOpacity
+                className="h-1.5 justify-center rounded-full bg-white/20"
+                onPress={async (e) => {
+                  const { locationX } = e.nativeEvent;
+                  const pct = locationX / 260;
+                  await setBackgroundBlur(Math.round(pct * 100));
+                }}>
+                <View
+                  className="h-1.5 rounded-full"
+                  style={{
+                    width: `${((theme.backgroundBlur ?? 0) / 100) * 100}%` as any,
+                    backgroundColor: primaryColor,
+                  }}
+                />
+                <View
+                  className="absolute -top-1.5 h-4 w-4 rounded-full"
+                  style={{
+                    left: `${((theme.backgroundBlur ?? 0) / 100) * 100}%` as any,
+                    backgroundColor: primaryColor,
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
+            <View className="mt-3 flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-2"
+                style={{
+                  backgroundColor:
+                    theme.backgroundImageFit === 'cover'
+                      ? `${primaryColor}20`
+                      : 'rgba(255,255,255,0.05)',
+                }}
+                onPress={() => setBackgroundFit('cover')}>
+                <Text
+                  className="text-[12px]"
+                  style={{
+                    color: theme.backgroundImageFit === 'cover' ? primaryColor : '#e4e4e7',
+                  }}>
+                  Cover
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-2"
+                style={{
+                  backgroundColor:
+                    theme.backgroundImageFit === 'contain'
+                      ? `${primaryColor}20`
+                      : 'rgba(255,255,255,0.05)',
+                }}
+                onPress={() => setBackgroundFit('contain')}>
+                <Text
+                  className="text-[12px]"
+                  style={{
+                    color: theme.backgroundImageFit === 'contain' ? primaryColor : '#e4e4e7',
+                  }}>
+                  Contain
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </>
   );
 
   const renderAboutView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('about.title')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('about.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
-      <View style={styles.card}>
-        <Text style={styles.appName}>Lumora</Text>
-        <Text style={styles.appVersion}>{t('about.version', { version: appVersion })}</Text>
-        <Text style={styles.appDescription}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <Text className="mb-2 text-center text-2xl font-bold text-white">Lumora</Text>
+        <Text className="mb-4 text-center text-sm text-white/50">
+          {t('about.version', { version: appVersion })}
+        </Text>
+        <Text className="mb-6 text-center text-[15px] leading-[22] text-white/70">
           {t('about.description')}
         </Text>
-        <View style={styles.features}>
-          <Text style={styles.featureTitle}>{t('about.features')}:</Text>
+        <View>
+          <Text className="mb-3 text-base font-semibold text-white">{t('about.features')}:</Text>
           {[
             { Icon: MusicNotes, text: t('about.feature.music') },
             { Icon: VideoCamera, text: t('about.feature.video') },
-            { Icon: ImageIcon, text: t('about.feature.image') },
-            { Icon: FileText, text: t('about.feature.document') },
             { Icon: PaintBrush, text: t('about.feature.theme') },
             { Icon: SquaresFour, text: t('about.feature.ui') },
             { Icon: SpeakerHigh, text: t('about.feature.accent') },
           ].map(({ Icon, text }) => (
-            <View key={text} style={styles.featureRow}>
+            <View key={text} className="flex-row items-center py-1.5">
               <Icon size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text style={styles.featureItem}>{text}</Text>
+              <Text className="ml-2 text-sm text-white/70">{text}</Text>
             </View>
           ))}
         </View>
-        <View style={styles.aboutFooter}>
+        <View className="mt-4 items-center border-t border-t-white/[0.06] pb-2 pt-6">
           <Image
             source={require('../assets/app.png')}
-            style={styles.aboutLogo}
+            className="mb-2 h-10 w-[120]"
             resizeMode="contain"
           />
-          <Text style={styles.aboutCredit}>By Cadmus Labs</Text>
-          <TouchableOpacity style={styles.rateBtn} onPress={() => Linking.openURL(Platform.OS === 'ios' ? 'https://apps.apple.com/app/id12345' : 'https://play.google.com/store/apps/details?id=com.lumora.app')}>
+          <Text className="mb-3 text-[13px] font-medium tracking-[0.5] text-white/40">
+            By Cadmus Labs
+          </Text>
+          <TouchableOpacity
+            className="flex-row items-center gap-2 rounded-xl bg-[#C2FC4A]/10 px-5 py-[10]"
+            onPress={() =>
+              Linking.openURL(
+                Platform.OS === 'ios'
+                  ? 'https://apps.apple.com/app/id12345'
+                  : 'https://play.google.com/store/apps/details?id=com.lumora.app'
+              )
+            }>
             <Star size={16} color="#C2FC4A" weight="fill" />
-            <Text style={styles.rateBtnText}>Rate Lumora</Text>
+            <Text className="text-sm font-semibold text-[#C2FC4A]">Rate Lumora</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -535,27 +718,28 @@ export function SettingsScreen() {
 
   const renderLanguageView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.selectLanguage')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.selectLanguage')}</Text>
         <View style={{ width: 44 }} />
       </View>
-      <View style={styles.card}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         {languages.map((lang) => (
           <TouchableOpacity
             key={lang.code}
-            style={styles.languageRow}
-            onPress={() => setLanguage(lang.code)}
-          >
-            <Text style={[styles.languageName, language === lang.code && { color: primaryColor }]}>
+            className="flex-row items-center border-b border-b-white/5 px-3 py-[14]"
+            onPress={() => setLanguage(lang.code)}>
+            <Text
+              className="flex-1 text-base text-white"
+              style={language === lang.code && { color: primaryColor }}>
               {lang.nativeName}
             </Text>
-            <Text style={styles.languageEnglishName}>{lang.name}</Text>
-            {language === lang.code && (
-              <Check size={20} color={primaryColor} weight="bold" />
-            )}
+            <Text className="mr-3 text-[13px] text-white/40">{lang.name}</Text>
+            {language === lang.code && <Check size={20} color={primaryColor} weight="bold" />}
           </TouchableOpacity>
         ))}
       </View>
@@ -564,26 +748,27 @@ export function SettingsScreen() {
 
   const renderFontsView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.selectFont')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.selectFont')}</Text>
         <View style={{ width: 44 }} />
       </View>
-      <View style={styles.card}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         {FONT_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.key}
-            style={styles.languageRow}
-            onPress={() => setFont(opt.key)}
-          >
-            <Text style={[styles.languageName, fontKey === opt.key && { color: primaryColor }]}>
+            className="flex-row items-center border-b border-b-white/5 px-3 py-[14]"
+            onPress={() => setFont(opt.key)}>
+            <Text
+              className="flex-1 text-base text-white"
+              style={fontKey === opt.key && { color: primaryColor }}>
               {t(opt.labelKey)}
             </Text>
-            {fontKey === opt.key && (
-              <Check size={20} color={primaryColor} weight="bold" />
-            )}
+            {fontKey === opt.key && <Check size={20} color={primaryColor} weight="bold" />}
           </TouchableOpacity>
         ))}
       </View>
@@ -592,15 +777,17 @@ export function SettingsScreen() {
 
   const renderHiddenFilesView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.hiddenFiles')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.hiddenFiles')}</Text>
         <View style={{ width: 44 }} />
       </View>
-      <View style={styles.card}>
-        <Text style={styles.badgeSummary}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <Text className="p-3 text-sm text-white/60">
           {t('settings.hiddenFilesCount', { count: hiddenFilesCount })}
         </Text>
       </View>
@@ -609,12 +796,14 @@ export function SettingsScreen() {
           data={hiddenFiles}
           keyExtractor={(item) => item.uri}
           renderItem={({ item }) => (
-            <View style={styles.hiddenFileRow}>
+            <View className="flex-row items-center gap-2.5 border-b border-b-white/5 px-2 py-[10]">
               <MusicNotes size={18} color="rgba(255,255,255,0.5)" />
-              <View style={styles.hiddenFileInfo}>
-                <Text style={styles.hiddenFileName} numberOfLines={1}>{item.name}</Text>
+              <View className="flex-1">
+                <Text className="text-sm text-white/70" numberOfLines={1}>
+                  {item.name}
+                </Text>
                 {item.duration && (
-                  <Text style={styles.hiddenFileMeta}>
+                  <Text className="mt-0.5 text-xs text-white/30">
                     {Math.floor(item.duration / 1000)}s
                   </Text>
                 )}
@@ -624,27 +813,29 @@ export function SettingsScreen() {
           scrollEnabled={false}
         />
       ) : (
-        <Text style={styles.emptyText}>No hidden files</Text>
+        <Text className="py-5 text-center text-sm text-white/30">No hidden files</Text>
       )}
     </>
   );
 
   const renderRecentlyDeletedView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.recentlyDeleted')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.recentlyDeleted')}</Text>
         <View style={{ width: 44 }} />
       </View>
       {recentlyDeleted.length > 0 && (
-        <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearRecentlyDeleted}>
-          <Text style={styles.clearAllText}>Clear All</Text>
+        <TouchableOpacity className="mb-2 self-end px-4 py-2" onPress={handleClearRecentlyDeleted}>
+          <Text className="text-sm font-semibold text-red-500">Clear All</Text>
         </TouchableOpacity>
       )}
-      <View style={styles.card}>
-        <Text style={styles.badgeSummary}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <Text className="p-3 text-sm text-white/60">
           {t('settings.recentlyDeletedCount', { count: recentlyDeleted.length })}
         </Text>
       </View>
@@ -653,17 +844,22 @@ export function SettingsScreen() {
           data={recentlyDeleted}
           keyExtractor={(item, idx) => item.file.uri + idx}
           renderItem={({ item }) => (
-            <View style={[styles.hiddenFileRow, { flexWrap: 'wrap' }]}>
+            <View
+              className="flex-row items-center gap-2.5 border-b border-b-white/5 px-2 py-[10]"
+              style={{ flexWrap: 'wrap' }}>
               <Trash size={18} color="rgba(255,255,255,0.5)" />
-              <View style={styles.hiddenFileInfo}>
-                <Text style={styles.hiddenFileName} numberOfLines={1}>{item.file.name}</Text>
-                <Text style={styles.hiddenFileMeta}>
+              <View className="flex-1">
+                <Text className="text-sm text-white/70" numberOfLines={1}>
+                  {item.file.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-white/30">
                   {new Date(item.deletedAt).toLocaleDateString()}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8, marginLeft: 40, marginTop: 6 }}>
                 <TouchableOpacity
-                  style={[styles.restoreSmallBtn, { backgroundColor: `${primaryColor}15` }]}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{ backgroundColor: `${primaryColor}15` }}
                   onPress={async () => {
                     const ok = await restoreFromTrash(item.file.uri);
                     if (ok) {
@@ -673,30 +869,38 @@ export function SettingsScreen() {
                     } else {
                       await removeFromRecentlyDeleted(item.file.uri);
                       setRecentlyDeleted(await getRecentlyDeleted());
-                      Alert.alert('Info', 'File entry removed. The original file could not be restored (no trash backup found).');
+                      Alert.alert(
+                        'Info',
+                        'File entry removed. The original file could not be restored (no trash backup found).'
+                      );
                     }
-                  }}
-                >
-                  <Text style={[styles.restoreSmallText, { color: primaryColor }]}>Restore</Text>
+                  }}>
+                  <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
+                    Restore
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.restoreSmallBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
                   onPress={async () => {
-                    Alert.alert('Permanently Delete', 'This will permanently delete the backed-up file. This cannot be undone.', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: async () => {
-                          await permanentlyDeleteTrashFile(item.file.uri);
-                          await removeFromRecentlyDeleted(item.file.uri);
-                          setRecentlyDeleted(await getRecentlyDeleted());
+                    Alert.alert(
+                      'Permanently Delete',
+                      'This will permanently delete the backed-up file. This cannot be undone.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await permanentlyDeleteTrashFile(item.file.uri);
+                            await removeFromRecentlyDeleted(item.file.uri);
+                            setRecentlyDeleted(await getRecentlyDeleted());
+                          },
                         },
-                      },
-                    ]);
-                  }}
-                >
-                  <Text style={[styles.restoreSmallText, { color: '#ef4444' }]}>Delete</Text>
+                      ]
+                    );
+                  }}>
+                  <Text className="text-xs font-semibold text-red-500">Delete</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -704,7 +908,7 @@ export function SettingsScreen() {
           scrollEnabled={false}
         />
       ) : (
-        <Text style={styles.emptyText}>No recently deleted files</Text>
+        <Text className="py-5 text-center text-sm text-white/30">No recently deleted files</Text>
       )}
     </>
   );
@@ -728,21 +932,24 @@ export function SettingsScreen() {
 
   const renderPrivateFolderView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>Private Folder</Text>
+        <Text className="text-xl font-semibold text-white">Private Folder</Text>
         <View style={{ width: 44 }} />
       </View>
       {!privateFolderExists ? (
-        <View style={styles.card}>
-          <Text style={styles.privateFolderInfo}>
+        <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+          <Text className="p-4 text-center text-sm leading-[22] text-white/60">
             Create a private folder on your device to hide sensitive files from the main library.
             Files in this folder will only appear when accessed from this screen.
           </Text>
           <TouchableOpacity
-            style={[styles.privateFolderBtn, { backgroundColor: primaryColor }]}
+            className="mx-4 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+            style={{ backgroundColor: primaryColor }}
             onPress={async () => {
               const ok = await PrivateFolderService.setupFolder();
               if (ok) {
@@ -751,69 +958,84 @@ export function SettingsScreen() {
                 setPrivateFolderInfo(info);
                 Alert.alert('Created', 'Private folder has been created successfully.');
               } else {
-                Alert.alert('Error', 'Failed to create private folder. Please check storage permissions.');
+                Alert.alert(
+                  'Error',
+                  'Failed to create private folder. Please check storage permissions.'
+                );
               }
-            }}
-          >
+            }}>
             <Folder size={20} color="#06060B" weight="bold" />
-            <Text style={styles.privateFolderBtnText}>Create Private Folder</Text>
+            <Text className="text-[15px] font-bold text-[#06060B]">Create Private Folder</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
-          <View style={styles.card}>
+          <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
             <View style={{ padding: 12, gap: 6 }}>
-              <Text style={styles.badgeSummary}>
-                {privateFilesList.length} file{privateFilesList.length !== 1 ? 's' : ''} in private folder
+              <Text className="p-3 text-sm text-white/60" style={{ padding: 0 }}>
+                {privateFilesList.length} file{privateFilesList.length !== 1 ? 's' : ''} in private
+                folder
               </Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 12 }}>
+              <Text className="px-3 text-xs text-white/40" style={{ paddingHorizontal: 12 }}>
                 Size: {(privateFolderInfo.totalSize / 1024 / 1024).toFixed(1)} MB
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.privateFolderBtn, { backgroundColor: 'rgba(239,68,68,0.15)', marginHorizontal: 16, marginBottom: 16 }]}
-              onPress={() => {
-                Alert.alert('Delete Private Folder', 'This will permanently delete the folder and all files in it. This cannot be undone.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await PrivateFolderService.deleteFolder();
-                      setPrivateFolderExists(false);
-                      setPrivateFilesList([]);
-                    },
-                  },
-                ]);
+              className="mx-4 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+              style={{
+                backgroundColor: 'rgba(239,68,68,0.15)',
+                marginHorizontal: 16,
+                marginBottom: 16,
               }}
-            >
+              onPress={() => {
+                Alert.alert(
+                  'Delete Private Folder',
+                  'This will permanently delete the folder and all files in it. This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await PrivateFolderService.deleteFolder();
+                        setPrivateFolderExists(false);
+                        setPrivateFilesList([]);
+                      },
+                    },
+                  ]
+                );
+              }}>
               <Trash size={16} color="#ef4444" />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#ef4444' }}>Delete Private Folder</Text>
+              <Text className="text-sm font-semibold text-red-500">Delete Private Folder</Text>
             </TouchableOpacity>
           </View>
           {privateFilesList.length > 0 && (
-            <View style={styles.card}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#ffffff', padding: 12 }}>Files</Text>
+            <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+              <Text className="p-3 text-sm font-bold text-white">Files</Text>
               {privateFilesList.map((pf) => (
-                <View key={pf.uri} style={styles.hiddenFileRow}>
+                <View
+                  key={pf.uri}
+                  className="flex-row items-center gap-2.5 border-b border-b-white/5 px-2 py-[10]">
                   <Folder size={18} color="rgba(255,255,255,0.5)" />
-                  <View style={styles.hiddenFileInfo}>
-                    <Text style={styles.hiddenFileName} numberOfLines={1}>{pf.name}</Text>
-                    <Text style={styles.hiddenFileMeta}>
+                  <View className="flex-1">
+                    <Text className="text-sm text-white/70" numberOfLines={1}>
+                      {pf.name}
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-white/30">
                       {new Date(pf.addedAt).toLocaleDateString()}
                     </Text>
                   </View>
                   <TouchableOpacity
-                    style={[styles.restoreSmallBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                    className="rounded-lg px-3 py-1.5"
+                    style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
                     onPress={async () => {
                       await PrivateFolderService.removeFile(pf.uri);
                       const files = await PrivateFolderService.getPrivateFiles();
                       setPrivateFilesList(files);
                       const info = await PrivateFolderService.getFolderInfo();
                       setPrivateFolderInfo(info);
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444' }}>Remove</Text>
+                    }}>
+                    <Text className="text-xs font-semibold text-red-500">Remove</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -826,19 +1048,25 @@ export function SettingsScreen() {
 
   const renderPlaybackView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.playback')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.playback')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabel}>
-            <Text style={styles.settingText}>{t('settings.playWithOtherApps')}</Text>
-            <Text style={styles.settingDesc}>{t('settings.playWithOtherAppsDesc')}</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
+          <View className="mr-3 flex-1">
+            <Text className="ml-[14] flex-1 text-[15px] text-white">
+              {t('settings.playWithOtherApps')}
+            </Text>
+            <Text className="ml-[14] mt-0.5 text-xs text-white/40">
+              {t('settings.playWithOtherAppsDesc')}
+            </Text>
           </View>
           <Switch
             value={playbackSettings.playWithOtherApps}
@@ -849,11 +1077,13 @@ export function SettingsScreen() {
         </View>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabel}>
-            <Text style={styles.settingText}>{t('settings.crossFade')}</Text>
-            <Text style={styles.settingDesc}>{t('settings.crossFadeDesc')}</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
+          <View className="mr-3 flex-1">
+            <Text className="ml-[14] flex-1 text-[15px] text-white">{t('settings.crossFade')}</Text>
+            <Text className="ml-[14] mt-0.5 text-xs text-white/40">
+              {t('settings.crossFadeDesc')}
+            </Text>
           </View>
           <Switch
             value={playbackSettings.crossFade}
@@ -863,27 +1093,29 @@ export function SettingsScreen() {
           />
         </View>
         {playbackSettings.crossFade && (
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>{t('settings.crossFadeDuration')}</Text>
-            <View style={styles.inputUnitRow}>
+          <View className="flex-row items-center justify-between px-2 py-[10] pl-[22]">
+            <Text className="text-sm text-white/60">{t('settings.crossFadeDuration')}</Text>
+            <View className="flex-row items-center gap-1.5">
               <TextInput
-                style={styles.numberInput}
+                className="w-[60] rounded-lg bg-white/10 px-3 py-1.5 text-center text-sm text-white"
                 value={crossFadeInput}
                 onChangeText={setCrossFadeInput}
                 onBlur={handleCrossFadeBlur}
                 keyboardType="numeric"
                 selectTextOnFocus
               />
-              <Text style={styles.inputUnit}>{t('settings.seconds')}</Text>
+              <Text className="text-[13px] text-white/40">{t('settings.seconds')}</Text>
             </View>
           </View>
         )}
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabel}>
-            <Text style={styles.settingText}>{t('settings.gaplessPlayback')}</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between px-2 py-3">
+          <View className="mr-3 flex-1">
+            <Text className="ml-[14] flex-1 text-[15px] text-white">
+              {t('settings.gaplessPlayback')}
+            </Text>
           </View>
           <Switch
             value={playbackSettings.gaplessPlayback}
@@ -898,18 +1130,24 @@ export function SettingsScreen() {
 
   const renderNotificationView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.notifications')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.notifications')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <Text style={styles.sectionTitle}>{t('settings.notification')}</Text>
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <Text style={styles.settingText}>{t('settings.newMediaNotification')}</Text>
+      <Text className="mb-3 mt-2 text-lg font-semibold text-white">
+        {t('settings.notification')}
+      </Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
+          <Text className="ml-[14] flex-1 text-[15px] text-white">
+            {t('settings.newMediaNotification')}
+          </Text>
           <Switch
             value={notificationSettings.newMediaNotification}
             onValueChange={(v) => updateNotificationSetting('newMediaNotification', v)}
@@ -917,8 +1155,10 @@ export function SettingsScreen() {
             thumbColor="#ffffff"
           />
         </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.settingText}>{t('settings.pushNotification')}</Text>
+        <View className="flex-row items-center justify-between px-2 py-3">
+          <Text className="ml-[14] flex-1 text-[15px] text-white">
+            {t('settings.pushNotification')}
+          </Text>
           <Switch
             value={notificationSettings.pushNotification}
             onValueChange={(v) => updateNotificationSetting('pushNotification', v)}
@@ -932,82 +1172,116 @@ export function SettingsScreen() {
 
   const renderSleepTimerView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.sleepTimer')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.sleepTimer')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.card}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         <TouchableOpacity
-          style={[styles.modeRow, sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }]}
-          onPress={() => updateSleepTimerSetting('mode', 'off')}
-        >
-          <Timer size={20} color={sleepTimerSettings.mode === 'off' ? primaryColor : 'rgba(255,255,255,0.6)'} />
-          <Text style={[styles.modeText, sleepTimerSettings.mode === 'off' && { color: primaryColor }]}>
+          className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
+          style={sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }}
+          onPress={() => updateSleepTimerSetting('mode', 'off')}>
+          <Timer
+            size={20}
+            color={sleepTimerSettings.mode === 'off' ? primaryColor : 'rgba(255,255,255,0.6)'}
+          />
+          <Text
+            className="flex-1 text-[15px] text-white/80"
+            style={sleepTimerSettings.mode === 'off' && { color: primaryColor }}>
             {t('settings.sleepTimerOff')}
           </Text>
           {sleepTimerSettings.mode === 'off' && <Check size={18} color={primaryColor} />}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.modeRow, sleepTimerSettings.mode === 'minutes' && { backgroundColor: `${primaryColor}15` }]}
-          onPress={() => updateSleepTimerSetting('mode', 'minutes')}
-        >
-          <Timer size={20} color={sleepTimerSettings.mode === 'minutes' ? primaryColor : 'rgba(255,255,255,0.6)'} />
-          <Text style={[styles.modeText, sleepTimerSettings.mode === 'minutes' && { color: primaryColor }]}>
+          className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
+          style={sleepTimerSettings.mode === 'minutes' && { backgroundColor: `${primaryColor}15` }}
+          onPress={() => updateSleepTimerSetting('mode', 'minutes')}>
+          <Timer
+            size={20}
+            color={sleepTimerSettings.mode === 'minutes' ? primaryColor : 'rgba(255,255,255,0.6)'}
+          />
+          <Text
+            className="flex-1 text-[15px] text-white/80"
+            style={sleepTimerSettings.mode === 'minutes' && { color: primaryColor }}>
             {t('settings.sleepTimerMinutes')}
           </Text>
           {sleepTimerSettings.mode === 'minutes' && <Check size={18} color={primaryColor} />}
         </TouchableOpacity>
 
         {sleepTimerSettings.mode === 'minutes' && (
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>{t('settings.sleepTimerCustom')}</Text>
-            <View style={styles.inputUnitRow}>
+          <View className="flex-row items-center justify-between px-2 py-[10] pl-[22]">
+            <Text className="text-sm text-white/60">{t('settings.sleepTimerCustom')}</Text>
+            <View className="flex-row items-center gap-1.5">
               <TextInput
-                style={styles.numberInput}
+                className="w-[60] rounded-lg bg-white/10 px-3 py-1.5 text-center text-sm text-white"
                 value={sleepMinutesInput}
                 onChangeText={setSleepMinutesInput}
                 onBlur={handleSleepMinutesBlur}
                 keyboardType="numeric"
                 selectTextOnFocus
               />
-              <Text style={styles.inputUnit}>{t('settings.sleepTimerMinutes')}</Text>
+              <Text className="text-[13px] text-white/40">{t('settings.sleepTimerMinutes')}</Text>
             </View>
           </View>
         )}
 
         <TouchableOpacity
-          style={[styles.modeRow, sleepTimerSettings.mode === 'endOfTrack' && { backgroundColor: `${primaryColor}15` }]}
-          onPress={() => updateSleepTimerSetting('mode', 'endOfTrack')}
-        >
-          <MusicNotes size={20} color={sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'} />
-          <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfTrack' && { color: primaryColor }]}>
+          className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
+          style={
+            sleepTimerSettings.mode === 'endOfTrack' && { backgroundColor: `${primaryColor}15` }
+          }
+          onPress={() => updateSleepTimerSetting('mode', 'endOfTrack')}>
+          <MusicNotes
+            size={20}
+            color={
+              sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'
+            }
+          />
+          <Text
+            className="flex-1 text-[15px] text-white/80"
+            style={sleepTimerSettings.mode === 'endOfTrack' && { color: primaryColor }}>
             {t('settings.sleepTimerEndOfTrack')}
           </Text>
           {sleepTimerSettings.mode === 'endOfTrack' && <Check size={18} color={primaryColor} />}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.modeRow, sleepTimerSettings.mode === 'endOfQueue' && { backgroundColor: `${primaryColor}15` }]}
-          onPress={() => updateSleepTimerSetting('mode', 'endOfQueue')}
-        >
-          <MusicNotes size={20} color={sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'} />
-          <Text style={[styles.modeText, sleepTimerSettings.mode === 'endOfQueue' && { color: primaryColor }]}>
+          className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
+          style={
+            sleepTimerSettings.mode === 'endOfQueue' && { backgroundColor: `${primaryColor}15` }
+          }
+          onPress={() => updateSleepTimerSetting('mode', 'endOfQueue')}>
+          <MusicNotes
+            size={20}
+            color={
+              sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'
+            }
+          />
+          <Text
+            className="flex-1 text-[15px] text-white/80"
+            style={sleepTimerSettings.mode === 'endOfQueue' && { color: primaryColor }}>
             {t('settings.sleepTimerEndOfQueue')}
           </Text>
           {sleepTimerSettings.mode === 'endOfQueue' && <Check size={18} color={primaryColor} />}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabel}>
-            <Text style={styles.settingText}>{t('settings.playOneToEnd')}</Text>
-            <Text style={styles.settingDesc}>{t('settings.playOneToEndDesc')}</Text>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="flex-row items-center justify-between px-2 py-3">
+          <View className="mr-3 flex-1">
+            <Text className="ml-[14] flex-1 text-[15px] text-white">
+              {t('settings.playOneToEnd')}
+            </Text>
+            <Text className="ml-[14] mt-0.5 text-xs text-white/40">
+              {t('settings.playOneToEndDesc')}
+            </Text>
           </View>
           <Switch
             value={sleepTimerSettings.playOneToEnd}
@@ -1022,95 +1296,171 @@ export function SettingsScreen() {
 
   const renderRemoveAdsView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>{t('settings.removeAds')}</Text>
+        <Text className="text-xl font-semibold text-white">{t('settings.removeAds')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.removeAdsHero}>
-          <ShieldCheck size={64} color={adsRemoved ? primaryColor : 'rgba(255,255,255,0.2)'} weight={adsRemoved ? 'fill' : 'regular'} />
-          <Text style={[styles.removeAdsTitle, adsRemoved && { color: primaryColor }]}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+        <View className="items-center gap-3 py-8">
+          <ShieldCheck
+            size={64}
+            color={adsRemoved ? primaryColor : 'rgba(255,255,255,0.2)'}
+            weight={adsRemoved ? 'fill' : 'regular'}
+          />
+          <Text
+            className="text-[22px] font-bold text-white"
+            style={adsRemoved && { color: primaryColor }}>
             {adsRemoved ? t('settings.removeAdsPurchased') : t('settings.removeAdsPurchase')}
           </Text>
-          <Text style={styles.removeAdsDesc}>{t('settings.removeAdsDesc')}</Text>
+          <Text className="px-5 text-center text-sm text-white/50">
+            {t('settings.removeAdsDesc')}
+          </Text>
         </View>
 
         {!adsRemoved && (
           <TouchableOpacity
-            style={[styles.purchaseButton, { backgroundColor: primaryColor }]}
+            className="mx-4 mb-3 items-center rounded-xl py-4"
+            style={{ backgroundColor: primaryColor }}
             onPress={async () => {
               await setRemoveAds(true);
               setAdsRemoved(true);
-            }}
-          >
-            <Text style={styles.purchaseButtonText}>{t('settings.removeAdsPurchase')}</Text>
+            }}>
+            <Text className="text-base font-bold text-[#06060B]">
+              {t('settings.removeAdsPurchase')}
+            </Text>
           </TouchableOpacity>
         )}
 
         {adsRemoved && (
-          <View style={styles.purchasedBadge}>
+          <View className="mx-4 mb-3 flex-row items-center justify-center gap-2 rounded-xl bg-[#C2FC4A]/10 py-4">
             <Check size={20} color={primaryColor} weight="bold" />
-            <Text style={[styles.purchasedText, { color: primaryColor }]}>{t('settings.removeAdsPurchased')}</Text>
+            <Text className="text-base font-bold" style={{ color: primaryColor }}>
+              {t('settings.removeAdsPurchased')}
+            </Text>
           </View>
         )}
 
-        <TouchableOpacity style={styles.restoreButton} onPress={async () => {
-          const value = await getRemoveAds();
-          setAdsRemoved(value);
-          if (value) {
-            Alert.alert('Restored', 'Your purchase has been restored.');
-          } else {
-            Alert.alert('No Purchase Found', 'No previous purchase was found to restore.');
-          }
-        }}>
-          <Text style={styles.restoreText}>{t('settings.removeAdsRestore')}</Text>
+        <TouchableOpacity
+          className="mb-2 items-center py-[14]"
+          onPress={async () => {
+            const value = await getRemoveAds();
+            setAdsRemoved(value);
+            if (value) {
+              Alert.alert('Restored', 'Your purchase has been restored.');
+            } else {
+              Alert.alert('No Purchase Found', 'No previous purchase was found to restore.');
+            }
+          }}>
+          <Text className="text-sm font-medium text-white/40">
+            {t('settings.removeAdsRestore')}
+          </Text>
         </TouchableOpacity>
       </View>
     </>
   );
 
   const FUTURE_UPDATES: { Icon: any; title: string; desc: string }[] = [
-    { Icon: MusicNotes, title: 'Lyrics & Karaoke', desc: 'Synced lyrics display with auto-fetch and karaoke-style highlighting' },
-    { Icon: SlidersHorizontal, title: '10-Band Equalizer', desc: 'Professional EQ with custom presets, bass boost, and reverb effects' },
-    { Icon: VideoCamera, title: 'Chromecast & AirPlay', desc: 'Stream media to TV and speakers via Chromecast, AirPlay, and DLNA' },
-    { Icon: ShareNetwork, title: 'Local Network Share', desc: 'Share/receive media between devices on the same Wi-Fi network' },
-    { Icon: SquaresFour, title: 'Smart Playlists', desc: 'Auto-generated playlists by genre, mood, play count, and habits' },
-    { Icon: Globe, title: 'Full Offline Mode', desc: 'Download from cloud, stream from Plex, Jellyfin, and SMB shares' },
-    { Icon: Bell, title: 'Podcast Support', desc: 'Podcast discovery, subscriptions, and episode auto-downloads' },
-    { Icon: Timer, title: 'Advanced Sleep Timer', desc: 'Fade-out volume, smart quiet-section detection, scheduled times' },
-    { Icon: PaintBrush, title: 'Live Wallpaper Backdrops', desc: 'Animated/motion wallpapers as app background' },
-    { Icon: Translate, title: 'More Languages', desc: 'Arabic, Hindi, Bengali, Turkish, Vietnamese, and more' },
-    { Icon: TextAa, title: 'Custom Font Upload', desc: 'Import .ttf font files in-app without rebuilding' },
-    { Icon: Star, title: 'Android Auto & CarPlay', desc: 'Optimized driving interface with voice control' },
-    { Icon: MusicNotes, title: 'Crossfade Playback', desc: 'Seamless track transitions with configurable duration' },
-    { Icon: FileText, title: 'PDF Bookmarks & Annotations', desc: 'Bookmark pages, highlight text, add notes to PDFs' },
-    { Icon: ImageIcon, title: 'Photo Editing Tools', desc: 'Crop, rotate, filters, and adjustment sliders' },
-    { Icon: ImageIcon, title: 'Manual Cover Upload', desc: 'Upload custom cover art for songs and albums via ImagePicker' },
+    {
+      Icon: MusicNotes,
+      title: 'Lyrics & Karaoke',
+      desc: 'Synced lyrics display with auto-fetch and karaoke-style highlighting',
+    },
+    {
+      Icon: SlidersHorizontal,
+      title: '10-Band Equalizer',
+      desc: 'Professional EQ with custom presets, bass boost, and reverb effects',
+    },
+    {
+      Icon: VideoCamera,
+      title: 'Chromecast & AirPlay',
+      desc: 'Stream media to TV and speakers via Chromecast, AirPlay, and DLNA',
+    },
+    {
+      Icon: ShareNetwork,
+      title: 'Local Network Share',
+      desc: 'Share/receive media between devices on the same Wi-Fi network',
+    },
+    {
+      Icon: SquaresFour,
+      title: 'Smart Playlists',
+      desc: 'Auto-generated playlists by genre, mood, play count, and habits',
+    },
+    {
+      Icon: Globe,
+      title: 'Full Offline Mode',
+      desc: 'Download from cloud, stream from Plex, Jellyfin, and SMB shares',
+    },
+    {
+      Icon: Bell,
+      title: 'Podcast Support',
+      desc: 'Podcast discovery, subscriptions, and episode auto-downloads',
+    },
+    {
+      Icon: Timer,
+      title: 'Advanced Sleep Timer',
+      desc: 'Fade-out volume, smart quiet-section detection, scheduled times',
+    },
+    {
+      Icon: PaintBrush,
+      title: 'Live Wallpaper Backdrops',
+      desc: 'Animated/motion wallpapers as app background',
+    },
+    {
+      Icon: Translate,
+      title: 'More Languages',
+      desc: 'Arabic, Hindi, Bengali, Turkish, Vietnamese, and more',
+    },
+    {
+      Icon: TextAa,
+      title: 'Custom Font Upload',
+      desc: 'Import .ttf font files in-app without rebuilding',
+    },
+    {
+      Icon: Star,
+      title: 'Android Auto & CarPlay',
+      desc: 'Optimized driving interface with voice control',
+    },
+    {
+      Icon: MusicNotes,
+      title: 'Crossfade Playback',
+      desc: 'Seamless track transitions with configurable duration',
+    },
   ];
 
   const renderFutureUpdatesView = () => (
     <>
-      <View style={styles.themeHeader}>
-        <TouchableOpacity onPress={() => setActiveView('list')} style={styles.backButton}>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.themeHeaderTitle}>Future Updates</Text>
+        <Text className="text-xl font-semibold text-white">Future Updates</Text>
         <View style={{ width: 44 }} />
       </View>
-      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16, paddingHorizontal: 4 }}>
+      <Text className="mb-4 px-1 text-[13px] text-white/40">
         Features planned for upcoming releases. Vote and suggest on our GitHub.
       </Text>
-      <View style={styles.card}>
+      <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         {FUTURE_UPDATES.map((item, idx) => (
-          <View key={idx} style={[styles.settingRow, idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }]}>
+          <View
+            key={idx}
+            className="flex-row items-center border-b border-b-white/5 px-2 py-[14]"
+            style={idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }}>
             <item.Icon size={22} color={primaryColor} />
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={styles.settingText}>{item.title}</Text>
-              <Text style={[styles.settingDesc, { marginLeft: 0, marginTop: 2 }]}>{item.desc}</Text>
+            <View className="ml-[14] flex-1">
+              <Text className="ml-[14] flex-1 text-[15px] text-white" style={{ marginLeft: 0 }}>
+                {item.title}
+              </Text>
+              <Text className="mt-0.5 text-xs text-white/40" style={{ marginLeft: 0 }}>
+                {item.desc}
+              </Text>
             </View>
           </View>
         ))}
@@ -1120,26 +1470,39 @@ export function SettingsScreen() {
 
   const renderActiveView = () => {
     switch (activeView) {
-      case 'theme': return renderThemeView();
-      case 'about': return renderAboutView();
-      case 'language': return renderLanguageView();
-      case 'fonts': return renderFontsView();
-      case 'hiddenFiles': return renderHiddenFilesView();
-      case 'recentlyDeleted': return renderRecentlyDeletedView();
-      case 'privateFolder': return renderPrivateFolderView();
-      case 'playback': return renderPlaybackView();
-      case 'notification': return renderNotificationView();
-      case 'sleepTimer': return renderSleepTimerView();
-      case 'removeAds': return renderRemoveAdsView();
-      case 'futureUpdates': return renderFutureUpdatesView();
-      default: return null;
+      case 'theme':
+        return renderThemeView();
+      case 'about':
+        return renderAboutView();
+      case 'language':
+        return renderLanguageView();
+      case 'fonts':
+        return renderFontsView();
+      case 'hiddenFiles':
+        return renderHiddenFilesView();
+      case 'recentlyDeleted':
+        return renderRecentlyDeletedView();
+      case 'privateFolder':
+        return renderPrivateFolderView();
+      case 'playback':
+        return renderPlaybackView();
+      case 'notification':
+        return renderNotificationView();
+      case 'sleepTimer':
+        return renderSleepTimerView();
+      case 'removeAds':
+        return renderRemoveAdsView();
+      case 'futureUpdates':
+        return renderFutureUpdatesView();
+      default:
+        return null;
     }
   };
 
   if (activeView !== 'list') {
     return (
       <ScreenLayout>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerClassName="px-5">
           {renderActiveView()}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -1149,495 +1512,13 @@ export function SettingsScreen() {
 
   return (
     <ScreenLayout>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.pageTitle}>{t('settings.title')}</Text>
-        <View style={styles.card}>{renderMainList()}</View>
+      <ScrollView contentContainerClassName="px-5">
+        <Text className="mb-4 text-xl font-semibold text-white">{t('settings.title')}</Text>
+        <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
+          {renderMainList()}
+        </View>
         <View style={{ height: 100 }} />
       </ScrollView>
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 20 },
-  pageTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff', marginBottom: 16 },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  settingText: { fontSize: 15, color: '#ffffff', flex: 1, marginLeft: 14 },
-  settingDesc: { fontSize: 12, color: 'rgba(255, 255, 255, 0.4)', marginLeft: 14, marginTop: 2 },
-  badge: {
-    backgroundColor: 'rgba(194, 252, 74, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginRight: 8,
-  },
-  badgeText: { fontSize: 12, color: '#C2FC4A', fontWeight: '600' },
-  badgeValue: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginRight: 8,
-  },
-  badgeSummary: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    padding: 12,
-  },
-  chevron: { fontSize: 22, color: 'rgba(255, 255, 255, 0.3)' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff', marginBottom: 12, marginTop: 8 },
-  currentBgContainer: { marginVertical: 12 },
-  currentBgImage: { width: '100%', height: 120, borderRadius: 12 },
-  removeBgButton: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  removeBgText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
-  colorPreset: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  colorPreview: { flexDirection: 'row', marginRight: 14 },
-  colorSwatch: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    marginLeft: -6,
-    borderWidth: 2,
-    borderColor: '#0a0a0a',
-  },
-  presetName: { fontSize: 15, color: '#ffffff' },
-  accentPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-  },
-  accentPreviewSwatch: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  accentPreviewLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontFamily: 'monospace',
-  },
-  accentRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    gap: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-  },
-  accentCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 3,
-    borderColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accentCircleActive: { borderColor: '#ffffff' },
-  themeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  themeHeaderTitle: { fontSize: 20, fontWeight: '600', color: '#ffffff' },
-  appName: { fontSize: 24, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 8 },
-  appVersion: { fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center', marginBottom: 16 },
-  appDescription: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  features: {},
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  featureTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff', marginBottom: 12 },
-  featureItem: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginLeft: 8 },
-  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  deepBlackIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  languageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  aboutFooter: {
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-    marginTop: 16,
-  },
-  aboutLogo: {
-    width: 120,
-    height: 40,
-    marginBottom: 8,
-  },
-  aboutCredit: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  rateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(194, 252, 74, 0.1)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  rateBtnText: {
-    fontSize: 14,
-    color: '#C2FC4A',
-    fontWeight: '600',
-  },
-  languageName: { fontSize: 16, color: '#ffffff', flex: 1 },
-  languageEnglishName: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)', marginRight: 12 },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  switchLabel: { flex: 1, marginRight: 12 },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    paddingLeft: 22,
-  },
-  inputLabel: { fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' },
-  inputUnitRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  numberInput: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    color: '#ffffff',
-    fontSize: 14,
-    width: 60,
-    textAlign: 'center',
-  },
-  inputUnit: { fontSize: 13, color: 'rgba(255, 255, 255, 0.4)' },
-  modeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 4,
-    gap: 10,
-  },
-  modeText: { fontSize: 15, color: 'rgba(255, 255, 255, 0.8)', flex: 1 },
-  hiddenFileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  hiddenFileInfo: { flex: 1 },
-  hiddenFileName: { fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' },
-  hiddenFileMeta: { fontSize: 12, color: 'rgba(255, 255, 255, 0.3)', marginTop: 2 },
-  emptyText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.3)', textAlign: 'center', paddingVertical: 20 },
-  clearAllBtn: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  clearAllText: { fontSize: 14, color: '#ef4444', fontWeight: '600' },
-  removeAdsHero: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 12,
-  },
-  removeAdsTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  removeAdsDesc: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  purchaseButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  purchaseButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#06060B',
-  },
-  purchasedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: 'rgba(194, 252, 74, 0.1)',
-    borderRadius: 14,
-  },
-  purchasedText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  restoreButton: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  restoreText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
-    fontWeight: '500',
-  },
-
-  // Background adjustments
-  blurSection: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  blurLabel: {
-    fontSize: 14,
-    color: '#ffffff',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  blurTrackContainer: {
-    alignItems: 'center',
-  },
-  blurTrack: {
-    width: '100%',
-    height: 6,
-    borderRadius: 3,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  blurThumb: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#C2FC4A',
-    top: -7,
-    transform: [{ translateX: -10 }],
-  },
-  blurLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 8,
-  },
-  blurLabelSmall: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-  },
-  fitBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  fitBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-
-  // Theme grid
-  themeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    padding: 8,
-  },
-  themeCard: {
-    width: 70,
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  themePreview: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  themeAccentDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  themeCardName: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  showMoreBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  showMoreText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Gradient presets
-  gradientPresetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    padding: 8,
-  },
-  gradientPreset: {
-    width: 100,
-    alignItems: 'center',
-  },
-  gradientPreview: {
-    width: 88,
-    height: 44,
-    borderRadius: 10,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  gradientSwatch: {
-    flex: 1,
-    height: '100%',
-  },
-  gradientLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
-
-  // Private folder
-  privateFolderInfo: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    lineHeight: 22,
-    padding: 16,
-    textAlign: 'center',
-  },
-  privateFolderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  privateFolderBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#06060B',
-  },
-  restoreSmallBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  restoreSmallText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Preset backgrounds
-  bgPreset: {
-    width: 90,
-    alignItems: 'center',
-    paddingBottom: 8,
-  },
-  bgPresetThumb: {
-    width: 80,
-    height: 56,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  bgPresetLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-});

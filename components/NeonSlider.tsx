@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 
 interface NeonSliderProps {
   progress: number;
@@ -22,7 +22,8 @@ export function NeonSlider({
 
   return (
     <TouchableOpacity
-      style={[styles.track, { height: height + 20, width: containerWidth }]}
+      className="justify-center"
+      style={{ height: height + 20, width: containerWidth }}
       onPress={(e) => {
         const { locationX } = e.nativeEvent;
         const percentage = locationX / (containerWidth || 300);
@@ -30,40 +31,35 @@ export function NeonSlider({
       }}
       activeOpacity={1}
     >
-      <View style={[styles.trackBg, { height }]}>
+      <View className="rounded-[3px] overflow-visible" style={{ height, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
         <View
-          style={[
-            styles.trackFill,
-            { width: `${clampedProgress * 100}%` as unknown as number, height, backgroundColor: primaryColor, shadowColor: primaryColor },
-          ]}
+          className="rounded-[3px]"
+          style={{
+            width: `${clampedProgress * 100}%` as unknown as number,
+            height,
+            backgroundColor: primaryColor,
+            shadowColor: primaryColor,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.6,
+            shadowRadius: 6,
+            elevation: 3,
+          }}
         />
         {showThumb && (
           <View
-            style={[
-              styles.thumb,
-              { left: `${clampedProgress * 100}%` as unknown as number, backgroundColor: primaryColor, shadowColor: primaryColor },
-            ]}
+            className="absolute -top-1.5 w-4 h-4 rounded-full -ml-2"
+            style={{
+              left: `${clampedProgress * 100}%` as unknown as number,
+              backgroundColor: primaryColor,
+              shadowColor: primaryColor,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.8,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
           />
         )}
       </View>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  track: { justifyContent: 'center' },
-  trackBg: { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 3, overflow: 'visible' },
-  trackFill: { borderRadius: 3, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 3 },
-  thumb: {
-    position: 'absolute',
-    top: -6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginLeft: -8,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-});

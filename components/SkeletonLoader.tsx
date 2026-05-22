@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, type ViewStyle } from 'react-native';
+import { View, Animated, type ViewStyle } from 'react-native';
 
 interface SkeletonLoaderProps {
   width?: number;
@@ -31,7 +31,7 @@ export function SkeletonLoader({ width = 300, height = 20, borderRadius = 8, sty
 
 export function SkeletonCard({ style }: { style?: ViewStyle }) {
   return (
-    <View style={[styles.card, style]}>
+    <View className="w-[120] p-3.5 items-center" style={style}>
       <SkeletonLoader width={44} height={44} borderRadius={14} />
       <SkeletonLoader width={84} height={14} style={{ marginTop: 10 }} />
       <SkeletonLoader width={48} height={10} style={{ marginTop: 4 }} />
@@ -41,26 +41,12 @@ export function SkeletonCard({ style }: { style?: ViewStyle }) {
 
 export function SkeletonRow({ style }: { style?: ViewStyle }) {
   return (
-    <View style={[styles.row, style]}>
+    <View className="flex-row items-center gap-3 py-2.5" style={style}>
       <SkeletonLoader width={40} height={40} borderRadius={10} />
-      <View style={{ flex: 1, gap: 4 }}>
+      <View className="flex-1 gap-1">
         <SkeletonLoader width={240} height={14} />
         <SkeletonLoader width={150} height={10} />
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: 120,
-    padding: 14,
-    alignItems: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-});

@@ -3,8 +3,8 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Modal,
+  FlatList,
   SectionList,
   GestureResponderEvent,
   PanResponder,
@@ -15,17 +15,15 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MusicNote, ListDashes, GridFour, ArrowDown, ArrowUp, FunnelSimple, Microphone, Image as ImageIcon, CheckCircle } from 'phosphor-react-native';
+import { MusicNote, ArrowDown, ArrowUp, FunnelSimple, Microphone, CheckCircle } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 const FileSystem: any = require('expo-file-system');
 interface MusicSection { title: string; data: FileItem[]; }
-import type { FileItem, SortField, SortDirection, LayoutMode, FileAction } from '../types';
+import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
-import LayoutToggle from '../components/LayoutToggle';
 import FileGrid from '../components/FileGrid';
-import FileList from '../components/FileList';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
 
@@ -50,7 +48,6 @@ export function MusicScreen() {
   const { audio, createPlaylist, addToPlaylist, playlists } = useFiles();
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor } = useTheme();
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('list');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -236,26 +233,10 @@ export function MusicScreen() {
   const renderFileItem = useCallback(({ item }: { item: FileItem }) => {
     const isSelected = selectedUris.has(item.uri);
     const itemColor = item.artColor || primaryColor;
-    const badges: React.ReactNode[] = [];
-    if (item.hasLyrics) {
-      badges.push(
-        <View key="lyrics" style={[styles.badge, { backgroundColor: `${primaryColor}20` }]}>
-          <Microphone size={10} color={primaryColor} weight="fill" />
-          <Text style={[styles.badgeText, { color: primaryColor }]}>LYRICS</Text>
-        </View>
-      );
-    }
-    if (item.thumbnail || item.album) {
-      badges.push(
-        <View key="artwork" style={[styles.badge, { backgroundColor: `${primaryColor}15` }]}>
-          <ImageIcon size={10} color={primaryColor} weight="fill" />
-          <Text style={[styles.badgeText, { color: primaryColor }]}>ART</Text>
-        </View>
-      );
-    }
     return (
       <TouchableOpacity
-        style={[styles.fileItem, isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 }]}
+        className="flex-row items-center py-2.5 px-4 gap-3"
+        style={isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 }}
         onPress={() => navigateToFile(item)}
         onLongPress={() => handleLongPress(item)}
         delayLongPress={400}
@@ -263,44 +244,41 @@ export function MusicScreen() {
         {isSelected && (
           <CheckCircle size={18} color={primaryColor} weight="fill" />
         )}
-        <View style={[styles.fileIcon, { backgroundColor: `${itemColor}20` }]}>
+        <View className="w-11 h-11 rounded-xl justify-center items-center overflow-hidden" style={{ backgroundColor: `${itemColor}20` }}>
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} style={styles.fileIconImage} />
+            <Image source={{ uri: item.thumbnail }} className="w-11 h-11 rounded-xl" />
           ) : (
-            <MusicNote size={20} color={itemColor} />
+            <MusicNote size={22} color={itemColor} weight="fill" />
           )}
         </View>
-        <View style={styles.fileInfo}>
-          <Text style={[styles.fileName, { color: textColor }]} numberOfLines={1}>{item.name}</Text>
-          <View style={styles.fileMetaRow}>
-            {item.artist && <Text style={[styles.fileMeta, { color: mutedColor }]} numberOfLines={1}>{item.artist}</Text>}
-            {item.duration && (
-              <>
-                <Text style={[styles.fileMeta, { color: mutedColor }]}>•</Text>
-                <Text style={[styles.fileMeta, { color: mutedColor }]}>
-                  {Math.floor(item.duration / 60000)}:{String(Math.floor((item.duration % 60000) / 1000)).padStart(2, '0')}
-                </Text>
-              </>
+        <View className="flex-1">
+          <Text className="text-[15px] font-semibold mb-[3px]" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-[13px]" style={{ color: mutedColor }} numberOfLines={1}>
+              {item.artist || 'Unknown'}
+            </Text>
+            {item.hasLyrics && (
+              <View className="flex-row items-center gap-[3px] px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${primaryColor}20` }}>
+                <Microphone size={10} color={primaryColor} weight="fill" />
+                <Text className="text-[9px] font-bold tracking-wider" style={{ color: primaryColor }}>LYRICS</Text>
+              </View>
             )}
           </View>
-          {badges.length > 0 && (
-            <View style={styles.badgeRow}>{badges}</View>
-          )}
         </View>
-        <Text style={[styles.chevron, { color: mutedColor }]}>›</Text>
       </TouchableOpacity>
     );
   }, [navigateToFile, handleLongPress, selectedUris, primaryColor, textColor, mutedColor]);
 
   const renderSortModal = useMemo(() => (
     <Modal visible={showSortModal} transparent animationType="fade">
-      <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
-        <View style={[styles.modalContent, { backgroundColor: '#27272a' }]}>
-          <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Sort by</Text>
+      <TouchableOpacity className="flex-1 justify-center items-center bg-black/70" onPress={() => setShowSortModal(false)}>
+        <View className="bg-[#27272a] rounded-3xl p-6 w-4/5 max-w-[320px]">
+          <Text className="text-lg font-extrabold mb-4 text-center text-white">Sort by</Text>
           {SORT_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.field}
-              style={[styles.modalOption, sortField === opt.field && { backgroundColor: `${primaryColor}15` }]}
+              className="flex-row items-center justify-between py-3.5 px-4 rounded-xl mb-2"
+              style={sortField === opt.field && { backgroundColor: `${primaryColor}15` }}
               onPress={() => {
                 if (sortField === opt.field) {
                   toggleDirection();
@@ -311,7 +289,7 @@ export function MusicScreen() {
                 setShowSortModal(false);
               }}
             >
-              <Text style={[styles.modalOptionText, { color: sortField === opt.field ? primaryColor : '#e4e4e7' }, sortField === opt.field && { fontWeight: '700' }]}>
+              <Text className="text-base font-medium" style={[{ color: sortField === opt.field ? primaryColor : '#e4e4e7' }, sortField === opt.field && { fontWeight: '700' }]}>
                 {opt.label}
               </Text>
               {sortField === opt.field && (
@@ -325,26 +303,25 @@ export function MusicScreen() {
   ), [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]);
 
   const renderSectionHeader = useCallback((info: { section: MusicSection }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionLetter, { color: primaryColor }]}>{info.section.title}</Text>
+    <View className="py-1.5 px-1 mt-1">
+      <Text className="text-sm font-extrabold tracking-wider" style={{ color: primaryColor }}>{info.section.title}</Text>
     </View>
   ), [primaryColor]);
 
   return (
     <ScreenLayout>
-      <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: textColor }]}>Music</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
+      <View className="flex-row justify-between items-center px-4 mb-2">
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Music</Text>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity className="flex-row items-center bg-[#27272a] px-2.5 py-1.5 rounded-lg gap-1" onPress={() => setShowSortModal(true)}>
             <FunnelSimple size={16} color={mutedColor} />
-            <Text style={[styles.sortBtnText, { color: mutedColor }]}>{currentSortLabel}</Text>
+            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
             {sortDirection === 'asc' ? <ArrowUp size={14} color={mutedColor} /> : <ArrowDown size={14} color={mutedColor} />}
           </TouchableOpacity>
-          <LayoutToggle mode={layoutMode} onChange={setLayoutMode} primaryColor={primaryColor} />
         </View>
       </View>
 
-      <View style={styles.listContainer}>
+      <View className="flex-1 flex-row">
         {isAlphaSort && sections.length > 0 ? (
           <>
             <SectionList
@@ -354,7 +331,7 @@ export function MusicScreen() {
               renderItem={renderFileItem}
               renderSectionHeader={renderSectionHeader}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
               windowSize={7}
               maxToRenderPerBatch={10}
               removeClippedSubviews
@@ -364,7 +341,7 @@ export function MusicScreen() {
             {/* A-Z Scrollbar */}
             <View
               ref={alphabetRef}
-              style={styles.alphabetScroll}
+              className="absolute right-0.5 top-0 bottom-0 w-[22px] justify-center items-center py-2"
               onLayout={handleAlphabetLayout}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
@@ -374,8 +351,8 @@ export function MusicScreen() {
               {ALPHABET.map((letter) => (
                 <Text
                   key={letter}
+                  className="text-[9px] font-semibold text-center leading-[13px]"
                   style={[
-                    styles.alphabetLetter,
                     selectedSection === letter && { color: primaryColor, fontWeight: '800' },
                     sections.some((s) => s.title === letter) ? { color: textColor } : { color: 'rgba(255,255,255,0.15)' },
                   ]}
@@ -387,49 +364,45 @@ export function MusicScreen() {
           </>
         ) : (
           <>
-            {layoutMode === 'list' ? (
-              <FileList
-                scrollRef={flatListRef}
-                data={sortedAudio}
-                onPress={navigateToFile}
-                onLongPress={handleLongPress}
-                selectedUris={selectedUris}
-                primaryColor={primaryColor}
-                textColor={textColor}
-                mutedColor={mutedColor}
-                emptyMessage="No music found"
-                onScroll={handleNonAlphaScroll}
-              />
-            ) : (
-              <FileGrid
-                data={sortedAudio}
-                onPress={navigateToFile}
-                primaryColor={primaryColor}
-                textColor={textColor}
-                mutedColor={mutedColor}
-                emptyMessage="No music found"
-              />
-            )}
+            <FlatList
+              ref={flatListRef}
+              data={sortedAudio}
+              renderItem={renderFileItem}
+              keyExtractor={(item: FileItem) => item.uri}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              showsVerticalScrollIndicator={false}
+              windowSize={7}
+              maxToRenderPerBatch={10}
+              removeClippedSubviews
+              initialNumToRender={15}
+              onScroll={handleNonAlphaScroll}
+              scrollEventThrottle={16}
+              ListEmptyComponent={
+                <View className="items-center justify-center py-[100px]">
+                  <MusicNote size={64} color={mutedColor} />
+                  <Text className="text-base mt-4" style={{ color: mutedColor }}>No music found</Text>
+                </View>
+              }
+            />
             <View
               ref={scrollTrackRef}
-              style={styles.scrollTrack}
+              className="absolute right-0.5 top-2 bottom-2 w-3 rounded-md justify-start items-center"
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
               onLayout={(e) => { handleScrollTrackLayout(e); scrollTrackLayoutRef.current = { y: e.nativeEvent.layout.y, height: e.nativeEvent.layout.height }; }}
               {...scrollThumbPanResponder.panHandlers}
             >
               <Animated.View
-                style={[
-                  styles.scrollThumb,
-                  {
-                    backgroundColor: primaryColor,
-                    transform: [{
-                      translateY: thumbAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 200],
-                        extrapolate: 'clamp',
-                      })
-                    }]
-                  }
-                ]}
+                className="w-1 h-10 rounded-sm opacity-70"
+                style={{
+                  backgroundColor: primaryColor,
+                  transform: [{
+                    translateY: thumbAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 200],
+                      extrapolate: 'clamp',
+                    })
+                  }]
+                }}
               />
             </View>
           </>
@@ -448,118 +421,3 @@ export function MusicScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#27272a',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  sortBtnText: { fontSize: 11, fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: '800' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { borderRadius: 24, padding: 24, width: '80%', maxWidth: 320 },
-  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
-  modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 8 },
-  modalOptionText: { fontSize: 16, fontWeight: '500' },
-  listContainer: { flex: 1, flexDirection: 'row' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-
-  // File items with badges
-  fileItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
-  },
-  fileIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  fileIconImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-  },
-  fileInfo: { flex: 1 },
-  fileName: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  fileMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  fileMeta: { fontSize: 12 },
-  badgeRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  badgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
-  chevron: { fontSize: 20 },
-
-  // Section List
-  sectionHeader: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    marginTop: 4,
-  },
-  sectionLetter: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-
-  // A-Z Scrollbar
-  alphabetScroll: {
-    position: 'absolute',
-    right: 2,
-    top: 0,
-    bottom: 0,
-    width: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  alphabetLetter: {
-    fontSize: 9,
-    fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 13,
-  },
-  scrollTrack: {
-    position: 'absolute',
-    right: 2,
-    top: 8,
-    bottom: 8,
-    width: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 6,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  scrollThumb: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-    opacity: 0.7,
-  },
-});

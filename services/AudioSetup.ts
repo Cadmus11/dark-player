@@ -1,15 +1,14 @@
-import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-audio';
 
 let isInitialized = false;
 
 export async function setupAudioSession(): Promise<boolean> {
   if (isInitialized) return true;
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
+    await setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'doNotMix',
     });
     isInitialized = true;
     return true;

@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import type { FileItem } from '../types';
-import { MusicNote, FileText, Image as PhosphorImage, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
+import { MusicNote, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
 import type { FileType } from '../types';
 import { formatFileSize, formatDuration } from '../services/FileService';
 
@@ -24,10 +24,7 @@ interface FileListProps {
 }
 
 function FileTypeIcon({ type, size, color }: { type?: FileType; size: number; color: string }) {
-  const Icon = type === 'document' ? FileText :
-    type === 'image' ? PhosphorImage :
-    type === 'video' ? VideoCamera :
-    MusicNote;
+  const Icon = type === 'video' ? VideoCamera : MusicNote;
   return <Icon size={size} color={color} weight="fill" />;
 }
 
@@ -56,46 +53,47 @@ const ListItem = memo(function ListItem({
 }) {
   return (
     <TouchableOpacity
-      style={[styles.listItem, isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 10 }]}
+      className="flex-row items-center py-2.5 px-1 gap-3"
+      style={isSelected ? { backgroundColor: `${primaryColor}10`, borderRadius: 10 } : undefined}
       onPress={() => onPress(item)}
       onLongPress={() => onLongPress?.(item)}
       delayLongPress={400}
     >
       {isSelected && (
-        <View style={[styles.checkCircle, { backgroundColor: primaryColor }]}>
+        <View className="w-[22] h-[22] rounded-full justify-center items-center" style={{ backgroundColor: primaryColor }}>
           <CheckCircle size={18} color="#ffffff" weight="fill" />
         </View>
       )}
       {renderLeft ? renderLeft(item) : (
-        <View style={[styles.listItemArt, { backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }]}>
+        <View className="w-11 h-11 rounded-xl justify-center items-center" style={{ backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }}>
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} style={styles.listItemArtImage} />
+            <Image source={{ uri: item.thumbnail }} className="w-11 h-11 rounded-xl" />
           ) : (
             <FileTypeIcon type={item.type} size={20} color={primaryColor} />
           )}
         </View>
       )}
-      <View style={styles.listItemInfo}>
-        <Text style={[styles.listItemName, { color: textColor }]} numberOfLines={1}>{item.name}</Text>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold mb-0.5" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
         {renderMeta ? renderMeta(item) : (
-          <View style={styles.listItemMeta}>
-            {item.artist && <Text style={[styles.listItemArtist, { color: primaryColor }]}>{item.artist}</Text>}
-            {!item.artist && item.size && <Text style={[styles.listItemMetaText, { color: mutedColor }]}>{formatFileSize(item.size)}</Text>}
+          <View className="flex-row items-center gap-1">
+            {item.artist && <Text className="text-xs font-medium" style={{ color: primaryColor }}>{item.artist}</Text>}
+            {!item.artist && item.size && <Text className="text-xs" style={{ color: mutedColor }}>{formatFileSize(item.size)}</Text>}
             {item.duration && (
               <>
-                {item.artist ? <Text style={[styles.listItemMetaSeparator, { color: mutedColor }]}>•</Text> : null}
-                <Text style={[styles.listItemMetaText, { color: mutedColor }]}>{formatDuration(item.duration)}</Text>
+                {item.artist ? <Text className="text-xs" style={{ color: mutedColor }}>•</Text> : null}
+                <Text className="text-xs" style={{ color: mutedColor }}>{formatDuration(item.duration)}</Text>
               </>
             )}
           </View>
         )}
       </View>
       {item.hasLyrics && (
-        <View style={[styles.lyricsBadge, { backgroundColor: `${primaryColor}20` }]}>
+        <View className="w-5 h-5 rounded-md justify-center items-center mr-1" style={{ backgroundColor: `${primaryColor}20` }}>
           <MicrophoneStage size={12} color={primaryColor} weight="bold" />
         </View>
       )}
-      {renderRight ? renderRight(item) : <Text style={[styles.chevron, { color: mutedColor }]}>›</Text>}
+      {renderRight ? renderRight(item) : <Text className="text-xl" style={{ color: mutedColor }}>›</Text>}
     </TouchableOpacity>
   );
 });
@@ -140,9 +138,9 @@ function FileList({
   ), [onPress, onLongPress, primaryColor, textColor, mutedColor, renderLeft, renderRight, renderMeta, selectionMode, selectedUris, onSelectionChange]);
 
   const renderEmpty = useCallback(() => (
-    <View style={styles.emptyContainer}>
+    <View className="items-center justify-center py-[100]">
       <MusicNote size={64} color={mutedColor} />
-      <Text style={[styles.emptyText, { color: mutedColor }]}>{emptyMessage}</Text>
+      <Text className="text-base mt-4" style={{ color: mutedColor }}>{emptyMessage}</Text>
     </View>
   ), [mutedColor, emptyMessage]);
 
@@ -152,7 +150,7 @@ function FileList({
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmpty}
       onScroll={onScroll}
@@ -166,50 +164,3 @@ function FileList({
 }
 
 export default memo(FileList);
-
-const styles = StyleSheet.create({
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    gap: 12,
-  },
-  checkCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listItemArt: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listItemArtImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-  },
-  listItemInfo: { flex: 1 },
-  listItemName: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  listItemArtist: { fontSize: 12, fontWeight: '500' },
-  listItemMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  listItemMetaText: { fontSize: 12 },
-  listItemMetaSeparator: { fontSize: 12 },
-  lyricsBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-  },
-  chevron: { fontSize: 20 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
-  emptyText: { fontSize: 16, marginTop: 16 },
-});

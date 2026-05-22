@@ -3,10 +3,8 @@ import type { FileItem, HiddenFilesSettings } from '../types';
 import { fileEngine } from '../engine/FileEngine';
 
 interface MediaStoreState {
-  images: FileItem[];
   videos: FileItem[];
   audio: FileItem[];
-  documents: FileItem[];
 
   loading: boolean;
   scanProgress: number;
@@ -23,10 +21,8 @@ interface MediaStoreState {
 }
 
 export const useMediaStore = create<MediaStoreState>((set, get) => ({
-  images: [],
   videos: [],
   audio: [],
-  documents: [],
   loading: false,
   scanProgress: 0,
   scanStage: '',
@@ -36,10 +32,8 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   loadCache: () => {
     const cached = fileEngine.loadFromCache();
     set({
-      images: cached.images,
       videos: cached.videos,
       audio: cached.audio,
-      documents: cached.documents,
       loading: false,
     });
   },
@@ -51,10 +45,8 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
         set({ scanProgress: progress, scanStage: stage });
       });
       set({
-        images: result.images,
         videos: result.videos,
         audio: result.audio,
-        documents: result.documents,
         loading: false,
         permissionsGranted: true,
         scanProgress: 1,

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  StyleSheet,
   Animated,
   Image,
   StatusBar,
@@ -30,24 +29,13 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   }, []);
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+    <Animated.View className="flex-1" style={{ opacity: fadeAnim }}>
       <StatusBar hidden />
       <Image
         source={require('../assets/splash.png')}
-        style={styles.image}
+        className="absolute inset-0 w-full h-full"
         resizeMode="cover"
       />
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  image: {
-    ...StyleSheet.absoluteFillObject,
-    width: undefined,
-    height: undefined,
-  },
-});

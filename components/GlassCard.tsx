@@ -12,13 +12,11 @@ interface GlassCardProps {
 export function GlassCard({ children, style, intensity = 0.06, glowColor, onPress }: GlassCardProps) {
   return (
     <View
+      className="rounded-[28px] border overflow-hidden"
       style={[
         {
           backgroundColor: `rgba(255, 255, 255, ${intensity})`,
-          borderRadius: 28,
-          borderWidth: 1,
           borderColor: 'rgba(255, 255, 255, 0.08)',
-          overflow: 'hidden',
           ...(glowColor
             ? {
                 shadowColor: glowColor,

@@ -1,6 +1,8 @@
-import { Audio, AVPlaybackStatus, Video, ResizeMode, VideoFullscreenUpdate } from 'expo-av';
+import { VideoPlayer } from 'expo-video';
 import type { FileItem, SubtitleEntry } from '../types';
 import { findSubtitleFile, parseSRT, readTextFile } from '../services/FileService';
+
+type VideoContentFit = 'contain' | 'cover' | 'fill';
 
 type VideoEngineListener = (state: VideoEngineState) => void;
 
@@ -10,7 +12,7 @@ export interface VideoEngineState {
   position: number;
   duration: number;
   playbackSpeed: number;
-  resizeMode: ResizeMode;
+  contentFit: VideoContentFit;
   subtitlesEnabled: boolean;
   subtitles: SubtitleEntry[];
   currentSubtitle: string;
@@ -21,10 +23,11 @@ export interface VideoEngineState {
 
 export class VideoEngine {
   private static instance: VideoEngine;
-  private _videoRef: Video | null = null;
+  private _player: VideoPlayer | null = null;
   private _state: VideoEngineState;
   private _listeners: Set<VideoEngineListener> = new Set();
   private _subtitleInterval: ReturnType<typeof setInterval> | null = null;
+  private _statusInterval: ReturnType<typeof setInterval> | null = null;
 
   static getInstance(): VideoEngine {
     if (!VideoEngine.instance) {
@@ -44,7 +47,7 @@ export class VideoEngine {
       position: 0,
       duration: 0,
       playbackSpeed: 1,
-      resizeMode: ResizeMode.CONTAIN,
+      contentFit: 'contain',
       subtitlesEnabled: true,
       subtitles: [],
       currentSubtitle: '',
@@ -67,8 +70,33 @@ export class VideoEngine {
     return { ...this._state };
   }
 
-  attachVideoRef(ref: Video | null) {
-    this._videoRef = ref;
+  attachPlayer(player: VideoPlayer | null) {
+    this._player = player;
+    if (player) {
+      this._startStatusPolling();
+    } else {
+      this._stopStatusPolling();
+    }
+  }
+
+  private _startStatusPolling() {
+    this._stopStatusPolling();
+    this._statusInterval = setInterval(() => {
+      if (!this._player) return;
+      this._state.position = this._player.currentTime * 1000;
+      this._state.duration = this._player.duration * 1000;
+      this._state.isPlaying = this._player.playing;
+      this._state.isReady = this._player.status === 'readyToPlay';
+      this._state.error = this._player.status === 'error' ? 'Playback error' : null;
+      this._notify();
+    }, 250);
+  }
+
+  private _stopStatusPolling() {
+    if (this._statusInterval) {
+      clearInterval(this._statusInterval);
+      this._statusInterval = null;
+    }
   }
 
   async loadFile(file: FileItem) {
@@ -80,13 +108,6 @@ export class VideoEngine {
     this._state.subtitles = [];
     this._state.currentSubtitle = '';
     this._notify();
-
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-    });
 
     await this._loadSubtitles(file);
 
@@ -126,53 +147,36 @@ export class VideoEngine {
     }
   }
 
-  onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      this._state.position = status.positionMillis || 0;
-      this._state.duration = status.durationMillis || 0;
-      this._state.isPlaying = status.isPlaying ?? false;
-      this._state.isReady = true;
-      this._state.error = null;
-    } else if (status.error) {
-      this._state.error = status.error;
-      this._state.isReady = false;
-    }
-    this._notify();
-  };
-
-  async togglePlayback() {
-    if (!this._videoRef) return;
+  togglePlayback() {
+    if (!this._player) return;
     try {
       if (this._state.isPlaying) {
-        await this._videoRef.pauseAsync();
+        this._player.pause();
       } else {
-        await this._videoRef.playAsync();
+        this._player.play();
       }
     } catch {}
   }
 
-  async seekTo(percentage: number) {
-    if (!this._videoRef || !this._state.duration) return;
-    await this._videoRef.setPositionAsync(Math.round(percentage * this._state.duration));
+  seekTo(percentage: number) {
+    if (!this._player || !this._state.duration) return;
+    this._player.currentTime = percentage * (this._state.duration / 1000);
   }
 
-  async skip(seconds: number) {
-    if (!this._videoRef || !this._state.duration) return;
-    const newPos = this._state.position + seconds * 1000;
-    await this._videoRef.setPositionAsync(
-      Math.max(0, Math.min(newPos, this._state.duration)),
-    );
+  skip(seconds: number) {
+    if (!this._player) return;
+    this._player.seekBy(seconds);
   }
 
-  async setRate(rate: number) {
-    if (!this._videoRef) return;
+  setRate(rate: number) {
+    if (!this._player) return;
     this._state.playbackSpeed = rate;
-    await this._videoRef.setRateAsync(rate, true);
+    this._player.playbackRate = rate;
     this._notify();
   }
 
-  setResizeMode(mode: ResizeMode) {
-    this._state.resizeMode = mode;
+  setContentFit(mode: VideoContentFit) {
+    this._state.contentFit = mode;
     this._notify();
   }
 
@@ -193,15 +197,13 @@ export class VideoEngine {
     this._notify();
   }
 
-  async cleanup() {
+  cleanup() {
     if (this._subtitleInterval) {
       clearInterval(this._subtitleInterval);
       this._subtitleInterval = null;
     }
-    try {
-      await this._videoRef?.stopAsync();
-    } catch {}
-    this._videoRef = null;
+    this._stopStatusPolling();
+    this._player = null;
     this._state = this._defaultState();
     this._listeners.clear();
   }

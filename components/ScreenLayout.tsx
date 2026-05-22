@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, type ViewStyle } from 'react-native';
+import { View, ScrollView, StatusBar, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurBackground } from './BlurBackground';
 import { TopBar } from './TopBar';
@@ -11,8 +11,6 @@ interface ScreenLayoutProps {
   noSafeArea?: boolean;
   style?: ViewStyle;
   contentStyle?: ViewStyle;
-  blurOverride?: number;
-  fitOverride?: 'cover' | 'contain';
 }
 
 export function ScreenLayout({
@@ -22,16 +20,14 @@ export function ScreenLayout({
   noSafeArea = false,
   style,
   contentStyle,
-  blurOverride,
-  fitOverride,
 }: ScreenLayoutProps) {
   const content = (
-    <View style={[styles.content, contentStyle]}>
+    <View className="flex-1" style={contentStyle}>
       {!noTopBar && <TopBar />}
       {scroll ? (
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -44,23 +40,15 @@ export function ScreenLayout({
   );
 
   const wrapped = (
-    <BlurBackground blurOverride={blurOverride} fitOverride={fitOverride}>
+    <BlurBackground>
       <StatusBar barStyle="light-content" backgroundColor="#06060B" translucent />
-      {noSafeArea ? content : <SafeAreaView style={styles.safeArea}>{content}</SafeAreaView>}
+      {noSafeArea ? content : <SafeAreaView className="flex-1">{content}</SafeAreaView>}
     </BlurBackground>
   );
 
   if (style) {
-    return <View style={[styles.container, style]}>{wrapped}</View>;
+    return <View className="flex-1" style={style}>{wrapped}</View>;
   }
 
   return wrapped;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  content: { flex: 1 },
-  scrollView: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 100 },
-});

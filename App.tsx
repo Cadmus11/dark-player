@@ -5,66 +5,52 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
 import { HomeScreen } from './screens/HomeScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
-import { DocumentsScreen } from './screens/DocumentsScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CategoryScreen } from './screens/CategoryScreen';
 import { VideoPlayerScreen } from './screens/VideoPlayerScreen';
 import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
-import { ImageViewerScreen } from './screens/ImageViewerScreen';
-import { DocumentViewerScreen } from './screens/DocumentViewerScreen';
-import { DocumentReaderScreen } from './screens/DocumentReaderScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { BottomTabBar } from './components/BottomTabBar';
 import { MiniPlayer } from './components/player/MiniPlayer';
 import { NowPlayingBar } from './components/player/NowPlayingBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import type { FileItem, FileType, DocumentSubType } from './types';
+import type { FileItem, FileType } from './types';
 import './global.css';
 
 export type MainTabParamList = {
   HomeTab: undefined;
   MusicTab: undefined;
   VideosTab: undefined;
-  DocumentsTab: undefined;
   SearchTab: undefined;
   SettingsTab: undefined;
 };
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
-  Profile: undefined;
-  Category: { type: FileType; title: string; icon: string; subType?: DocumentSubType };
+  Category: { type: FileType; title: string; icon: string };
   VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
   MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
-  ImageViewer: { file: FileItem };
-  DocumentViewer: { file: FileItem };
-  DocumentReader: { file: FileItem };
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
 function MainTabs() {
-  const { theme } = useTheme();
-  const bgColor = theme.backgroundColor || '#06060B';
   return (
-    <View style={{ flex: 1, backgroundColor: bgColor }}>
+    <View className="flex-1 bg-bg-primary dark:bg-dark-bg-primary">
       <Tab.Navigator
-        tabBar={(props) => <BottomTabBar {...props} />}
+        tabBar={() => null}
         screenOptions={{ headerShown: false }}
       >
         <Tab.Screen name="HomeTab" component={HomeScreen} />
         <Tab.Screen name="MusicTab" component={MusicScreen} />
         <Tab.Screen name="VideosTab" component={VideosScreen} />
-        <Tab.Screen name="DocumentsTab" component={DocumentsScreen} />
         <Tab.Screen name="SearchTab" component={SearchScreen} />
         <Tab.Screen name="SettingsTab" component={SettingsScreen} />
       </Tab.Navigator>
@@ -93,10 +79,6 @@ export default function App() {
               <Stack.Screen name="Category" component={CategoryScreen} />
               <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
               <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
-              <Stack.Screen name="ImageViewer" component={ImageViewerScreen} />
-              <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
-              <Stack.Screen name="DocumentReader" component={DocumentReaderScreen} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
             </Stack.Navigator>
           </NavigationContainer>
           <StatusBar style="auto" />

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
-  StyleSheet,
   type ViewStyle,
 } from 'react-native';
 
@@ -50,12 +49,9 @@ export function GlassButton({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
+      className="flex-row items-center justify-center border"
       style={[
         {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
           ...sizeStyles[size],
           ...variantStyles[variant],
         },
@@ -69,10 +65,10 @@ export function GlassButton({
         style,
       ]}
     >
-      {icon && <Text style={[styles.icon, variant === 'neon' && { color: '#06060B' }]}>{icon}</Text>}
+      {icon && <Text className="text-lg mr-2" style={variant === 'neon' ? { color: '#06060B' } : undefined}>{icon}</Text>}
       <Text
+        className="font-semibold"
         style={[
-          styles.text,
           size === 'sm' && { fontSize: 13 },
           size === 'lg' && { fontSize: 17 },
           variant === 'glass' && { color: '#ffffff' },
@@ -85,8 +81,3 @@ export function GlassButton({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  icon: { fontSize: 18, marginRight: 8 },
-  text: { fontSize: 15, fontWeight: '600' },
-});

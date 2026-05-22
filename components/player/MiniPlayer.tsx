@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { X, Play, Pause, ArrowsOut } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
@@ -24,35 +24,25 @@ export function MiniPlayer() {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row items-center bg-[#1a1a2e] px-3 py-2 border-t border-t-white/[0.08] gap-2.5">
       {currentFile.thumbnail ? (
-        <Image source={{ uri: currentFile.thumbnail }} style={styles.thumbnail} />
+        <Image source={{ uri: currentFile.thumbnail }} className="w-10 h-10 rounded-lg" />
       ) : (
-        <View style={styles.placeholder} />
+        <View className="w-10 h-10 rounded-lg" style={{ backgroundColor: 'rgba(194,252,74,0.15)' }} />
       )}
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>{currentFile.name}</Text>
-        <Text style={styles.subtitle}>Video Mini Player</Text>
+      <View className="flex-1">
+        <Text className="text-[13px] font-semibold text-white" numberOfLines={1}>{currentFile.name}</Text>
+        <Text className="text-[11px] text-white/40">Video Mini Player</Text>
       </View>
-      <TouchableOpacity style={styles.btn} onPress={isPlaying ? pause : resume}>
+      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume}>
         {isPlaying ? <Pause size={20} color="#ffffff" weight="fill" /> : <Play size={20} color="#ffffff" weight="fill" />}
       </TouchableOpacity>
-      <TouchableOpacity style={styles.btn} onPress={handleExpand}>
+      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleExpand}>
         <ArrowsOut size={18} color="#ffffff" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.btn} onPress={handleClose}>
+      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleClose}>
         <X size={18} color="#ffffff" />
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', gap: 10 },
-  thumbnail: { width: 40, height: 40, borderRadius: 8 },
-  placeholder: { width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(194,252,74,0.15)' },
-  info: { flex: 1 },
-  title: { fontSize: 13, fontWeight: '600', color: '#ffffff' },
-  subtitle: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  btn: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-});

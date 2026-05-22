@@ -3,20 +3,19 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Modal,
+  FlatList,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { VideoCamera, FunnelSimple, ArrowUp, ArrowDown } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
-import { formatDuration, formatFileSize } from '../services/FileService';
-import type { FileItem, SortField, SortDirection, LayoutMode } from '../types';
+import { formatDuration } from '../services/FileService';
+import type { FileItem, SortField, SortDirection } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
-import LayoutToggle from '../components/LayoutToggle';
 import FileGrid from '../components/FileGrid';
-import FileList from '../components/FileList';
 
 const SORT_OPTIONS: { field: SortField; label: string }[] = [
   { field: 'date', label: 'Date' },
@@ -30,7 +29,6 @@ export function VideosScreen() {
   const { videos } = useFiles();
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor } = useTheme();
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('grid');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -49,36 +47,41 @@ export function VideosScreen() {
     navigation.navigate('VideoPlayer', { file });
   }, [navigation]);
 
-  const renderListMeta = useCallback((item: FileItem) => (
-    <View style={styles.listItemMeta}>
-      {item.size && <Text style={[styles.listItemMetaText, { color: mutedColor }]}>{formatFileSize(item.size)}</Text>}
-      {item.duration && (
-        <>
-          <Text style={[styles.listItemMetaSep, { color: mutedColor }]}>•</Text>
-          <Text style={[styles.listItemMetaText, { color: mutedColor }]}>{formatDuration(item.duration)}</Text>
-        </>
-      )}
-      {item.mimeType && (
-        <>
-          <Text style={[styles.listItemMetaSep, { color: mutedColor }]}>•</Text>
-          <Text style={[styles.listItemMetaText, { color: mutedColor }]}>{item.mimeType.split('/').pop()}</Text>
-        </>
-      )}
-    </View>
-  ), [mutedColor]);
+  const renderListItem = useCallback(({ item }: { item: FileItem }) => {
+    const quality = item.mimeType?.split('/').pop()?.toUpperCase() || 'HD';
+    return (
+      <TouchableOpacity className="px-4 py-2" onPress={() => navigateToFile(item)}>
+        <View className="flex-row items-center gap-3">
+          <View className="w-[100px] h-16 rounded-[10px] overflow-hidden">
+            {item.thumbnail ? (
+              <Image source={{ uri: item.thumbnail }} className="w-full h-full" />
+            ) : (
+              <View className="w-full h-full items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                <VideoCamera size={28} color={primaryColor} weight="fill" />
+              </View>
+            )}
+          </View>
+          <View className="flex-1">
+            <Text className="text-[15px] font-semibold mb-1" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
+            <Text className="text-[13px]" style={{ color: mutedColor }}>
+              {quality} | {formatDuration(item.duration)}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }, [navigateToFile, primaryColor, textColor, mutedColor]);
 
   const renderSortModal = useMemo(() => (
     <Modal visible={showSortModal} transparent animationType="fade">
-      <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
-        <View style={[styles.modalContent, { backgroundColor: '#27272a' }]}>
-          <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Sort by</Text>
+      <TouchableOpacity className="flex-1 bg-black/70 items-center justify-center" onPress={() => setShowSortModal(false)}>
+        <View className="rounded-3xl p-6 w-[80%] max-w-[320px] bg-[#27272a]">
+          <Text className="text-lg font-extrabold mb-4 text-center text-white">Sort by</Text>
           {SORT_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.field}
-              style={[
-                styles.modalOption,
-                sortField === opt.field && { backgroundColor: `${primaryColor}15` },
-              ]}
+              className="flex-row items-center justify-between py-3.5 px-4 rounded-xl mb-2"
+              style={sortField === opt.field ? { backgroundColor: `${primaryColor}15` } : undefined}
               onPress={() => {
                 if (sortField === opt.field) {
                   toggleDirection();
@@ -89,11 +92,13 @@ export function VideosScreen() {
                 setShowSortModal(false);
               }}
             >
-              <Text style={[
-                styles.modalOptionText,
-                { color: sortField === opt.field ? primaryColor : '#e4e4e7' },
-                sortField === opt.field && { fontWeight: '700' },
-              ]}>
+              <Text
+                className="text-base font-medium"
+                style={{
+                  color: sortField === opt.field ? primaryColor : '#e4e4e7',
+                  fontWeight: sortField === opt.field ? '700' : '500',
+                }}
+              >
                 {opt.label}
               </Text>
               {sortField === opt.field && (
@@ -112,75 +117,31 @@ export function VideosScreen() {
 
   return (
     <ScreenLayout>
-      <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: textColor }]}>Videos</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
+      <View className="flex-row justify-between items-center px-4 mb-2">
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Videos</Text>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity className="flex-row items-center bg-[#27272a] px-2.5 py-1.5 rounded-lg gap-1" onPress={() => setShowSortModal(true)}>
             <FunnelSimple size={16} color={mutedColor} />
-            <Text style={[styles.sortBtnText, { color: mutedColor }]}>{currentSortLabel}</Text>
+            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
             {sortDirection === 'asc' ? (
               <ArrowUp size={14} color={mutedColor} />
             ) : (
               <ArrowDown size={14} color={mutedColor} />
             )}
           </TouchableOpacity>
-          <LayoutToggle mode={layoutMode} onChange={setLayoutMode} primaryColor={primaryColor} />
         </View>
       </View>
-      <View key={layoutMode} style={{ flex: 1 }}>
-        {layoutMode === 'grid' ? (
-          <FileGrid
-            data={sortedVideos}
-            onPress={navigateToFile}
-            primaryColor={primaryColor}
-            textColor={textColor}
-            mutedColor={mutedColor}
-            emptyMessage="No videos found"
-          />
-        ) : (
-          <FileList
-            data={sortedVideos}
-            onPress={navigateToFile}
-            primaryColor={primaryColor}
-            textColor={textColor}
-            mutedColor={mutedColor}
-            emptyMessage="No videos found"
-            renderMeta={renderListMeta}
-          />
-        )}
+      <View className="flex-1">
+        <FileGrid
+          data={sortedVideos}
+          onPress={navigateToFile}
+          primaryColor={primaryColor}
+          textColor={textColor}
+          mutedColor={mutedColor}
+          emptyMessage="No videos found"
+        />
       </View>
       {renderSortModal}
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#27272a',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  sortBtnText: { fontSize: 11, fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: '800' },
-  listItemMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  listItemMetaText: { fontSize: 12 },
-  listItemMetaSep: { fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { borderRadius: 24, padding: 24, width: '80%', maxWidth: 320 },
-  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
-  modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 8 },
-  modalOptionText: { fontSize: 16, fontWeight: '500' },
-});

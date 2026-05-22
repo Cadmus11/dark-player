@@ -46,12 +46,10 @@ export function useMediaFiles() {
   const formatDuration = useCallback((ms?: number) => fileEngine.formatDuration(ms), []);
 
   return {
-    images: store.images,
     videos: store.videos,
     audio: store.audio,
-    documents: store.documents,
-    allFiles: useMemo(() => [...store.images, ...store.videos, ...store.audio, ...store.documents],
-      [store.images, store.videos, store.audio, store.documents]),
+    allFiles: useMemo(() => [...store.videos, ...store.audio],
+      [store.videos, store.audio]),
     loading: store.loading,
     scanProgress: store.scanProgress,
     scanStage: store.scanStage,

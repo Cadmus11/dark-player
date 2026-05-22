@@ -62,5 +62,8 @@ export const usePlaylistStore = create<PlaylistStoreState>((set) => ({
 }));
 
 queueEngine.subscribe(() => {
-  usePlaylistStore.setState({ playlists: queueEngine.getAll() });
+  const pl = queueEngine.getAll();
+  const current = usePlaylistStore.getState().playlists;
+  if (JSON.stringify(pl) === JSON.stringify(current)) return;
+  usePlaylistStore.setState({ playlists: pl });
 });

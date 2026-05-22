@@ -21,7 +21,9 @@
         "NSPhotoLibraryAddUsageDescription": "Lumora needs access to save images to your photo library.",
         "NSCameraUsageDescription": "Lumora needs camera access to take photos.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "bundleIdentifier": "com.darkmanager.app"
     },
@@ -45,7 +47,9 @@
         "FOREGROUND_SERVICE_DATA_SYNC"
       ],
       "foregroundService": {
-        "appsUsing": ["mediaPlayback"]
+        "appsUsing": [
+          "mediaPlayback"
+        ]
       }
     },
     "web": {
@@ -64,12 +68,21 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Allow Lumora to access your microphone.",
-          "enablePip": true
+          "enableBackgroundPlayback": true
         }
-      ]
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      "expo-audio",
+      "expo-video"
     ],
     "extra": {
       "eas": {

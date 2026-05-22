@@ -4,7 +4,6 @@ import {
   Text,
   Modal,
   TouchableOpacity,
-  StyleSheet,
   Platform,
   ScrollView,
   ActivityIndicator,
@@ -12,7 +11,6 @@ import {
 import {
   MagicWand,
   CheckCircle,
-  Spinner,
   WarningCircle,
   DownloadSimple,
   PaintBrush,
@@ -80,98 +78,120 @@ export function VideoEnhancementModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
-        <TouchableOpacity style={[styles.content, { backgroundColor: '#18181b' }]} activeOpacity={1}>
-          <View style={styles.header}>
+      <TouchableOpacity className="flex-1 bg-black/70 justify-end" onPress={onClose} activeOpacity={1}>
+        <TouchableOpacity
+          className="rounded-t-[28px] pt-5 pb-[40] max-h-[85%]"
+          style={{ backgroundColor: '#18181b' }}
+          activeOpacity={1}
+        >
+          <View className="flex-row items-center px-5 mb-4">
             <MagicWand size={22} color={primaryColor} weight="bold" />
-            <Text style={[styles.title, { color: '#ffffff' }]}>Video Enhancement</Text>
+            <Text className="flex-1 text-lg font-extrabold text-white ml-2.5">Video Enhancement</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={[styles.closeBtn, { color: primaryColor }]}>Done</Text>
+              <Text className="text-[15px] font-bold" style={{ color: primaryColor }}>Done</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView className="px-5" showsVerticalScrollIndicator={false}>
             {ffmpegAvailable === false && (
-              <View style={[styles.warningBanner, { backgroundColor: `${primaryColor}15` }]}>
+              <View className="flex-row items-center gap-2 p-3 rounded-xl mb-4" style={{ backgroundColor: `${primaryColor}15` }}>
                 <WarningCircle size={16} color={primaryColor} />
-                <Text style={[styles.warningText, { color: primaryColor }]}>
+                <Text className="text-xs flex-1 font-medium" style={{ color: primaryColor }}>
                   Install ffmpeg-kit for full enhancement: npm install ffmpeg-kit-react-native
                 </Text>
               </View>
             )}
 
-            <Text style={[styles.sectionLabel, { color: '#a1a1aa' }]}>QUALITY UPSCALE</Text>
-            <View style={styles.qualityGrid}>
+            <Text className="text-[11px] font-bold tracking-[1] mb-2.5" style={{ color: '#a1a1aa' }}>QUALITY UPSCALE</Text>
+            <View className="flex-row flex-wrap gap-2">
               {QUALITY_OPTIONS.map((opt) => {
                 const isSelected = settings.qualityTarget === opt.target;
                 return (
                   <TouchableOpacity
                     key={opt.target}
-                    style={[
-                      styles.qualityCard,
-                      isSelected && { borderColor: primaryColor, backgroundColor: `${primaryColor}12` },
-                    ]}
+                    className="flex-1 min-w-[45%] p-3.5 rounded-xl border items-center gap-1"
+                    style={{
+                      borderColor: isSelected ? primaryColor : '#27272a',
+                      backgroundColor: isSelected ? `${primaryColor}12` : '#1a1a1e',
+                    }}
                     onPress={() => setQualityTarget(opt.target)}
                   >
                     <ImageSquare size={20} color={isSelected ? primaryColor : '#e4e4e7'} weight={isSelected ? 'fill' : 'regular'} />
-                    <Text style={[styles.qualityLabel, isSelected && { color: primaryColor }, { color: '#e4e4e7' }]}>
+                    <Text className="text-[13px] font-bold mt-1" style={{ color: isSelected ? primaryColor : '#e4e4e7' }}>
                       {opt.label}
                     </Text>
-                    <Text style={[styles.qualityDesc, { color: '#71717a' }]}>{opt.description}</Text>
+                    <Text className="text-[10px]" style={{ color: '#71717a' }}>{opt.description}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            <Text style={[styles.sectionLabel, { color: '#a1a1aa', marginTop: 20 }]}>ENHANCEMENT FILTERS</Text>
-            <View style={styles.filtersGrid}>
+            <Text className="text-[11px] font-bold tracking-[1] mb-2.5 mt-5" style={{ color: '#a1a1aa' }}>ENHANCEMENT FILTERS</Text>
+            <View className="flex-row flex-wrap gap-2">
               <TouchableOpacity
-                style={[styles.filterCard, settings.colorEnhancement && { borderColor: primaryColor, backgroundColor: `${primaryColor}12` }]}
+                className="w-[47%] p-3.5 rounded-xl border items-center gap-1"
+                style={{
+                  borderColor: settings.colorEnhancement ? primaryColor : '#27272a',
+                  backgroundColor: settings.colorEnhancement ? `${primaryColor}12` : '#1a1a1e',
+                }}
                 onPress={() => toggleSetting('colorEnhancement')}
               >
                 <PaintBrush size={22} color={settings.colorEnhancement ? primaryColor : '#e4e4e7'} weight={settings.colorEnhancement ? 'fill' : 'regular'} />
-                <Text style={[styles.filterLabel, settings.colorEnhancement && { color: primaryColor }, { color: '#e4e4e7' }]}>
+                <Text className="text-[13px] font-bold mt-1" style={{ color: settings.colorEnhancement ? primaryColor : '#e4e4e7' }}>
                   Color Boost
                 </Text>
-                <Text style={[styles.filterDesc, { color: '#71717a' }]}>Enhance vibrance</Text>
+                <Text className="text-[10px]" style={{ color: '#71717a' }}>Enhance vibrance</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.filterCard, settings.sharpening && { borderColor: primaryColor, backgroundColor: `${primaryColor}12` }]}
+                className="w-[47%] p-3.5 rounded-xl border items-center gap-1"
+                style={{
+                  borderColor: settings.sharpening ? primaryColor : '#27272a',
+                  backgroundColor: settings.sharpening ? `${primaryColor}12` : '#1a1a1e',
+                }}
                 onPress={() => toggleSetting('sharpening')}
               >
                 <Sparkle size={22} color={settings.sharpening ? primaryColor : '#e4e4e7'} weight={settings.sharpening ? 'fill' : 'regular'} />
-                <Text style={[styles.filterLabel, settings.sharpening && { color: primaryColor }, { color: '#e4e4e7' }]}>
+                <Text className="text-[13px] font-bold mt-1" style={{ color: settings.sharpening ? primaryColor : '#e4e4e7' }}>
                   Sharpen
                 </Text>
-                <Text style={[styles.filterDesc, { color: '#71717a' }]}>Detail clarity</Text>
+                <Text className="text-[10px]" style={{ color: '#71717a' }}>Detail clarity</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.filterCard, settings.denoise && { borderColor: primaryColor, backgroundColor: `${primaryColor}12` }]}
+                className="w-[47%] p-3.5 rounded-xl border items-center gap-1"
+                style={{
+                  borderColor: settings.denoise ? primaryColor : '#27272a',
+                  backgroundColor: settings.denoise ? `${primaryColor}12` : '#1a1a1e',
+                }}
                 onPress={() => toggleSetting('denoise')}
               >
                 <Waveform size={22} color={settings.denoise ? primaryColor : '#e4e4e7'} weight={settings.denoise ? 'fill' : 'regular'} />
-                <Text style={[styles.filterLabel, settings.denoise && { color: primaryColor }, { color: '#e4e4e7' }]}>
+                <Text className="text-[13px] font-bold mt-1" style={{ color: settings.denoise ? primaryColor : '#e4e4e7' }}>
                   Denoise
                 </Text>
-                <Text style={[styles.filterDesc, { color: '#71717a' }]}>Reduce noise</Text>
+                <Text className="text-[10px]" style={{ color: '#71717a' }}>Reduce noise</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.filterCard, settings.hdr && { borderColor: primaryColor, backgroundColor: `${primaryColor}12` }]}
+                className="w-[47%] p-3.5 rounded-xl border items-center gap-1"
+                style={{
+                  borderColor: settings.hdr ? primaryColor : '#27272a',
+                  backgroundColor: settings.hdr ? `${primaryColor}12` : '#1a1a1e',
+                }}
                 onPress={() => toggleSetting('hdr')}
               >
                 <SunDim size={22} color={settings.hdr ? primaryColor : '#e4e4e7'} weight={settings.hdr ? 'fill' : 'regular'} />
-                <Text style={[styles.filterLabel, settings.hdr && { color: primaryColor }, { color: '#e4e4e7' }]}>
+                <Text className="text-[13px] font-bold mt-1" style={{ color: settings.hdr ? primaryColor : '#e4e4e7' }}>
                   HDR Tone
                 </Text>
-                <Text style={[styles.filterDesc, { color: '#71717a' }]}>Wide dynamic range</Text>
+                <Text className="text-[10px]" style={{ color: '#71717a' }}>Wide dynamic range</Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
-              style={[styles.applyBtn, { backgroundColor: hasEnhancements ? primaryColor : '#27272a' }]}
+              className="flex-row items-center justify-center gap-2 py-3.5 rounded-xl mt-5 mb-2.5"
+              style={{ backgroundColor: hasEnhancements ? primaryColor : '#27272a' }}
               onPress={handleApply}
               disabled={isProcessing || !hasEnhancements}
             >
@@ -180,7 +200,7 @@ export function VideoEnhancementModal({
               ) : (
                 <>
                   <MagicWand size={18} color={hasEnhancements ? '#0a0a0a' : '#71717a'} weight="bold" />
-                  <Text style={[styles.applyText, { color: hasEnhancements ? '#0a0a0a' : '#71717a' }]}>
+                  <Text className="text-[15px] font-bold" style={{ color: hasEnhancements ? '#0a0a0a' : '#71717a' }}>
                     {hasEnhancements ? 'Apply Enhancement' : 'Select enhancement options'}
                   </Text>
                 </>
@@ -192,83 +212,3 @@ export function VideoEnhancementModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    maxHeight: '85%',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  title: { flex: 1, fontSize: 18, fontWeight: '800', marginLeft: 10 },
-  closeBtn: { fontSize: 15, fontWeight: '700' },
-  body: { paddingHorizontal: 20 },
-  warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  warningText: { fontSize: 12, flex: 1, fontWeight: '500' },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
-  qualityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  qualityCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#27272a',
-    backgroundColor: '#1a1a1e',
-    alignItems: 'center',
-    gap: 4,
-  },
-  qualityLabel: { fontSize: 13, fontWeight: '700', marginTop: 4 },
-  qualityDesc: { fontSize: 10 },
-  filtersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterCard: {
-    width: '47%',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#27272a',
-    backgroundColor: '#1a1a1e',
-    alignItems: 'center',
-    gap: 4,
-  },
-  filterLabel: { fontSize: 13, fontWeight: '700', marginTop: 4 },
-  filterDesc: { fontSize: 10 },
-  applyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  applyText: { fontSize: 15, fontWeight: '700' },
-});

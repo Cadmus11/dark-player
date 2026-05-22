@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { MMKV } from 'react-native-mmkv';
-import type { PlaybackSettings, NotificationSettings, SleepTimerSettings, HiddenFilesSettings, SortField, SortDirection, LayoutMode } from '../types';
+import type { PlaybackSettings, NotificationSettings, SleepTimerSettings, HiddenFilesSettings, SortField, SortDirection, LayoutMode, LayoutSize } from '../types';
 
 const storage = new MMKV({ id: 'settings' });
 
@@ -12,6 +12,7 @@ interface SettingsState {
   sortField: SortField;
   sortDirection: SortDirection;
   layoutMode: LayoutMode;
+  layoutSize: LayoutSize;
 
   updatePlayback: (settings: Partial<PlaybackSettings>) => void;
   updateNotifications: (settings: Partial<NotificationSettings>) => void;
@@ -19,6 +20,7 @@ interface SettingsState {
   updateHiddenFiles: (settings: Partial<HiddenFilesSettings>) => void;
   setSort: (field: SortField, direction: SortDirection) => void;
   setLayoutMode: (mode: LayoutMode) => void;
+  setLayoutSize: (size: LayoutSize) => void;
   load: () => void;
 }
 
@@ -29,6 +31,7 @@ const KEYS = {
   hiddenFiles: '@settings_hidden_files',
   sort: '@settings_sort',
   layout: '@settings_layout',
+  layoutSize: '@settings_layout_size',
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -39,6 +42,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   sortField: 'name',
   sortDirection: 'asc',
   layoutMode: 'list',
+  layoutSize: 'medium',
 
   updatePlayback: (partial) =>
     set((s) => {
@@ -78,6 +82,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     storage.set(KEYS.layout, mode);
   },
 
+  setLayoutSize: (size) => {
+    set({ layoutSize: size });
+    storage.set(KEYS.layoutSize, size);
+  },
+
   load: () => {
     try {
       const pb = storage.getString(KEYS.playback);
@@ -92,6 +101,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       if (sort) set(JSON.parse(sort));
       const layout = storage.getString(KEYS.layout);
       if (layout) set({ layoutMode: layout as LayoutMode });
+      const size = storage.getString(KEYS.layoutSize);
+      if (size) set({ layoutSize: size as LayoutSize });
     } catch {}
   },
 }));

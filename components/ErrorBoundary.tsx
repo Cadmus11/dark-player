@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode, type ErrorInfo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { WarningCircle } from 'phosphor-react-native';
 
 interface Props {
@@ -34,14 +34,14 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <View style={styles.container}>
+        <View className="flex-1 justify-center items-center bg-[#18181b] p-8">
           <WarningCircle size={48} color="#ef4444" weight="bold" />
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message} numberOfLines={3}>
+          <Text className="text-xl font-bold text-white mt-4 mb-2">Something went wrong</Text>
+          <Text className="text-sm text-[#a1a1aa] text-center mb-6 leading-5" numberOfLines={3}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
+          <TouchableOpacity className="bg-[#C2FC4A] px-6 py-3 rounded-xl" onPress={this.handleRetry}>
+            <Text className="text-[15px] font-bold text-[#18181b]">Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -49,38 +49,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#18181b',
-    padding: 32,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: '#a1a1aa',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  button: {
-    backgroundColor: '#C2FC4A',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#18181b',
-  },
-});

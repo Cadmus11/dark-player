@@ -5,12 +5,11 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   Image,
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MagnifyingGlass, Clock, X, Image as ImageIcon, VideoCamera, MusicNote, FileText, Folder } from 'phosphor-react-native';
+import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, FileType, SavedSearch } from '../types';
@@ -20,11 +19,8 @@ import { SearchService } from '../services/Search/SearchService';
 
 const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.ElementType }[] = [
   { type: 'all', label: 'All', Icon: MagnifyingGlass },
-  { type: 'image', label: 'Images', Icon: ImageIcon },
   { type: 'video', label: 'Videos', Icon: VideoCamera },
   { type: 'audio', label: 'Music', Icon: MusicNote },
-  { type: 'document', label: 'Docs', Icon: FileText },
-  { type: 'folder', label: 'Folders', Icon: Folder },
 ];
 
 export function SearchScreen() {
@@ -56,20 +52,8 @@ export function SearchScreen() {
   const showHistory = !query.trim() && isFocused;
 
   const navigateToFile = (file: FileItem) => {
-    switch (file.type) {
-      case 'image':
-        navigation.navigate('ImageViewer', { file });
-        break;
-      case 'video':
-        navigation.navigate('VideoPlayer', { file });
-        break;
-      case 'audio':
-        navigation.navigate('MusicPlayer', { file });
-        break;
-      case 'document':
-        navigation.navigate('DocumentViewer', { file });
-        break;
-    }
+    if (file.type === 'video') navigation.navigate('VideoPlayer', { file });
+    else if (file.type === 'audio') navigation.navigate('MusicPlayer', { file });
   };
 
   const handleSearch = (text: string) => {
@@ -100,25 +84,26 @@ export function SearchScreen() {
   };
 
   const renderItem = ({ item }: { item: FileItem }) => (
-    <TouchableOpacity style={styles.resultItem} onPress={() => navigateToFile(item)}>
-      <View style={[styles.resultIconWrap, { backgroundColor: `${primaryColor}10` }]}>
+    <TouchableOpacity className="flex-row items-center py-2.5 gap-3" onPress={() => navigateToFile(item)}>
+      <View className="w-10 h-10 rounded-[10px] justify-center items-center" style={{ backgroundColor: `${primaryColor}10` }}>
         <FileIcon type={item.type} size={20} />
       </View>
-      <View style={styles.resultInfo}>
-        <Text style={[styles.resultName, { color: textColor }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.resultType, { color: mutedColor }]}>{item.type}{item.artist ? ` • ${item.artist}` : ''}</Text>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold mb-0.5" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
+        <Text className="text-xs capitalize" style={{ color: mutedColor }}>{item.type}{item.artist ? ` • ${item.artist}` : ''}</Text>
       </View>
-      <Text style={[styles.chevron, { color: mutedColor }]}>›</Text>
+      <Text className="text-xl" style={{ color: mutedColor }}>›</Text>
     </TouchableOpacity>
   );
 
   return (
     <ScreenLayout>
-      <View style={styles.searchSection}>
-        <View style={[styles.searchBar, isFocused && { borderColor: primaryColor }]}>
+      <View className="px-4 pt-1 pb-2">
+        <View className="flex-row items-center bg-[#27272a] rounded-xl px-3.5 py-3 gap-2.5 border" style={{ borderColor: isFocused ? primaryColor : '#3f3f46' }}>
           <MagnifyingGlass size={20} color={isFocused ? primaryColor : mutedColor} weight="bold" />
           <TextInput
-            style={[styles.searchInput, { color: textColor }]}
+            className="flex-1 text-[15px]"
+            style={{ color: textColor }}
             placeholder="Search your media..."
             placeholderTextColor={mutedColor}
             value={query}
@@ -136,41 +121,40 @@ export function SearchScreen() {
           ) : null}
         </View>
 
-        {/* Type Filters - Scrollable */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="flex-row gap-2 px-4">
           {TYPE_FILTERS.map(({ type, label, Icon }) => (
             <TouchableOpacity
               key={type}
-              style={[styles.filterBtn, activeFilter === type && { backgroundColor: primaryColor }]}
+              className="flex-row items-center gap-1.5 px-3 py-2 rounded-[10px]"
+              style={{ backgroundColor: activeFilter === type ? primaryColor : '#27272a' }}
               onPress={() => setActiveFilter(type)}
             >
               <Icon size={14} color={activeFilter === type ? '#18181b' : mutedColor} weight={activeFilter === type ? 'bold' : 'regular'} />
-              <Text style={[styles.filterLabel, activeFilter === type && { color: '#18181b', fontWeight: '700' }, { color: mutedColor }]}>{label}</Text>
+              <Text className="text-xs font-semibold" style={[activeFilter === type && { color: '#18181b', fontWeight: '700' }, { color: mutedColor }]}>{label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Search History */}
       {showHistory && (
-        <View style={styles.historySection}>
-          <View style={styles.historyHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View className="px-4 mb-2">
+          <View className="flex-row justify-between items-center mb-3">
+            <View className="flex-row items-center gap-1.5">
               <Clock size={16} color={mutedColor} />
-              <Text style={[styles.historyTitle, { color: textColor }]}>Recent Searches</Text>
+              <Text className="text-sm font-bold" style={{ color: textColor }}>Recent Searches</Text>
             </View>
             {searchHistory.length > 0 && (
               <TouchableOpacity onPress={clearSearchHistory}>
-                <Text style={[styles.clearText, { color: primaryColor }]}>Clear All</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>Clear All</Text>
               </TouchableOpacity>
             )}
           </View>
           {searchHistory.length > 0 ? (
             searchHistory.slice(0, 10).map((search) => (
-              <View key={search.id} style={styles.historyItem}>
-                <TouchableOpacity style={styles.historyItemContent} onPress={() => handleHistoryTap(search.query)}>
+              <View key={search.id} className="flex-row items-center justify-between py-3 border-b border-b-[#27272a]">
+                <TouchableOpacity className="flex-row items-center gap-3 flex-1" onPress={() => handleHistoryTap(search.query)}>
                   <Clock size={16} color={mutedColor} />
-                  <Text style={[styles.historyQuery, { color: textColor }]} numberOfLines={1}>{search.query}</Text>
+                  <Text className="text-sm flex-1" style={{ color: textColor }} numberOfLines={1}>{search.query}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeSearch(search.id)}>
                   <X size={14} color={mutedColor} />
@@ -178,17 +162,16 @@ export function SearchScreen() {
               </View>
             ))
           ) : (
-            <Text style={[styles.historyEmpty, { color: mutedColor }]}>No recent searches</Text>
+            <Text className="text-sm text-center py-5" style={{ color: mutedColor }}>No recent searches</Text>
           )}
         </View>
       )}
 
-      {/* Results */}
       <FlatList
         data={query.trim() ? results : []}
         renderItem={renderItem}
-        keyExtractor={(item) => item.uri}
-        contentContainerStyle={styles.listContent}
+        keyExtractor={(item: FileItem) => item.uri}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         windowSize={7}
         maxToRenderPerBatch={10}
@@ -196,14 +179,14 @@ export function SearchScreen() {
         initialNumToRender={8}
         ListEmptyComponent={
           query.trim() ? (
-            <View style={styles.emptyContainer}>
+            <View className="items-center justify-center py-20">
               <MagnifyingGlass size={56} color={mutedColor} />
-              <Text style={[styles.emptyText, { color: mutedColor }]}>No results found</Text>
+              <Text className="text-base mt-4" style={{ color: mutedColor }}>No results found</Text>
             </View>
           ) : (
-            <View style={styles.emptyContainer}>
+            <View className="items-center justify-center py-20">
               <MagnifyingGlass size={56} color={mutedColor} />
-              <Text style={[styles.emptyText, { color: mutedColor }]}>Search your media files</Text>
+              <Text className="text-base mt-4" style={{ color: mutedColor }}>Search your media files</Text>
             </View>
           )
         }
@@ -211,66 +194,3 @@ export function SearchScreen() {
     </ScreenLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  searchSection: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#27272a',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#3f3f46',
-  },
-  searchInput: { flex: 1, fontSize: 15 },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#27272a',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  filterLabel: { fontSize: 12, fontWeight: '600' },
-  historySection: { paddingHorizontal: 16, marginBottom: 8 },
-  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  historyTitle: { fontSize: 14, fontWeight: '700' },
-  clearText: { fontSize: 13, fontWeight: '600' },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#27272a',
-  },
-  historyItemContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  historyQuery: { fontSize: 14, flex: 1 },
-  historyEmpty: { fontSize: 14, textAlign: 'center', paddingVertical: 20 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 120 },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-  },
-  resultIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  resultInfo: { flex: 1 },
-  resultName: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  resultType: { fontSize: 12, textTransform: 'capitalize' },
-  chevron: { fontSize: 20 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  emptyText: { fontSize: 16, marginTop: 16 },
-});

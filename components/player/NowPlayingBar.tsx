@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Play, Pause, SkipForward, MusicNote } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
@@ -20,33 +20,28 @@ export function NowPlayingBar() {
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handleOpenPlayer} activeOpacity={0.8}>
+    <TouchableOpacity
+      className="flex-row items-center bg-[#1a1a2e] px-3.5 py-2.5 border-t border-t-white/[0.06] gap-3"
+      onPress={handleOpenPlayer}
+      activeOpacity={0.8}
+    >
       {currentFile.thumbnail ? (
-        <Image source={{ uri: currentFile.thumbnail }} style={styles.art} />
+        <Image source={{ uri: currentFile.thumbnail }} className="w-[42] h-[42] rounded-[10px]" />
       ) : (
-        <View style={[styles.art, { backgroundColor: (currentFile.artColor || '#C2FC4A') + '30', justifyContent: 'center', alignItems: 'center' }]}>
+        <View className="w-[42] h-[42] rounded-[10px] justify-center items-center" style={{ backgroundColor: (currentFile.artColor || '#C2FC4A') + '30' }}>
           <MusicNote size={18} color={currentFile.artColor || '#C2FC4A'} weight="bold" />
         </View>
       )}
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>{currentFile.name}</Text>
-        <Text style={styles.artist} numberOfLines={1}>{currentFile.artist || 'Lumora'}</Text>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold text-white" numberOfLines={1}>{currentFile.name}</Text>
+        <Text className="text-xs text-white/40" numberOfLines={1}>{currentFile.artist || 'Lumora'}</Text>
       </View>
-      <TouchableOpacity style={styles.btn} onPress={isPlaying ? pause : resume} hitSlop={12}>
+      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume} hitSlop={12}>
         {isPlaying ? <Pause size={22} color="#ffffff" weight="fill" /> : <Play size={22} color="#ffffff" weight="fill" />}
       </TouchableOpacity>
-      <TouchableOpacity style={styles.btn} onPress={next} hitSlop={12}>
+      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={next} hitSlop={12}>
         <SkipForward size={20} color="rgba(255,255,255,0.6)" weight="fill" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', gap: 12 },
-  art: { width: 42, height: 42, borderRadius: 10 },
-  info: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '600', color: '#ffffff' },
-  artist: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
-  btn: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-});

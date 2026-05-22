@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 const FileSystem: any = require('expo-file-system');
-import type { FileItem, FileType, DocumentSubType } from '../types';
+import type { FileItem, FileType } from '../types';
 
 const isWeb = Platform.OS === 'web';
 
@@ -20,93 +20,15 @@ export function getArtColor(name: string): string {
 }
 
 const EXTENSION_MAP: Record<string, FileType> = {
-  jpg: 'image',
-  jpeg: 'image',
-  png: 'image',
-  gif: 'image',
-  webp: 'image',
-  svg: 'image',
-  bmp: 'image',
-  heic: 'image',
-  mp4: 'video',
-  mov: 'video',
-  avi: 'video',
-  mkv: 'video',
-  webm: 'video',
-  m4v: 'video',
-  mp3: 'audio',
-  wav: 'audio',
-  aac: 'audio',
-  flac: 'audio',
-  m4a: 'audio',
-  ogg: 'audio',
-  wma: 'audio',
-  opus: 'audio',
-  pdf: 'document',
-  doc: 'document',
-  docx: 'document',
-  txt: 'document',
-  rtf: 'document',
-  xls: 'document',
-  xlsx: 'document',
-  csv: 'document',
-  ppt: 'document',
-  pptx: 'document',
-  json: 'document',
-  xml: 'document',
-  epub: 'document',
-  srt: 'other',
-  vtt: 'other',
-  ass: 'other',
-  zip: 'other',
-  rar: 'other',
-  '7z': 'other',
+  mp4: 'video', mov: 'video', avi: 'video', mkv: 'video',
+  webm: 'video', m4v: 'video',
+  mp3: 'audio', wav: 'audio', aac: 'audio', flac: 'audio',
+  m4a: 'audio', ogg: 'audio', wma: 'audio', opus: 'audio',
 };
-
-const DOC_SUBTYPE_MAP: Record<string, DocumentSubType> = {
-  pdf: 'pdf',
-  doc: 'word',
-  docx: 'word',
-  xls: 'excel',
-  xlsx: 'excel',
-  csv: 'excel',
-  ppt: 'powerpoint',
-  pptx: 'powerpoint',
-  txt: 'text',
-  rtf: 'text',
-  md: 'text',
-  epub: 'epub',
-};
-
-const SUBTITLE_EXTENSIONS = ['srt', 'vtt', 'ass'];
 
 export function getFileType(fileName: string): FileType {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   return EXTENSION_MAP[ext] || 'other';
-}
-
-export function getDocumentSubType(fileName: string): DocumentSubType | undefined {
-  const ext = fileName.split('.').pop()?.toLowerCase() || '';
-  return DOC_SUBTYPE_MAP[ext];
-}
-
-export function findSubtitleFile(videoUri: string, allFiles: FileItem[]): string | undefined {
-  if (!videoUri) return undefined;
-  const parts = videoUri.split('/');
-  const videoName = parts[parts.length - 1]?.replace(/\.[^.]+$/, '') || '';
-  const videoDir = videoUri.substring(0, videoUri.lastIndexOf('/'));
-
-  for (const file of allFiles) {
-    const fileName = file.name.replace(/\.[^.]+$/, '');
-    const ext = file.name.split('.').pop()?.toLowerCase() || '';
-
-    if (SUBTITLE_EXTENSIONS.includes(ext)) {
-      if (fileName === videoName || file.uri.startsWith(videoDir)) {
-        return file.uri;
-      }
-    }
-  }
-  return undefined;
 }
 
 export function formatFileSize(bytes?: number): string {
@@ -137,14 +59,14 @@ export function formatDurationLong(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export async function getMediaFiles(type: 'image' | 'video' | 'audio'): Promise<FileItem[]> {
+export async function getMediaFiles(type: 'video' | 'audio'): Promise<FileItem[]> {
   if (isWeb) return [];
 
   try {
     const { status } = await MediaLibrary.requestPermissionsAsync();
     if (status !== 'granted') return [];
 
-    const mediaType = type === 'audio' ? 'audio' : type === 'video' ? 'video' : 'photo';
+    const mediaType = type === 'audio' ? 'audio' : 'video';
     const { assets } = await MediaLibrary.getAssetsAsync({
       mediaType,
       first: 1000,
@@ -166,115 +88,6 @@ export async function getMediaFiles(type: 'image' | 'video' | 'audio'): Promise<
   }
 }
 
-export async function scanDocuments(): Promise<FileItem[]> {
-  if (isWeb) return [];
-
-  const found: FileItem[] = [];
-  const scanned = new Set<string>();
-  const uriSet = new Set<string>();
-
-  const dirs: string[] = [];
-  try {
-    const docDir = FileSystem.documentDirectory;
-    if (docDir) dirs.push(docDir);
-    const cache = FileSystem.cacheDirectory;
-    if (cache) dirs.push(cache);
-  } catch {}
-
-  async function scanDir(dir: string) {
-    if (!dir || scanned.has(dir)) return;
-    scanned.add(dir);
-    try {
-      const entries = await FileSystem.readDirectoryAsync(dir);
-      for (const entry of entries) {
-        const entryUri = (dir.endsWith('/') ? dir : dir + '/') + entry;
-        if (uriSet.has(entryUri)) continue;
-        const fileType = getFileType(entry);
-        if (fileType === 'document' || fileType === 'other') {
-          try {
-            const info = await FileSystem.getInfoAsync(entryUri, {});
-            if (info.exists && !info.isDirectory) {
-              uriSet.add(entryUri);
-              const docSubType = fileType === 'document' ? getDocumentSubType(entry) : undefined;
-              found.push({
-                uri: entryUri,
-                name: entry,
-                type: fileType,
-                docSubType,
-                size: 'size' in info ? info.size : undefined,
-                parentUri: dir,
-                artColor: getArtColor(entry),
-              });
-            }
-          } catch {}
-        }
-      }
-    } catch {}
-  }
-
-  for (const dir of dirs) {
-    await scanDir(dir);
-  }
-
-  if (Platform.OS === 'android') {
-    try {
-      const SAF = FileSystem.StorageAccessFramework;
-      const permissions = await SAF.requestDirectoryPermissionsAsync();
-      if (permissions.granted) {
-        const uris = await SAF.readDirectoryAsync(permissions.directoryUri);
-        for (const uri of uris) {
-          if (uriSet.has(uri)) continue;
-          const name = uri.split('/').pop() || uri;
-          const fileType = getFileType(name);
-          if (fileType === 'document' || fileType === 'other') {
-            uriSet.add(uri);
-            const docSubType = fileType === 'document' ? getDocumentSubType(name) : undefined;
-            found.push({
-              uri,
-              name,
-              type: fileType,
-              docSubType,
-              parentUri: permissions.directoryUri,
-              artColor: getArtColor(name),
-            });
-          }
-        }
-      }
-    } catch {}
-  }
-
-  try {
-    const mediaAlbums = await MediaLibrary.getAlbumsAsync();
-    for (const album of mediaAlbums) {
-      if (album.assetCount === 0) continue;
-      const { assets } = await MediaLibrary.getAssetsAsync({
-        album: album.id,
-        first: album.assetCount,
-        mediaType: ['audio', 'video', 'photo', 'unknown'] as any,
-      });
-      for (const asset of assets) {
-        if (uriSet.has(asset.uri)) continue;
-        const fileType = getFileType(asset.filename);
-        if (fileType === 'document' || fileType === 'other') {
-          uriSet.add(asset.uri);
-          found.push({
-            uri: asset.uri,
-            name: asset.filename,
-            type: fileType,
-            docSubType: fileType === 'document' ? getDocumentSubType(asset.filename) : undefined,
-            modifiedAt: asset.modificationTime * 1000,
-            createdAt: asset.creationTime * 1000,
-            size: (asset as any).fileSize ?? undefined,
-            artColor: getArtColor(asset.filename),
-          });
-        }
-      }
-    }
-  } catch {}
-
-  return found;
-}
-
 export async function requestPermissions(): Promise<boolean> {
   if (isWeb) return true;
 
@@ -288,6 +101,26 @@ export async function requestPermissions(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export function findSubtitleFile(videoUri: string, _allFiles: FileItem[]): string | undefined {
+  if (!videoUri) return undefined;
+  const parts = videoUri.split('/');
+  const videoName = parts[parts.length - 1]?.replace(/\.[^.]+$/, '') || '';
+  const videoDir = videoUri.substring(0, videoUri.lastIndexOf('/'));
+  const subtitleExts = ['srt', 'vtt', 'ass'];
+
+  for (const file of _allFiles) {
+    const fileName = file.name.replace(/\.[^.]+$/, '');
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (subtitleExts.includes(ext)) {
+      if (fileName === videoName || file.uri.startsWith(videoDir)) {
+        return file.uri;
+      }
+    }
+  }
+  return undefined;
 }
 
 export async function readTextFile(uri: string): Promise<string> {

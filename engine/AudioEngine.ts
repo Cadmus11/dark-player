@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { MMKV } from 'react-native-mmkv';
 import type { FileItem, RepeatMode, PlaybackSource } from '../types';
 import { HistoryService } from '../services/History/HistoryService';
@@ -37,7 +37,7 @@ type AudioEngineListener = (state: AudioEngineState) => void;
 
 export class AudioEngine {
   private static instance: AudioEngine;
-  private _sound: Audio.Sound | null = null;
+  private _player: AudioPlayer | null = null;
   private _state: AudioEngineState;
   private _listeners: Set<AudioEngineListener> = new Set();
   private _shuffledOrder: number[] = [];
@@ -100,12 +100,10 @@ export class AudioEngine {
 
   private async _initAudio() {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
       });
       this._isLoaded = true;
       NowPlayingNotification.setupChannel();
@@ -125,27 +123,38 @@ export class AudioEngine {
     return { ...this._state };
   }
 
-  private async _unload() {
-    if (this._sound) {
+  private _unload() {
+    if (this._player) {
       try {
-        await this._sound.unloadAsync();
+        this._player.remove();
       } catch {}
-      this._sound = null;
+      this._player = null;
     }
   }
 
   private _startPositionCheck() {
     this._stopPositionCheck();
     this._positionCheckInterval = setInterval(() => {
-      if (!this._sleepTimer.enabled) return;
-      if (!this._state.isPlaying) return;
-      if (this._sleepTimer.mode !== 'minutes') return;
-      this._sleepTimer.remainingMillis -= 1000;
-      if (this._sleepTimer.remainingMillis <= 0) {
-        this.pause();
-        this.disableSleepTimer();
+      if (this._player) {
+        const prevPlaying = this._state.isPlaying;
+        this._state.position = this._player.currentTime * 1000;
+        this._state.duration = this._player.duration * 1000;
+        this._state.isPlaying = this._player.playing;
+        this._persistState();
+        this._notify();
+
+        if (prevPlaying && !this._player.playing && this._player.currentTime > 0 && this._player.duration > 0 && this._player.currentTime >= this._player.duration - 0.5) {
+          this._handleTrackEnd();
+        }
       }
-    }, 1000);
+      if (this._sleepTimer.enabled && this._state.isPlaying && this._sleepTimer.mode === 'minutes') {
+        this._sleepTimer.remainingMillis -= 250;
+        if (this._sleepTimer.remainingMillis <= 0) {
+          this.pause();
+          this.disableSleepTimer();
+        }
+      }
+    }, 250);
   }
 
   private _stopPositionCheck() {
@@ -154,19 +163,6 @@ export class AudioEngine {
       this._positionCheckInterval = null;
     }
   }
-
-  private _onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    this._state.position = status.positionMillis || 0;
-    this._state.duration = status.durationMillis || 0;
-    this._state.isPlaying = status.isPlaying ?? false;
-    this._persistState();
-    this._notify();
-
-    if (status.didJustFinish) {
-      this._handleTrackEnd();
-    }
-  };
 
   private _handleTrackEnd() {
     if (this._state.currentFile) {
@@ -228,19 +224,15 @@ export class AudioEngine {
     this._persistState();
     this._notify();
 
-    await this._unload();
+    this._unload();
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: file.uri },
-        {
-          shouldPlay: true,
-          progressUpdateIntervalMillis: 250,
-          rate: this._state.playbackSpeed,
-          shouldCorrectPitch: true,
-        },
-        this._onPlaybackStatusUpdate,
-      );
-      this._sound = sound;
+      const player = createAudioPlayer({ uri: file.uri });
+      this._player = player;
+      if (this._state.playbackSpeed !== 1) {
+        player.playbackRate = this._state.playbackSpeed;
+        player.shouldCorrectPitch = true;
+      }
+      player.play();
       this._state.isPlaying = true;
       HistoryService.record(file, 0, 'music');
       NowPlayingNotification.show(file, true);
@@ -266,15 +258,15 @@ export class AudioEngine {
     return this._shuffledOrder;
   }
 
-  play(file?: FileItem, queue?: FileItem[], startIndex?: number) {
+  async play(file?: FileItem, queue?: FileItem[], startIndex?: number) {
     if (file && queue && startIndex !== undefined) {
       this._state.queue = queue;
       this._state.currentIndex = startIndex;
       this._shuffledOrder = [];
       this._state.currentFile = file;
-      this._playFile(file);
+      await this._playFile(file);
     } else if (this._state.currentFile) {
-      this._playFile(this._state.currentFile);
+      await this._playFile(this._state.currentFile);
     }
   }
 
@@ -287,9 +279,9 @@ export class AudioEngine {
     }
   }
 
-  async pause() {
+  pause() {
     try {
-      await this._sound?.pauseAsync();
+      this._player?.pause();
     } catch {}
     this._state.isPlaying = false;
     this._persistState();
@@ -300,9 +292,9 @@ export class AudioEngine {
     }
   }
 
-  async resume() {
+  resume() {
     try {
-      await this._sound?.playAsync();
+      this._player?.play();
     } catch {}
     this._state.isPlaying = true;
     this._persistState();
@@ -321,8 +313,8 @@ export class AudioEngine {
     }
   }
 
-  async stop() {
-    await this._unload();
+  stop() {
+    this._unload();
     this._state.currentFile = null;
     this._state.currentIndex = -1;
     this._state.isPlaying = false;
@@ -334,16 +326,19 @@ export class AudioEngine {
     NowPlayingNotification.dismiss();
   }
 
-  async seekTo(millis: number) {
+  seekTo(millis: number) {
     try {
-      await this._sound?.setPositionAsync(Math.max(0, millis));
+      this._player?.seekTo(Math.max(0, millis) / 1000);
     } catch {}
   }
 
-  async setRate(rate: number) {
+  setRate(rate: number) {
     this._state.playbackSpeed = rate;
     try {
-      await this._sound?.setRateAsync(rate, true);
+      if (this._player) {
+        this._player.playbackRate = rate;
+        this._player.shouldCorrectPitch = true;
+      }
     } catch {}
     this._persistState();
     this._notify();

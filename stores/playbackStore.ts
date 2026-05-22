@@ -164,9 +164,22 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
   reset: () => set(initialState),
 }));
 
+let _lastEngineState = '';
 audioEngine.subscribe((state) => {
   const store = usePlaybackStore.getState();
   if (store.source === 'music') {
+    const snapshot = JSON.stringify([
+      state.currentFile?.uri,
+      state.isPlaying,
+      state.position,
+      state.duration,
+      state.currentIndex,
+      state.shuffle,
+      state.repeat,
+      state.playbackSpeed,
+    ]);
+    if (snapshot === _lastEngineState) return;
+    _lastEngineState = snapshot;
     usePlaybackStore.setState({
       currentFile: state.currentFile,
       isPlaying: state.isPlaying,

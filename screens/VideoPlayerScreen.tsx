@@ -1,10 +1,51 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StatusBar, Modal, Platform, Animated, Alert, Share, ScrollView } from 'react-native';
-import { Video, ResizeMode, Audio } from 'expo-av';
-const FileSystem: any = require('expo-file-system');
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  StatusBar,
+  Modal,
+  Platform,
+  Animated,
+  Alert,
+  Share,
+  ScrollView,
+  PanResponder,
+} from 'react-native';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { setAudioModeAsync } from 'expo-audio';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { CaretLeft, Rewind, FastForward, Play, Pause, MusicNote, VideoCamera, FrameCorners, Square, ArrowsOut, Subtitles, SkipBack, SkipForward, Info, Trash, PictureInPicture, Repeat, Shuffle, Globe, Check } from 'phosphor-react-native';
+import {
+  CaretLeft,
+  Play,
+  Pause,
+  MusicNote,
+  VideoCamera,
+  FrameCorners,
+  Square,
+  ArrowsOut,
+  Subtitles,
+  SkipBack,
+  SkipForward,
+  Info,
+  Trash,
+  PictureInPicture,
+  Repeat,
+  Shuffle,
+  Globe,
+  Check,
+  DotsThreeVertical,
+  Headphones,
+  Lock,
+  LockOpen,
+  ArrowsClockwise,
+  ShareNetwork,
+  Queue,
+  FolderLock,
+} from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useFiles } from '../context/FileContext';
 import { fileEngine } from '../engine/FileEngine';
@@ -19,11 +60,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const RESIZE_MODES = [
-  { mode: ResizeMode.CONTAIN, Icon: FrameCorners, label: 'Fit' },
-  { mode: ResizeMode.COVER, Icon: Square, label: 'Fill' },
-  { mode: ResizeMode.STRETCH, Icon: ArrowsOut, label: 'Stretch' },
-] as const;
+type ContentFit = 'contain' | 'cover' | 'fill';
+
+const CONTENT_FITS: { mode: ContentFit; Icon: any; label: string }[] = [
+  { mode: 'contain', Icon: FrameCorners, label: 'Fit' },
+  { mode: 'cover', Icon: Square, label: 'Fill' },
+  { mode: 'fill', Icon: ArrowsOut, label: 'Stretch' },
+];
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -32,13 +75,14 @@ type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
   const { primaryColor } = useTheme();
-  const { videos, files } = useFiles();
-  const videoRef = useRef<Video>(null);
+  const { videos, files, toggleFavorite, isFavorite, favoriteUris, addToQueue } = useFiles();
+
+  const player = useVideoPlayer({ uri: file.uri });
 
   const sortedVideos = useMemo(() => Sorting.sort(videos, 'date', 'desc'), [videos]);
 
   const [showControls, setShowControls] = useState(true);
-  const [resizeMode, setResizeMode] = useState<ResizeMode>(ResizeMode.CONTAIN);
+  const [contentFit, setContentFit] = useState<ContentFit>('contain');
   const [showResizeModal, setShowResizeModal] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
@@ -48,14 +92,23 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const [showEnhancement, setShowEnhancement] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showPlayModeModal, setShowPlayModeModal] = useState(false);
-  const [status, setStatus] = useState<any>(null);
+  const [playbackStatus, setPlaybackStatus] = useState({
+    isPlaying: false,
+    position: 0,
+    duration: 0,
+  });
   const [currentSubtitle, setCurrentSubtitle] = useState('');
   const [subtitleEntries, setSubtitleEntries] = useState<SubtitleEntry[]>([]);
-  const [enhancedUri, setEnhancedUri] = useState<string | null>(null);
+
   const [playMode, setPlayMode] = useState<PlayMode>('loopAll');
   const [audioTrack, setAudioTrack] = useState('default');
   const [showAudioTrackModal, setShowAudioTrackModal] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [orientationLock, setOrientationLock] = useState<'portrait' | 'landscape'>('portrait');
+  const [showMenu, setShowMenu] = useState(false);
+
   const controlsAnim = useRef(new Animated.Value(1)).current;
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
 
   const AUDIO_TRACKS = [
     { id: 'default', label: 'Default' },
@@ -73,46 +126,69 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const currentVideoIndexRef = useRef(sortedVideos.findIndex((v) => v.uri === file.uri));
   currentVideoIndexRef.current = sortedVideos.findIndex((v) => v.uri === file.uri);
 
-  const isPlaying = status?.isLoaded ? status.isPlaying : false;
-  const position = status?.isLoaded ? (status.positionMillis || 0) : 0;
-  const duration = status?.isLoaded ? (status.durationMillis || 0) : 0;
+  const { isPlaying, position, duration } = playbackStatus;
   const progress = duration > 0 ? (position / duration) * 100 : 0;
 
-  // Play mode logic
+  const playbackRef = useRef(playbackStatus);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const next = {
+        isPlaying: player.playing,
+        position: player.currentTime * 1000,
+        duration: player.duration * 1000,
+      };
+      const prev = playbackRef.current;
+      if (
+        next.isPlaying === prev.isPlaying &&
+        next.position === prev.position &&
+        next.duration === prev.duration
+      )
+        return;
+      playbackRef.current = next;
+      setPlaybackStatus(next);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [player]);
+
+  // Track end detection for play modes
+  const prevPlayingRef = useRef(false);
   const playModeRef = useRef(playMode);
   playModeRef.current = playMode;
   const videosRef = useRef(sortedVideos);
   videosRef.current = sortedVideos;
 
   useEffect(() => {
-    if (!status?.isLoaded || !status.didJustFinish) return;
-    const pm = playModeRef.current;
-    const vids = videosRef.current;
-    const idx = currentVideoIndexRef.current;
-    if (pm === 'loop') {
-      videoRef.current?.setPositionAsync(0);
-      videoRef.current?.playAsync();
-    } else if (pm === 'loopAll') {
-      const next = (idx + 1) % vids.length;
-      navigation.replace('VideoPlayer', { file: vids[next] });
-    } else if (pm === 'shuffle') {
-      const random = Math.floor(Math.random() * vids.length);
-      navigation.replace('VideoPlayer', { file: vids[random] });
-    } else if (pm === 'pauseAfter') {
+    if (prevPlayingRef.current && !isPlaying && duration > 0 && position >= duration - 1000) {
+      const pm = playModeRef.current;
+      const vids = videosRef.current;
+      const idx = currentVideoIndexRef.current;
+      if (pm === 'loop') {
+        player.currentTime = 0;
+        player.play();
+      } else if (pm === 'loopAll') {
+        const next = (idx + 1) % vids.length;
+        navigation.replace('VideoPlayer', { file: vids[next] });
+      } else if (pm === 'shuffle') {
+        const random = Math.floor(Math.random() * vids.length);
+        navigation.replace('VideoPlayer', { file: vids[random] });
+      }
     }
-  }, [status?.didJustFinish]);
+    prevPlayingRef.current = isPlaying;
+  }, [isPlaying, position, duration, player, navigation]);
 
-  // Record play session (only when component mounts/unmounts)
+  // Record play session
   const sessionStartedRef = useRef(false);
+  const prevIsPlayingRef = useRef(false);
   useEffect(() => {
-    if (status?.isLoaded && isPlaying && !sessionStartedRef.current) {
+    if (isPlaying && !prevIsPlayingRef.current && !sessionStartedRef.current) {
       HistoryService.startPlaySession(file.uri);
       sessionStartedRef.current = true;
     }
-    if (!isPlaying && sessionStartedRef.current) {
+    if (!isPlaying && prevIsPlayingRef.current && sessionStartedRef.current) {
       HistoryService.pausePlaySession(file.uri);
     }
-  }, [isPlaying, status?.isLoaded]);
+    prevIsPlayingRef.current = isPlaying;
+  }, [isPlaying, file.uri]);
 
   useEffect(() => {
     return () => {
@@ -122,23 +198,21 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     };
   }, []);
 
-  const goToVideo = useCallback((index: number) => {
-    if (index < 0 || index >= sortedVideos.length) return;
-    try { videoRef.current?.stopAsync(); } catch {}
-    navigation.replace('VideoPlayer', { file: sortedVideos[index] });
-  }, [sortedVideos, navigation]);
+  const goToVideo = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= sortedVideos.length) return;
+      navigation.replace('VideoPlayer', { file: sortedVideos[index] });
+    },
+    [sortedVideos, navigation]
+  );
 
   useEffect(() => {
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: isAudioOnly,
-      shouldDuckAndroid: true,
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: isAudioOnly,
+      interruptionMode: 'doNotMix',
     });
     loadSubtitles();
-    return () => {
-      try { videoRef.current?.stopAsync(); } catch {}
-    };
   }, [isAudioOnly]);
 
   useEffect(() => {
@@ -163,384 +237,713 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     } catch {}
   }
 
-  const togglePlayback = async () => {
-    if (!videoRef.current) return;
+  const togglePlayback = () => {
     try {
       if (isPlaying) {
-        await videoRef.current.pauseAsync();
+        player.pause();
         HistoryService.pausePlaySession(file.uri);
       } else {
-        await videoRef.current.playAsync();
+        player.play();
         HistoryService.resumePlaySession(file.uri);
       }
     } catch {}
   };
 
-  const seekTo = async (percent: number) => {
-    if (!videoRef.current || !duration) return;
-    await videoRef.current.setPositionAsync(Math.round(percent * duration));
+  const seekTo = (percent: number) => {
+    if (!duration) return;
+    player.currentTime = (percent * duration) / 1000;
   };
 
-  const skip = async (seconds: number) => {
-    if (!videoRef.current || !duration) return;
-    await videoRef.current.setPositionAsync(Math.max(0, Math.min(position + seconds * 1000, duration)));
+  const skip = (seconds: number) => {
+    player.seekBy(seconds);
   };
 
-  const changeSpeed = async (speed: number) => {
-    if (!videoRef.current) return;
-    await videoRef.current.setRateAsync(speed, true);
+  const changeSpeed = (speed: number) => {
+    player.playbackRate = speed;
     setPlaybackSpeed(speed);
     setShowSpeedModal(false);
   };
 
   const goBack = () => {
-    try { videoRef.current?.stopAsync(); } catch {}
     navigation.goBack();
   };
 
   const toggleControls = () => {
+    if (isLocked) return;
     const toValue = showControls ? 0 : 1;
-    Animated.timing(controlsAnim, { toValue, duration: 200, useNativeDriver: true }).start(() => setShowControls(!showControls));
+    controlsAnim.setValue(toValue);
+    Animated.timing(controlsOpacity, {
+      toValue: showControls ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowControls(!showControls));
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Video', `Are you sure you want to delete "${file.name}"? A backup will be kept for restore.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await StorageService.addToRecentlyDeleted(file);
-          await StorageService.moveToTrash(file);
-          navigation.goBack();
+    Alert.alert(
+      'Delete Video',
+      `Are you sure you want to delete "${file.name}"? A backup will be kept for restore.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await StorageService.addToRecentlyDeleted(file);
+            await StorageService.moveToTrash(file);
+            navigation.goBack();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleShare = async () => {
     try {
       await Share.share({ url: file.uri, title: file.name });
     } catch {}
+    setShowMenu(false);
   };
 
-  const handlePiP = async () => {
+  const handleAddToPlaylist = () => {
+    setShowMenu(false);
+    addToQueue(file);
+  };
+
+  const handleLockInPrivateFolder = () => {
+    setShowMenu(false);
+  };
+
+  const handleOrientationToggle = async () => {
     try {
-      if (videoRef.current) {
-        if (Platform.OS === 'ios') {
-          await videoRef.current.presentFullscreenPlayer();
-        } else {
-          await videoRef.current.presentFullscreenPlayer();
-        }
+      if (orientationLock === 'portrait') {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        setOrientationLock('landscape');
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        setOrientationLock('portrait');
       }
     } catch {}
   };
 
   const getPlayModeIcon = () => {
     switch (playMode) {
-      case 'loop': return <Repeat size={16} color={primaryColor} />;
-      case 'loopAll': return <Repeat size={16} color={primaryColor} weight="bold" />;
-      case 'shuffle': return <Shuffle size={16} color={primaryColor} />;
-      case 'pauseAfter': return <Pause size={16} color={primaryColor} />;
+      case 'loop':
+        return <Repeat size={16} color={primaryColor} />;
+      case 'loopAll':
+        return <Repeat size={16} color={primaryColor} weight="bold" />;
+      case 'shuffle':
+        return <Shuffle size={16} color={primaryColor} />;
+      case 'pauseAfter':
+        return <Pause size={16} color={primaryColor} />;
     }
   };
 
+  // Swipe up/down for next/prev video
+  const videoSwipePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 15 && Math.abs(gs.dx) < 30,
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy < -60 && gs.vy < -0.3) {
+          goToVideo(currentVideoIndexRef.current + 1);
+        } else if (gs.dy > 60 && gs.vy > 0.3) {
+          goToVideo(currentVideoIndexRef.current - 1);
+        }
+      },
+    })
+  ).current;
+
+  // Bottom sheet swipe down helpers
+  function useSheetSwipe(onClose: () => void) {
+    const translateY = useRef(new Animated.Value(0)).current;
+    const pan = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gs) => gs.dy > 10,
+        onPanResponderMove: (_, gs) => {
+          if (gs.dy > 0) translateY.setValue(gs.dy);
+        },
+        onPanResponderRelease: (_, gs) => {
+          if (gs.dy > 80) {
+            onClose();
+            translateY.setValue(0);
+          } else {
+            Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+          }
+        },
+        onPanResponderTerminate: () => translateY.setValue(0),
+      })
+    ).current;
+    return { translateY, panHandlers: pan.panHandlers };
+  }
+
+  const menuSheet = useSheetSwipe(() => setShowMenu(false));
+  const playModeSheet = useSheetSwipe(() => setShowPlayModeModal(false));
+  const audioTrackSheet = useSheetSwipe(() => setShowAudioTrackModal(false));
+  const speedSheet = useSheetSwipe(() => setShowSpeedModal(false));
+  const resizeSheet = useSheetSwipe(() => setShowResizeModal(false));
+  const infoSheet = useSheetSwipe(() => setShowInfo(false));
+
+  function renderSheet(
+    visible: boolean,
+    onClose: () => void,
+    translateY: Animated.Value,
+    panHandlers: any,
+    title: string,
+    children: React.ReactNode
+  ) {
+    return (
+      <Modal visible={visible} transparent animationType="slide">
+        <View className="flex-1 justify-end bg-black/70">
+          <TouchableOpacity className="flex-1" onPress={onClose} activeOpacity={1} />
+          <Animated.View style={{ transform: [{ translateY }] }} {...panHandlers}>
+            <TouchableOpacity
+              activeOpacity={1}
+              className="max-h-[70%] rounded-t-3xl bg-zinc-900 pb-8 pt-5">
+              <View className="mb-4 h-1 w-10 self-center rounded-full bg-zinc-500" />
+              {title ? (
+                <Text className="mb-4 text-center text-lg font-extrabold text-white">{title}</Text>
+              ) : null}
+              {children}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
-    <View style={[styles.container, { backgroundColor: '#0a0a0a' }]}>
+    <View className="flex-1 bg-[#0a0a0a]">
       <StatusBar hidden />
-      <TouchableOpacity style={styles.videoContainer} activeOpacity={1} onPress={toggleControls}>
+      <View className="flex-1" {...videoSwipePan.panHandlers}>
         {!isAudioOnly && (
-          <Video
-            ref={videoRef}
-            source={{ uri: enhancedUri || file.uri }}
-            style={styles.video}
-            resizeMode={resizeMode}
-            shouldPlay
-            onPlaybackStatusUpdate={setStatus}
-            {...(Platform.OS === 'ios' ? { preservesExternalPlaybackUserSettings: true } : {})}
+          <VideoView
+            player={player}
+            className="h-full w-full"
+            contentFit={contentFit}
+            nativeControls={false}
+            allowsPictureInPicture={Platform.OS !== 'web'}
           />
         )}
 
         {isAudioOnly && (
-          <View style={styles.audioOnlyBg}>
-            <View style={[styles.audioOnlyArt, { borderColor: primaryColor + '60' }]}>
+          <View className="absolute inset-0 items-center justify-center gap-4 bg-[#0a0a0a]">
+            <View
+              className="h-40 w-40 items-center justify-center rounded-[32px] border-2 bg-white/[0.03]"
+              style={{ borderColor: primaryColor + '60' }}>
               <MusicNote size={64} color={primaryColor} />
             </View>
-            <Text style={[styles.audioOnlyLabel, { color: primaryColor }]}>Audio Mode</Text>
-            <TouchableOpacity style={[styles.switchBackBtn, { backgroundColor: `${primaryColor}20` }]} onPress={() => setIsAudioOnly(false)}>
+            <Text
+              className="text-base font-semibold tracking-[2px]"
+              style={{ color: primaryColor }}>
+              Audio Mode
+            </Text>
+            <TouchableOpacity
+              className="flex-row items-center gap-2 rounded-xl px-4 py-[10px]"
+              style={{ backgroundColor: `${primaryColor}20` }}
+              onPress={() => setIsAudioOnly(false)}>
               <VideoCamera size={16} color={primaryColor} />
-              <Text style={[styles.switchBackText, { color: primaryColor }]}>Switch to Video</Text>
+              <Text className="text-sm font-semibold" style={{ color: primaryColor }}>
+                Switch to Video
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {currentSubtitle && subtitlesEnabled && !isAudioOnly && (
-          <View style={styles.subtitleOverlay}>
-            <View style={styles.subtitleBubble}>
-              <Text style={[styles.subtitleText, { color: '#ffffff' }]}>{currentSubtitle}</Text>
+          <View
+            className="absolute inset-0 items-center justify-end pb-[120px]"
+            style={{ pointerEvents: 'none' }}>
+            <View className="max-w-[85%] rounded-xl border border-[rgba(194,252,74,0.2)] bg-black/60 px-5 py-[10px]">
+              <Text className="text-center text-base font-medium text-white">
+                {currentSubtitle}
+              </Text>
             </View>
           </View>
         )}
 
         {showControls && (
-          <Animated.View style={[styles.controlsOverlay, { opacity: controlsAnim }]}>
-            <View style={styles.headerControls}>
-              <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+          <TouchableOpacity
+            className="absolute inset-0 justify-between bg-black/50"
+            activeOpacity={1}
+            onPress={toggleControls}>
+            {/* Top bar: back, name, 3-dot menu */}
+            <View className="flex-row items-center px-4 pt-[50px]">
+              <TouchableOpacity
+                className="h-11 w-11 items-center justify-center"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  goBack();
+                }}>
                 <CaretLeft size={26} color="#ffffff" weight="bold" />
               </TouchableOpacity>
-              <Text style={styles.title} numberOfLines={1}>{file.name}</Text>
-              <View style={styles.headerRight}>
-                <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowInfo(true)}>
-                  <Info size={20} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowEnhancement(true)}>
-                  <Text style={{ color: primaryColor, fontSize: 18 }}>✨</Text>
-                </TouchableOpacity>
-              </View>
+              <Text
+                className="mx-2 flex-1 text-center text-[15px] font-semibold text-white"
+                numberOfLines={1}>
+                {file.name}
+              </Text>
+              <TouchableOpacity
+                className="h-11 w-11 items-center justify-center"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(true);
+                }}>
+                <DotsThreeVertical size={24} color="#ffffff" weight="bold" />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.centerControls}>
-              <TouchableOpacity style={[styles.prevNextBtn, currentVideoIndexRef.current <= 0 && { opacity: 0.3 }]} onPress={() => goToVideo(currentVideoIndexRef.current - 1)} disabled={currentVideoIndexRef.current <= 0}>
+            {/* Spacer */}
+            <View />
+
+            {/* Controls: Previous, Play/Pause, Next */}
+            <View className="mb-6 flex-row items-center justify-center gap-9">
+              <TouchableOpacity
+                className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
+                style={currentVideoIndexRef.current <= 0 ? { opacity: 0.3 } : undefined}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  goToVideo(currentVideoIndexRef.current - 1);
+                }}
+                disabled={currentVideoIndexRef.current <= 0}>
                 <SkipBack size={24} color="#ffffff" weight="fill" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)}>
-                <Rewind size={24} color="#ffffff" weight="fill" />
-                <Text style={styles.skipLabel}>10</Text>
+              <TouchableOpacity
+                className="h-[72px] w-[72px] items-center justify-center rounded-full border-2 bg-black/50"
+                style={{ borderColor: primaryColor }}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  togglePlayback();
+                }}>
+                {isPlaying ? (
+                  <Pause size={32} color={primaryColor} weight="fill" />
+                ) : (
+                  <Play size={32} color={primaryColor} weight="fill" />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.playBtn, { borderColor: primaryColor }]} onPress={togglePlayback}>
-                {isPlaying ? <Pause size={32} color={primaryColor} weight="fill" /> : <Play size={32} color={primaryColor} weight="fill" />}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)}>
-                <FastForward size={24} color="#ffffff" weight="fill" />
-                <Text style={styles.skipLabel}>10</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.prevNextBtn, currentVideoIndexRef.current >= sortedVideos.length - 1 && { opacity: 0.3 }]} onPress={() => goToVideo(currentVideoIndexRef.current + 1)} disabled={currentVideoIndexRef.current >= sortedVideos.length - 1}>
+              <TouchableOpacity
+                className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
+                style={
+                  currentVideoIndexRef.current >= sortedVideos.length - 1
+                    ? { opacity: 0.3 }
+                    : undefined
+                }
+                onPress={(e) => {
+                  e.stopPropagation();
+                  goToVideo(currentVideoIndexRef.current + 1);
+                }}
+                disabled={currentVideoIndexRef.current >= sortedVideos.length - 1}>
                 <SkipForward size={24} color="#ffffff" weight="fill" />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.bottomControls}>
-              <View style={styles.progressRow}>
-                <Text style={styles.timeText}>{fileEngine.formatDuration(position)}</Text>
-                <TouchableOpacity style={styles.progressTrack} onPress={(e) => { const { locationX } = e.nativeEvent; seekTo(locationX / (SCREEN_WIDTH - 80)); }}>
-                  <View style={[styles.progressFill, { width: `${progress}%` as any, backgroundColor: primaryColor }]} />
-                  <View style={[styles.progressThumb, { left: `${progress}%` as any, backgroundColor: primaryColor }]} />
-                </TouchableOpacity>
-                <Text style={styles.timeText}>{fileEngine.formatDuration(duration)}</Text>
-              </View>
-              <View style={styles.bottomActions}>
-                <View style={styles.leftActions}>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => setShowPlayModeModal(true)}>
-                    {getPlayModeIcon()}
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => setShowAudioTrackModal(true)}>
-                    <Globe size={14} color={audioTrack !== 'default' ? primaryColor : '#e4e4e7'} />
-                  </TouchableOpacity>
-                  {!isAudioOnly && (
-                    <TouchableOpacity style={styles.switchAudioBtn} onPress={() => setIsAudioOnly(true)}>
-                      <MusicNote size={14} color="#e4e4e7" />
-                      <Text style={[styles.switchAudioText, { color: '#e4e4e7' }]}>Audio</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity style={[styles.actionBtn, subtitlesEnabled && { backgroundColor: primaryColor }]} onPress={() => setSubtitlesEnabled(!subtitlesEnabled)}>
-                    <Subtitles size={16} color={subtitlesEnabled ? '#0a0a0a' : '#e4e4e7'} weight={subtitlesEnabled ? 'fill' : 'regular'} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => setShowSpeedModal(true)}>
-                    <Text style={[styles.speedLabel, { color: '#e4e4e7' }]}>{playbackSpeed}x</Text>
-                  </TouchableOpacity>
-                  {!isAudioOnly && (
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => setShowResizeModal(true)}>
-                      <FrameCorners size={16} color="#e4e4e7" />
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={styles.actionBtn} onPress={handlePiP}>
-                    <PictureInPicture size={16} color="#e4e4e7" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-                    <Text style={{ color: '#e4e4e7', fontSize: 14 }}>↗</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: 'rgba(239,68,68,0.2)' }]} onPress={handleDelete}>
-                    <Trash size={16} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-        )}
-      </TouchableOpacity>
-
-      {/* Info Modal */}
-      <Modal visible={showInfo} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowInfo(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Video Info</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Name</Text>
-              <Text style={styles.infoValue} numberOfLines={2}>{file.name}</Text>
-            </View>
-            {file.size && <View style={styles.infoRow}><Text style={styles.infoLabel}>Size</Text><Text style={styles.infoValue}>{(file.size / 1024 / 1024).toFixed(1)} MB</Text></View>}
-            <View style={styles.infoRow}><Text style={styles.infoLabel}>Duration</Text><Text style={styles.infoValue}>{fileEngine.formatDuration(duration)}</Text></View>
-            <View style={styles.infoRow}><Text style={styles.infoLabel}>Resolution</Text><Text style={styles.infoValue}>{status?.isLoaded ? `${status?.width || '?'}x${status?.height || '?'}` : 'N/A'}</Text></View>
-            <View style={styles.infoRow}><Text style={styles.infoLabel}>Play Mode</Text><Text style={styles.infoValue}>{playMode}</Text></View>
-            <View style={styles.infoRow}><Text style={styles.infoLabel}>Speed</Text><Text style={styles.infoValue}>{playbackSpeed}x</Text></View>
-            <TouchableOpacity style={styles.infoCloseBtn} onPress={() => setShowInfo(false)}>
-              <Text style={[styles.infoCloseText, { color: primaryColor }]}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Play Mode Modal */}
-      <Modal visible={showPlayModeModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowPlayModeModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Play Mode</Text>
-            {([
-              { mode: 'loop' as PlayMode, label: 'Loop One', Icon: Repeat },
-              { mode: 'loopAll' as PlayMode, label: 'Loop All', Icon: Repeat },
-              { mode: 'shuffle' as PlayMode, label: 'Shuffle', Icon: Shuffle },
-              { mode: 'pauseAfter' as PlayMode, label: 'Pause After Play', Icon: Pause },
-            ]).map(({ mode, label, Icon }) => (
-              <TouchableOpacity
-                key={mode}
-                style={[styles.modalOption, playMode === mode && { backgroundColor: `${primaryColor}15` }]}
-                onPress={() => { setPlayMode(mode); setShowPlayModeModal(false); }}
-              >
-                <Icon size={20} color={playMode === mode ? primaryColor : '#e4e4e7'} weight={playMode === mode ? 'fill' : 'regular'} />
-                <Text style={[styles.modalOptionText, playMode === mode && { color: primaryColor, fontWeight: '700' }, { color: '#e4e4e7' }]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Resize Modal */}
-      <Modal visible={showResizeModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowResizeModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Video Size</Text>
-            {RESIZE_MODES.map(({ mode, label }) => (
-              <TouchableOpacity key={label} style={[styles.modalOption, resizeMode === mode && { backgroundColor: `${primaryColor}15` }]} onPress={() => { setResizeMode(mode); setShowResizeModal(false); }}>
-                <Text style={[styles.modalOptionText, resizeMode === mode && { color: primaryColor, fontWeight: '700' }, { color: '#e4e4e7' }]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Speed Modal */}
-      <Modal visible={showSpeedModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSpeedModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Playback Speed</Text>
-            <View style={styles.speedGrid}>
-              {SPEEDS.map((speed) => (
-                <TouchableOpacity key={speed} style={[styles.speedOption, playbackSpeed === speed && { backgroundColor: primaryColor }]} onPress={() => changeSpeed(speed)}>
-                  <Text style={[styles.speedOptionText, playbackSpeed === speed && { color: '#0a0a0a', fontWeight: '700' }, { color: '#e4e4e7' }]}>{speed}x</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={showSettings} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSettings(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Player Settings</Text>
-            <TouchableOpacity style={styles.settingRow} onPress={() => { setSubtitlesEnabled(!subtitlesEnabled); setShowSettings(false); }}>
-              <Subtitles size={20} color="#e4e4e7" />
-              <Text style={[styles.settingText, { color: '#e4e4e7' }]}>Subtitles {subtitlesEnabled ? 'On' : 'Off'}</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Audio Track Language Modal */}
-      <Modal visible={showAudioTrackModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowAudioTrackModal(false)}>
-          <View style={[styles.modalContent, { backgroundColor: '#18181b' }]}>
-            <Text style={[styles.modalTitle, { color: '#ffffff' }]}>Audio Track</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              {AUDIO_TRACKS.map((track) => (
+            {/* Progress bar + timers + action row */}
+            <View className="px-5 pb-[30px]">
+              {/* Progress bar */}
+              <View className="mb-3 flex-row items-center gap-2.5">
+                <Text className="w-10 text-xs text-white/70">
+                  {fileEngine.formatDuration(position)}
+                </Text>
                 <TouchableOpacity
-                  key={track.id}
-                  style={[styles.modalOption, audioTrack === track.id && { backgroundColor: `${primaryColor}15` }]}
-                  onPress={() => { setAudioTrack(track.id); setShowAudioTrackModal(false); }}
-                >
-                  <Globe size={18} color={audioTrack === track.id ? primaryColor : '#e4e4e7'} />
-                  <Text style={[styles.modalOptionText, audioTrack === track.id && { color: primaryColor, fontWeight: '700' }, { color: '#e4e4e7' }]}>
-                    {track.label}
-                  </Text>
-                  {audioTrack === track.id && (
-                    <Check size={18} color={primaryColor} weight="bold" />
+                  className="h-[20px] flex-1 justify-center"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    const { locationX } = e.nativeEvent;
+                    seekTo(locationX / (SCREEN_WIDTH - 80));
+                  }}>
+                  <View className="h-1 rounded-sm bg-white/20">
+                    <View
+                      className="h-full rounded-sm"
+                      style={{ width: `${progress}%` as any, backgroundColor: primaryColor }}
+                    />
+                  </View>
+                  <View
+                    className="absolute -top-1 h-3 w-3 rounded-full"
+                    style={{ left: `${progress}%` as any, backgroundColor: primaryColor }}
+                  />
+                </TouchableOpacity>
+                <Text className="w-10 text-right text-xs text-white/70">
+                  {fileEngine.formatDuration(duration)}
+                </Text>
+              </View>
+
+              {/* Action row: headphones, speed, lock, orientation */}
+              <View className="flex-row items-center justify-center gap-4">
+                {!isAudioOnly && (
+                  <TouchableOpacity
+                    className="flex-row items-center gap-1.5 rounded-[10px] bg-zinc-800 px-3 py-2"
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setIsAudioOnly(true);
+                    }}>
+                    <Headphones size={14} color="#e4e4e7" />
+                    <Text className="text-xs font-semibold text-zinc-200">Audio</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowSpeedModal(true);
+                  }}>
+                  <Text className="text-xs font-bold text-zinc-200">{playbackSpeed}x</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setIsLocked(!isLocked);
+                  }}>
+                  {isLocked ? (
+                    <Lock size={16} color={primaryColor} weight="fill" />
+                  ) : (
+                    <LockOpen size={16} color="#e4e4e7" />
                   )}
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+                {!isAudioOnly && (
+                  <TouchableOpacity
+                    className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleOrientationToggle();
+                    }}>
+                    <ArrowsClockwise size={16} color="#e4e4e7" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
 
-      <VideoEnhancementModal visible={showEnhancement} onClose={() => setShowEnhancement(false)} currentSettings={{ enabled: false, qualityTarget: 'original', colorEnhancement: false, sharpening: false, denoise: false, hdr: false }} onApply={() => {}} fileUri={file.uri} primaryColor={primaryColor} />
+      {/* 3-dot Menu Bottom Sheet */}
+      {renderSheet(
+        showMenu,
+        () => setShowMenu(false),
+        menuSheet.translateY,
+        menuSheet.panHandlers,
+        '',
+        <ScrollView showsVerticalScrollIndicator={false} className="px-5">
+          <Text className="mb-2 text-[11px] font-bold tracking-[1]" style={{ color: '#a1a1aa' }}>
+            PLAYBACK
+          </Text>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={() => {
+              setShowMenu(false);
+            }}>
+            <PictureInPicture size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Floating Window</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={() => {
+              setShowMenu(false);
+              setShowPlayModeModal(true);
+            }}>
+            <Repeat size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Play Mode</Text>
+            <Text className="ml-auto text-xs text-zinc-400">
+              {playMode === 'loop'
+                ? 'Loop One'
+                : playMode === 'loopAll'
+                  ? 'Loop All'
+                  : playMode === 'shuffle'
+                    ? 'Shuffle'
+                    : 'Pause After'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={() => {
+              setSubtitlesEnabled(!subtitlesEnabled);
+              setShowMenu(false);
+            }}>
+            <Subtitles
+              size={20}
+              color={subtitlesEnabled ? primaryColor : '#e4e4e7'}
+              weight={subtitlesEnabled ? 'fill' : 'regular'}
+            />
+            <Text className="ml-3 text-[15px] text-white">Subtitles</Text>
+            <Text className="ml-auto text-xs text-zinc-400">{subtitlesEnabled ? 'On' : 'Off'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={() => {
+              setShowMenu(false);
+              setShowAudioTrackModal(true);
+            }}>
+            <Globe size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Audio Track</Text>
+            <Text className="ml-auto text-xs text-zinc-400">
+              {AUDIO_TRACKS.find((t) => t.id === audioTrack)?.label || 'Default'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={() => {
+              setShowMenu(false);
+              setShowEnhancement(true);
+            }}>
+            <Text className="text-lg" style={{ color: primaryColor }}>
+              ✨
+            </Text>
+            <Text className="ml-3 text-[15px] text-white">Enhance Video</Text>
+          </TouchableOpacity>
+
+          <View className="my-3 h-px bg-white/10" />
+
+          <Text className="mb-2 text-[11px] font-bold tracking-[1]" style={{ color: '#a1a1aa' }}>
+            ACTIONS
+          </Text>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={(e) => {
+              e.stopPropagation();
+              handleShare();
+            }}>
+            <ShareNetwork size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={(e) => {
+              e.stopPropagation();
+              handleAddToPlaylist();
+            }}>
+            <Queue size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Add to Playlist</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={(e) => {
+              e.stopPropagation();
+              handleLockInPrivateFolder();
+            }}>
+            <FolderLock size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Lock in Private Folder</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowInfo(true);
+              setShowMenu(false);
+            }}>
+            <Info size={20} color={primaryColor} />
+            <Text className="ml-3 text-[15px] text-white">Information</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowMenu(false);
+              handleDelete();
+            }}>
+            <Trash size={20} color="#ef4444" />
+            <Text className="ml-3 text-[15px] text-[#ef4444]">Delete</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+
+      {/* Play Mode Sheet */}
+      {renderSheet(
+        showPlayModeModal,
+        () => setShowPlayModeModal(false),
+        playModeSheet.translateY,
+        playModeSheet.panHandlers,
+        'Play Mode',
+        <View className="px-5">
+          {[
+            { mode: 'loop' as PlayMode, label: 'Loop One', Icon: Repeat },
+            { mode: 'loopAll' as PlayMode, label: 'Loop All', Icon: Repeat },
+            { mode: 'shuffle' as PlayMode, label: 'Shuffle', Icon: Shuffle },
+            { mode: 'pauseAfter' as PlayMode, label: 'Pause After Play', Icon: Pause },
+          ].map(({ mode, label, Icon }) => (
+            <TouchableOpacity
+              key={mode}
+              className="mb-2 flex-row items-center gap-3 rounded-xl px-4 py-[14px]"
+              style={playMode === mode ? { backgroundColor: `${primaryColor}15` } : undefined}
+              onPress={() => {
+                setPlayMode(mode);
+                setShowPlayModeModal(false);
+              }}>
+              <Icon
+                size={20}
+                color={playMode === mode ? primaryColor : '#e4e4e7'}
+                weight={playMode === mode ? 'fill' : 'regular'}
+              />
+              <Text
+                className={`text-base ${playMode === mode ? 'font-bold' : 'font-medium'} text-zinc-200`}>
+                {label}
+              </Text>
+              {playMode === mode && (
+                <Check
+                  size={18}
+                  color={primaryColor}
+                  weight="bold"
+                  style={{ marginLeft: 'auto' }}
+                />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Audio Track Sheet */}
+      {renderSheet(
+        showAudioTrackModal,
+        () => setShowAudioTrackModal(false),
+        audioTrackSheet.translateY,
+        audioTrackSheet.panHandlers,
+        'Audio Track',
+        <ScrollView className="max-h-80 px-5" showsVerticalScrollIndicator={false}>
+          {AUDIO_TRACKS.map((track) => (
+            <TouchableOpacity
+              key={track.id}
+              className="mb-2 flex-row items-center gap-3 rounded-xl px-4 py-[14px]"
+              style={audioTrack === track.id ? { backgroundColor: `${primaryColor}15` } : undefined}
+              onPress={() => {
+                setAudioTrack(track.id);
+                setShowAudioTrackModal(false);
+              }}>
+              <Globe size={18} color={audioTrack === track.id ? primaryColor : '#e4e4e7'} />
+              <Text
+                className={`text-base ${audioTrack === track.id ? 'font-bold' : 'font-medium'} text-zinc-200`}>
+                {track.label}
+              </Text>
+              {audioTrack === track.id && (
+                <Check
+                  size={18}
+                  color={primaryColor}
+                  weight="bold"
+                  style={{ marginLeft: 'auto' }}
+                />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Speed Sheet */}
+      {renderSheet(
+        showSpeedModal,
+        () => setShowSpeedModal(false),
+        speedSheet.translateY,
+        speedSheet.panHandlers,
+        'Playback Speed',
+        <View className="flex-row flex-wrap justify-center gap-2 px-5">
+          {SPEEDS.map((speed) => (
+            <TouchableOpacity
+              key={speed}
+              className="rounded-xl border px-4 py-3"
+              style={[
+                playbackSpeed === speed && { backgroundColor: primaryColor },
+                { borderColor: playbackSpeed === speed ? primaryColor : '#3f3f46' },
+              ]}
+              onPress={() => changeSpeed(speed)}>
+              <Text
+                className={`text-center text-sm ${playbackSpeed === speed ? 'font-bold' : ''}`}
+                style={{ color: playbackSpeed === speed ? '#0a0a0a' : '#e4e4e7' }}>
+                {speed}x
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Resize/Content Fit Sheet */}
+      {renderSheet(
+        showResizeModal,
+        () => setShowResizeModal(false),
+        resizeSheet.translateY,
+        resizeSheet.panHandlers,
+        'Video Size',
+        <View className="px-5">
+          {CONTENT_FITS.map(({ mode, label }) => (
+            <TouchableOpacity
+              key={label}
+              className="mb-2 flex-row items-center gap-3 rounded-xl px-4 py-[14px]"
+              style={contentFit === mode ? { backgroundColor: `${primaryColor}15` } : undefined}
+              onPress={() => {
+                setContentFit(mode);
+                setShowResizeModal(false);
+              }}>
+              <Text
+                className={`text-base ${contentFit === mode ? 'font-bold' : 'font-medium'} text-zinc-200`}>
+                {label}
+              </Text>
+              {contentFit === mode && (
+                <Check
+                  size={18}
+                  color={primaryColor}
+                  weight="bold"
+                  style={{ marginLeft: 'auto' }}
+                />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Info Sheet */}
+      {renderSheet(
+        showInfo,
+        () => setShowInfo(false),
+        infoSheet.translateY,
+        infoSheet.panHandlers,
+        'Video Info',
+        <View className="px-5">
+          <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+            <Text className="flex-1 text-sm text-white/60">Name</Text>
+            <Text className="flex-[2] text-right text-sm text-white" numberOfLines={2}>
+              {file.name}
+            </Text>
+          </View>
+          {file.size && (
+            <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+              <Text className="flex-1 text-sm text-white/60">Size</Text>
+              <Text className="flex-[2] text-right text-sm text-white">
+                {(file.size / 1024 / 1024).toFixed(1)} MB
+              </Text>
+            </View>
+          )}
+          <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+            <Text className="flex-1 text-sm text-white/60">Duration</Text>
+            <Text className="flex-[2] text-right text-sm text-white">
+              {fileEngine.formatDuration(duration)}
+            </Text>
+          </View>
+          <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+            <Text className="flex-1 text-sm text-white/60">Resolution</Text>
+            <Text className="flex-[2] text-right text-sm text-white">{'N/A'}</Text>
+          </View>
+          <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+            <Text className="flex-1 text-sm text-white/60">Play Mode</Text>
+            <Text className="flex-[2] text-right text-sm text-white">{playMode}</Text>
+          </View>
+          <View className="flex-row justify-between border-b border-white/5 py-[10px]">
+            <Text className="flex-1 text-sm text-white/60">Speed</Text>
+            <Text className="flex-[2] text-right text-sm text-white">{playbackSpeed}x</Text>
+          </View>
+        </View>
+      )}
+
+      <VideoEnhancementModal
+        visible={showEnhancement}
+        onClose={() => setShowEnhancement(false)}
+        currentSettings={{
+          enabled: false,
+          qualityTarget: 'original',
+          colorEnhancement: false,
+          sharpening: false,
+          denoise: false,
+          hdr: false,
+        }}
+        onApply={() => {}}
+        fileUri={file.uri}
+        primaryColor={primaryColor}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  videoContainer: { flex: 1 },
-  video: { width: '100%', height: '100%' },
-  subtitleOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', paddingBottom: 100, alignItems: 'center', pointerEvents: 'none' },
-  subtitleBubble: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, maxWidth: '85%', borderWidth: 1, borderColor: 'rgba(194, 252, 74, 0.2)' },
-  subtitleText: { fontSize: 16, textAlign: 'center', fontWeight: '500' },
-  controlsOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'space-between' },
-  headerControls: { flexDirection: 'row', alignItems: 'center', paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingHorizontal: 16 },
-  headerRight: { flexDirection: 'row', gap: 4 },
-  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  title: { flex: 1, fontSize: 15, color: '#ffffff', textAlign: 'center', marginHorizontal: 8, fontWeight: '600' },
-  headerIconBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  centerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36 },
-  skipBtn: { alignItems: 'center', gap: 2 },
-  skipLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
-  playBtn: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
-  prevNextBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  bottomControls: { paddingHorizontal: 20, paddingBottom: 30 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  timeText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', width: 40 },
-  progressTrack: { flex: 1, height: 20, justifyContent: 'center' },
-  progressFill: { height: 4, borderRadius: 2 },
-  progressThumb: { width: 12, height: 12, borderRadius: 6, position: 'absolute', top: -4 },
-  bottomActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  leftActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  switchAudioBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#27272a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  switchAudioText: { fontSize: 12, fontWeight: '600' },
-  actionButtons: { flexDirection: 'row', gap: 6 },
-  actionBtn: { width: 34, height: 34, borderRadius: 9, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center' },
-  iconBtn: { width: 34, height: 34, borderRadius: 9, backgroundColor: '#27272a', justifyContent: 'center', alignItems: 'center' },
-  speedLabel: { fontSize: 12, fontWeight: '700' },
-  audioOnlyBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', gap: 16 },
-  audioOnlyArt: { width: 160, height: 160, borderRadius: 32, borderWidth: 2, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
-  audioOnlyLabel: { fontSize: 16, letterSpacing: 2, fontWeight: '600' },
-  switchBackBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
-  switchBackText: { fontSize: 14, fontWeight: '600' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#27272a', borderRadius: 24, padding: 24, width: '80%', maxWidth: 320 },
-  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
-  modalOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 8, gap: 12 },
-  modalOptionText: { fontSize: 16, fontWeight: '500' },
-  speedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  speedOption: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#3f3f46' },
-  speedOptionText: { fontSize: 14, textAlign: 'center' },
-  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  settingText: { fontSize: 15, fontWeight: '500' },
-
-  // Info modal
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  infoLabel: { fontSize: 14, color: 'rgba(255,255,255,0.6)', flex: 1 },
-  infoValue: { fontSize: 14, color: '#ffffff', flex: 2, textAlign: 'right' },
-  infoCloseBtn: { alignItems: 'center', paddingTop: 16 },
-  infoCloseText: { fontSize: 16, fontWeight: '700' },
-});
