@@ -1,6 +1,7 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { MMKV } from 'react-native-mmkv';
-import type { FileItem, RepeatMode, PlaybackSource } from '../types';
+import type { FileItem, RepeatMode } from '../types';
+import { queueEngine } from './QueueEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { NowPlayingNotification } from '../services/NowPlayingNotification';
 
@@ -40,7 +41,6 @@ export class AudioEngine {
   private _player: AudioPlayer | null = null;
   private _state: AudioEngineState;
   private _listeners: Set<AudioEngineListener> = new Set();
-  private _shuffledOrder: number[] = [];
   private _isLoaded = false;
   private _sleepTimer: SleepTimerState = { enabled: false, mode: 'off', remainingMillis: 0, stopAfterTrackEnd: false, trackCount: 0 };
   private _crossfade: CrossfadeState = { enabled: false, duration: 3 };
@@ -57,8 +57,40 @@ export class AudioEngine {
 
   private constructor() {
     this._state = this._loadPersistedState();
+    this._syncFromQueueEngine();
     this._loadSettings();
     this._initAudio();
+    this._subscribeToQueueEngine();
+  }
+
+  private _subscribeToQueueEngine() {
+    queueEngine.subscribe(() => {
+      const qs = queueEngine.getAudioState();
+      this._state.queue = qs.queue;
+      this._state.currentIndex = qs.currentIndex;
+      this._state.repeat = qs.repeat;
+      this._state.shuffle = qs.shuffle;
+      this._persistState();
+      this._notify();
+    });
+  }
+
+  private _syncFromQueueEngine() {
+    const qs = queueEngine.getAudioState();
+    this._state.queue = qs.queue;
+    this._state.currentIndex = qs.currentIndex;
+    this._state.repeat = qs.repeat;
+    this._state.shuffle = qs.shuffle;
+  }
+
+  private _syncToQueueEngine() {
+    queueEngine['_audioQueue'] = {
+      queue: this._state.queue,
+      currentIndex: this._state.currentIndex,
+      repeat: this._state.repeat,
+      shuffle: this._state.shuffle,
+      shuffledOrder: [],
+    };
   }
 
   private _loadSettings() {
@@ -95,7 +127,16 @@ export class AudioEngine {
   }
 
   private _persistState() {
-    storage.set(STATE_KEY, JSON.stringify(this._state));
+    storage.set(STATE_KEY, JSON.stringify({
+      currentFile: this._state.currentFile,
+      currentIndex: this._state.currentIndex,
+      repeat: this._state.repeat,
+      shuffle: this._state.shuffle,
+      position: this._state.position,
+      duration: this._state.duration,
+      isPlaying: this._state.isPlaying,
+      playbackSpeed: this._state.playbackSpeed,
+    }));
   }
 
   private async _initAudio() {
@@ -191,29 +232,22 @@ export class AudioEngine {
       this.play();
       return;
     }
-    this._advanceToNext();
-  }
-
-  private _advanceToNext() {
-    const { queue, currentIndex, repeat } = this._state;
-    let next = currentIndex + 1;
-    if (next >= queue.length) {
-      if (repeat === 'all') {
-        next = 0;
-      } else {
-        this._state.isPlaying = false;
-        this._persistState();
-        this._notify();
-        return;
-      }
+    const next = queueEngine.resolveNext('audio');
+    if (next !== null) {
+      queueEngine.setAudioIndex(next);
+      this._playIndex(next);
+    } else {
+      this._state.isPlaying = false;
+      this._persistState();
+      this._notify();
     }
-    this._playIndex(next);
   }
 
   private async _playIndex(index: number) {
     if (index < 0 || index >= this._state.queue.length) return;
     this._state.currentIndex = index;
     this._state.currentFile = this._state.queue[index];
+    queueEngine.setAudioIndex(index);
     await this._playFile(this._state.currentFile);
   }
 
@@ -247,23 +281,12 @@ export class AudioEngine {
     this._startPositionCheck();
   }
 
-  getShuffledOrder(): number[] {
-    if (this._shuffledOrder.length !== this._state.queue.length) {
-      this._shuffledOrder = this._state.queue.map((_, i) => i);
-      for (let i = this._shuffledOrder.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [this._shuffledOrder[i], this._shuffledOrder[j]] = [this._shuffledOrder[j], this._shuffledOrder[i]];
-      }
-    }
-    return this._shuffledOrder;
-  }
-
   async play(file?: FileItem, queue?: FileItem[], startIndex?: number) {
     if (file && queue && startIndex !== undefined) {
       this._state.queue = queue;
       this._state.currentIndex = startIndex;
-      this._shuffledOrder = [];
       this._state.currentFile = file;
+      queueEngine.setAudioQueue(queue, startIndex);
       await this._playFile(file);
     } else if (this._state.currentFile) {
       await this._playFile(this._state.currentFile);
@@ -271,8 +294,9 @@ export class AudioEngine {
   }
 
   playIndex(index: number) {
-    const actualIndex = this._state.shuffle
-      ? this.getShuffledOrder()[index]
+    const qs = queueEngine.getAudioState();
+    const actualIndex = qs.shuffle
+      ? queueEngine.getShuffledOrder('audio')[index]
       : index;
     if (actualIndex >= 0 && actualIndex < this._state.queue.length) {
       this._playIndex(actualIndex);
@@ -346,24 +370,21 @@ export class AudioEngine {
 
   setRepeat(mode: RepeatMode) {
     this._state.repeat = mode;
+    queueEngine.setRepeat(mode, 'audio');
     this._persistState();
     this._notify();
   }
 
   cycleRepeat() {
-    const modes: RepeatMode[] = ['none', 'all', 'one'];
-    const idx = modes.indexOf(this._state.repeat);
-    this._state.repeat = modes[(idx + 1) % modes.length];
+    queueEngine.cycleRepeat('audio');
+    this._state.repeat = queueEngine.getAudioState().repeat;
     this._persistState();
     this._notify();
   }
 
   toggleShuffle() {
-    this._state.shuffle = !this._state.shuffle;
-    if (this._state.shuffle) {
-      this._shuffledOrder = [];
-      this.getShuffledOrder();
-    }
+    queueEngine.toggleShuffle('audio');
+    this._state.shuffle = queueEngine.getAudioState().shuffle;
     this._persistState();
     this._notify();
   }
@@ -371,36 +392,24 @@ export class AudioEngine {
   setQueue(queue: FileItem[], startIndex = 0) {
     this._state.queue = queue;
     this._state.currentIndex = startIndex;
-    this._shuffledOrder = [];
-    if (this._state.shuffle) this.getShuffledOrder();
+    queueEngine.setAudioQueue(queue, startIndex);
     this._persistState();
     this._notify();
   }
 
   skipToNext() {
-    const { queue, currentIndex, shuffle } = this._state;
-    if (shuffle) {
-      const shuffled = this.getShuffledOrder();
-      const currentShuffleIdx = shuffled.indexOf(currentIndex);
-      const nextShuffleIdx = (currentShuffleIdx + 1) % shuffled.length;
-      this._playIndex(shuffled[nextShuffleIdx]);
-    } else {
-      const next = currentIndex + 1;
-      if (next < queue.length) {
-        this._playIndex(next);
-      } else if (this._state.repeat === 'all') {
-        this._playIndex(0);
-      }
+    const next = queueEngine.resolveNext('audio');
+    if (next !== null) {
+      queueEngine.setAudioIndex(next);
+      this._playIndex(next);
     }
   }
 
   skipToPrevious() {
-    const { currentIndex } = this._state;
-    const prev = currentIndex - 1;
-    if (prev >= 0) {
+    const prev = queueEngine.resolvePrevious('audio');
+    if (prev !== null) {
+      queueEngine.setAudioIndex(prev);
       this._playIndex(prev);
-    } else if (this._state.repeat === 'all') {
-      this._playIndex(this._state.queue.length - 1);
     }
   }
 

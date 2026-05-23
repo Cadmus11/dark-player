@@ -1,20 +1,38 @@
 import { MMKV } from 'react-native-mmkv';
-import type { FileItem, PlaylistData } from '../types';
+import type { FileItem, PlaylistData, RepeatMode } from '../types';
+import { eventBus, AppEvents } from '../services/EventBus';
 
 const storage = new MMKV({ id: 'queue-engine' });
 const PLAYLISTS_KEY = '@queue_playlists';
+const AUDIO_QUEUE_KEY = '@queue_audio_queue';
+const VIDEO_QUEUE_KEY = '@queue_video_queue';
 
 type QueueListener = () => void;
+
+interface QueueStore {
+  queue: FileItem[];
+  currentIndex: number;
+  repeat: RepeatMode;
+  shuffle: boolean;
+  shuffledOrder: number[];
+}
 
 export class QueueEngine {
   private static instance: QueueEngine;
   private _listeners: Set<QueueListener> = new Set();
+  private _audioQueue: QueueStore;
+  private _videoQueue: QueueStore;
 
   static getInstance(): QueueEngine {
     if (!QueueEngine.instance) {
       QueueEngine.instance = new QueueEngine();
     }
     return QueueEngine.instance;
+  }
+
+  private constructor() {
+    this._audioQueue = this._loadQueue(AUDIO_QUEUE_KEY);
+    this._videoQueue = this._loadQueue(VIDEO_QUEUE_KEY);
   }
 
   subscribe(listener: QueueListener): () => void {
@@ -24,15 +42,194 @@ export class QueueEngine {
 
   private _notify() {
     this._listeners.forEach((cb) => cb());
+    eventBus.emit(AppEvents.QUEUE_CHANGED);
   }
+
+  // --- Audio Queue ---
+
+  private _loadQueue(key: string): QueueStore {
+    try {
+      const data = storage.getString(key);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return { queue: [], currentIndex: -1, repeat: 'none', shuffle: false, shuffledOrder: [] };
+  }
+
+  private _saveAudioQueue() {
+    storage.set(AUDIO_QUEUE_KEY, JSON.stringify(this._audioQueue));
+  }
+
+  private _saveVideoQueue() {
+    storage.set(VIDEO_QUEUE_KEY, JSON.stringify(this._videoQueue));
+  }
+
+  getAudioState(): Readonly<QueueStore> {
+    return { ...this._audioQueue };
+  }
+
+  getVideoState(): Readonly<QueueStore> {
+    return { ...this._videoQueue };
+  }
+
+  setAudioQueue(queue: FileItem[], startIndex = 0) {
+    this._audioQueue.queue = queue;
+    this._audioQueue.currentIndex = startIndex;
+    this._audioQueue.shuffledOrder = [];
+    if (this._audioQueue.shuffle) this._generateShuffled('audio');
+    this._saveAudioQueue();
+    this._notify();
+  }
+
+  setVideoQueue(queue: FileItem[], startIndex = 0) {
+    this._videoQueue.queue = queue;
+    this._videoQueue.currentIndex = startIndex;
+    this._videoQueue.shuffledOrder = [];
+    if (this._videoQueue.shuffle) this._generateShuffled('video');
+    this._saveVideoQueue();
+    this._notify();
+  }
+
+  setAudioIndex(index: number) {
+    this._audioQueue.currentIndex = index;
+    this._saveAudioQueue();
+    this._notify();
+  }
+
+  setVideoIndex(index: number) {
+    this._videoQueue.currentIndex = index;
+    this._saveVideoQueue();
+    this._notify();
+  }
+
+  setRepeat(mode: RepeatMode, source: 'audio' | 'video') {
+    if (source === 'audio') {
+      this._audioQueue.repeat = mode;
+      this._saveAudioQueue();
+    } else {
+      this._videoQueue.repeat = mode;
+      this._saveVideoQueue();
+    }
+    this._notify();
+  }
+
+  cycleRepeat(source: 'audio' | 'video') {
+    const modes: RepeatMode[] = ['none', 'all', 'one'];
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    const idx = modes.indexOf(q.repeat);
+    q.repeat = modes[(idx + 1) % modes.length];
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
+  toggleShuffle(source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    q.shuffle = !q.shuffle;
+    if (q.shuffle) {
+      this._generateShuffled(source);
+    } else {
+      q.shuffledOrder = [];
+    }
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
+  private _generateShuffled(source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    q.shuffledOrder = q.queue.map((_, i) => i);
+    for (let i = q.shuffledOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [q.shuffledOrder[i], q.shuffledOrder[j]] = [q.shuffledOrder[j], q.shuffledOrder[i]];
+    }
+  }
+
+  getShuffledOrder(source: 'audio' | 'video'): number[] {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    if (q.shuffledOrder.length !== q.queue.length) {
+      this._generateShuffled(source);
+    }
+    return [...q.shuffledOrder];
+  }
+
+  resolveNext(source: 'audio' | 'video'): number | null {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    if (q.queue.length === 0) return null;
+    let next: number;
+    if (q.shuffle) {
+      const shuffled = this.getShuffledOrder(source);
+      const currentShuffleIdx = shuffled.indexOf(q.currentIndex);
+      const nextShuffleIdx = (currentShuffleIdx + 1) % shuffled.length;
+      next = nextShuffleIdx === 0 && q.repeat !== 'all' ? -1 : shuffled[nextShuffleIdx];
+    } else {
+      next = q.currentIndex + 1;
+      if (next >= q.queue.length) {
+        next = q.repeat === 'all' ? 0 : -1;
+      }
+    }
+    return next >= 0 && next < q.queue.length ? next : null;
+  }
+
+  resolvePrevious(source: 'audio' | 'video'): number | null {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    if (q.queue.length === 0) return null;
+    let prev: number;
+    if (q.shuffle) {
+      const shuffled = this.getShuffledOrder(source);
+      const currentShuffleIdx = shuffled.indexOf(q.currentIndex);
+      prev = currentShuffleIdx > 0 ? shuffled[currentShuffleIdx - 1] : -1;
+    } else {
+      prev = q.currentIndex - 1;
+      if (prev < 0) {
+        prev = q.repeat === 'all' ? q.queue.length - 1 : -1;
+      }
+    }
+    return prev >= 0 && prev < q.queue.length ? prev : null;
+  }
+
+  addToQueue(file: FileItem, source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    q.queue.push(file);
+    q.shuffledOrder = [];
+    if (q.shuffle) this._generateShuffled(source);
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
+  removeFromQueue(index: number, source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    if (index < 0 || index >= q.queue.length) return;
+    q.queue.splice(index, 1);
+    if (index <= q.currentIndex) q.currentIndex = Math.max(0, q.currentIndex - 1);
+    q.shuffledOrder = [];
+    if (q.shuffle) this._generateShuffled(source);
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
+  clearQueue(source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    q.queue = [];
+    q.currentIndex = -1;
+    q.shuffledOrder = [];
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
+  getQueueLength(source: 'audio' | 'video'): number {
+    return (source === 'audio' ? this._audioQueue : this._videoQueue).queue.length;
+  }
+
+  // --- Playlists (existing API) ---
 
   getAll(): PlaylistData[] {
     try {
       const data = storage.getString(PLAYLISTS_KEY);
       return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   getById(id: string): PlaylistData | undefined {

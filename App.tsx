@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -8,6 +8,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
+import { OverlayProvider } from './services/OverlaySystem';
+import { startHydration } from './services/HydrationService';
+import { lifecycleManager } from './services/LifecycleManager';
 import { HomeScreen } from './screens/HomeScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
@@ -19,6 +22,7 @@ import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { MiniPlayer } from './components/player/MiniPlayer';
 import { NowPlayingBar } from './components/player/NowPlayingBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PlayerBoundary } from './components/FeatureBoundary';
 import type { FileItem, FileType } from './types';
 import './global.css';
 
@@ -65,26 +69,40 @@ const screenOptions = {
 };
 
 export default function App() {
+  useEffect(() => {
+    lifecycleManager.initialize();
+    startHydration();
+    return () => lifecycleManager.cleanup();
+  }, []);
+
   return (
     <SafeAreaProvider>
-    <LanguageProvider>
-      <FontProvider>
-      <ThemeProvider>
-        <FileProvider>
-          <ErrorBoundary>
-          <NavigationContainer>
-            <Stack.Navigator screenOptions={screenOptions}>
-              <Stack.Screen name="MainTabs" component={MainTabs} />
-              <Stack.Screen name="Category" component={CategoryScreen} />
-              <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
-              <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
-          </ErrorBoundary>
-        </FileProvider>
-      </ThemeProvider>
-      </FontProvider>
+      <ErrorBoundary>
+      <LanguageProvider>
+        <FontProvider>
+        <ThemeProvider>
+          <FileProvider>
+            <OverlayProvider>
+              <NavigationContainer>
+                <Stack.Navigator screenOptions={screenOptions}>
+                  <Stack.Screen name="MainTabs" component={MainTabs} />
+                  <Stack.Screen name="Category" component={CategoryScreen} />
+                  <Stack.Screen name="VideoPlayer">
+                    {(props) => (
+                      <PlayerBoundary>
+                        <VideoPlayerScreen {...props} />
+                      </PlayerBoundary>
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </OverlayProvider>
+          </FileProvider>
+        </ThemeProvider>
+        </FontProvider>
       </LanguageProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

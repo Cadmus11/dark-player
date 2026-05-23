@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { FileItem, HiddenFilesSettings } from '../types';
 import { fileEngine } from '../engine/FileEngine';
+import { permissionService } from '../services/PermissionService';
+import { taskManager, isCancelled } from '../services/Cancellation';
 
 interface MediaStoreState {
   videos: FileItem[];
@@ -11,11 +13,13 @@ interface MediaStoreState {
   scanStage: string;
   permissionsGranted: boolean;
   error: string | null;
+  hydrationStage: number;
 
   scanMedia: () => Promise<void>;
   loadCache: () => void;
   setPermissionsGranted: (granted: boolean) => void;
   setLoading: (loading: boolean) => void;
+  setHydrationStage: (stage: number) => void;
   getFilteredAudio: (settings: HiddenFilesSettings) => FileItem[];
   getHiddenAudio: (settings: HiddenFilesSettings) => FileItem[];
 }
@@ -28,6 +32,9 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   scanStage: '',
   permissionsGranted: false,
   error: null,
+  hydrationStage: 0,
+
+  setHydrationStage: (stage) => set({ hydrationStage: stage }),
 
   loadCache: () => {
     const cached = fileEngine.loadFromCache();
@@ -35,24 +42,32 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
       videos: cached.videos,
       audio: cached.audio,
       loading: false,
-      permissionsGranted: true,
+      permissionsGranted: permissionService.isGranted(),
+      hydrationStage: 2,
     });
   },
 
   scanMedia: async () => {
-    set({ loading: true, error: null });
+    taskManager.cancelScope('media-scan');
+    const token = taskManager.createScope('media-scan');
+    set({ loading: true, error: null, scanProgress: 0 });
     try {
       const result = await fileEngine.scanAll((progress, stage) => {
         set({ scanProgress: progress, scanStage: stage });
-      });
+      }, token);
       set({
         videos: result.videos,
         audio: result.audio,
         loading: false,
-        permissionsGranted: true,
+        permissionsGranted: permissionService.isGranted(),
         scanProgress: 1,
+        hydrationStage: 3,
       });
     } catch (e: any) {
+      if (isCancelled(e)) {
+        set({ loading: false });
+        return;
+      }
       set({
         loading: false,
         error: e?.message || 'Failed to scan media',
@@ -81,3 +96,12 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
     return state.audio.filter((f) => f.duration !== undefined && f.duration < minMs);
   },
 }));
+
+// Subscribe to permission changes
+permissionService.subscribe(() => {
+  const granted = permissionService.isGranted();
+  const current = useMediaStore.getState().permissionsGranted;
+  if (current !== granted) {
+    useMediaStore.setState({ permissionsGranted: granted });
+  }
+});

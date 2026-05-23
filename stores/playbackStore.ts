@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { audioEngine } from '../engine/AudioEngine';
 import type { FileItem, PlaybackSource, RepeatMode } from '../types';
+import { PlaybackTicker } from '../services/PlaybackTicker';
 
 interface PlaybackStoreState {
   currentFile: FileItem | null;
@@ -8,6 +9,7 @@ interface PlaybackStoreState {
   source: PlaybackSource;
   position: number;
   duration: number;
+  progress: number;
   queue: FileItem[];
   currentIndex: number;
   shuffle: boolean;
@@ -33,54 +35,50 @@ interface PlaybackStoreState {
 }
 
 const initialState = {
-  currentFile: null,
+  currentFile: null as FileItem | null,
   isPlaying: false,
   source: 'none' as PlaybackSource,
   position: 0,
   duration: 0,
-  queue: [],
+  progress: 0,
+  queue: [] as FileItem[],
   currentIndex: -1,
   shuffle: false,
   repeat: 'none' as RepeatMode,
   playbackSpeed: 1,
 };
 
+const _storeSelector = () => {
+  const s = audioEngine.getState();
+  return {
+    currentFile: s.currentFile,
+    isPlaying: s.isPlaying,
+    position: s.position,
+    duration: s.duration,
+    progress: s.duration > 0 ? s.position / s.duration : 0,
+    queue: s.queue,
+    currentIndex: s.currentIndex,
+    shuffle: s.shuffle,
+    repeat: s.repeat,
+    playbackSpeed: s.playbackSpeed,
+  };
+};
+
 export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
   ...initialState,
 
   play: (file, queue, startIndex) => {
-    const engineState = audioEngine.getState();
     if (file && queue && startIndex !== undefined) {
       audioEngine.play(file, queue, startIndex);
     } else {
       audioEngine.play();
     }
-    const s = audioEngine.getState();
-    set({
-      currentFile: s.currentFile,
-      isPlaying: s.isPlaying,
-      position: s.position,
-      duration: s.duration,
-      queue: s.queue,
-      currentIndex: s.currentIndex,
-      shuffle: s.shuffle,
-      repeat: s.repeat,
-      playbackSpeed: s.playbackSpeed,
-      source: 'music',
-    });
+    set({ ..._storeSelector(), source: 'music' });
   },
 
   playIndex: (index) => {
     audioEngine.playIndex(index);
-    const s = audioEngine.getState();
-    set({
-      currentFile: s.currentFile,
-      isPlaying: s.isPlaying,
-      position: s.position,
-      duration: s.duration,
-      currentIndex: s.currentIndex,
-      source: 'music',
-    });
+    set({ ..._storeSelector(), source: 'music' });
   },
 
   pause: () => {
@@ -95,8 +93,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
 
   togglePlay: () => {
     audioEngine.togglePlay();
-    const s = audioEngine.getState();
-    set({ isPlaying: s.isPlaying });
+    set({ isPlaying: audioEngine.getState().isPlaying });
   },
 
   stop: () => {
@@ -110,26 +107,12 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
 
   next: () => {
     audioEngine.next();
-    const s = audioEngine.getState();
-    set({
-      currentFile: s.currentFile,
-      isPlaying: s.isPlaying,
-      position: s.position,
-      duration: s.duration,
-      currentIndex: s.currentIndex,
-    });
+    set({ ..._storeSelector() });
   },
 
   previous: () => {
     audioEngine.previous();
-    const s = audioEngine.getState();
-    set({
-      currentFile: s.currentFile,
-      isPlaying: s.isPlaying,
-      position: s.position,
-      duration: s.duration,
-      currentIndex: s.currentIndex,
-    });
+    set({ ..._storeSelector() });
   },
 
   setRate: (rate) => {
@@ -144,14 +127,12 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
 
   cycleRepeat: () => {
     audioEngine.cycleRepeat();
-    const s = audioEngine.getState();
-    set({ repeat: s.repeat });
+    set({ repeat: audioEngine.getState().repeat });
   },
 
   toggleShuffle: () => {
     audioEngine.toggleShuffle();
-    const s = audioEngine.getState();
-    set({ shuffle: s.shuffle });
+    set({ shuffle: audioEngine.getState().shuffle });
   },
 
   setQueue: (queue, startIndex = 0) => {
@@ -160,36 +141,34 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
   },
 
   setSource: (source) => set({ source }),
-
   reset: () => set(initialState),
 }));
 
+// Subscribe to engine with throttled tick updates
 let _lastEngineState = '';
-audioEngine.subscribe((state) => {
+audioEngine.subscribe(() => {
+  const s = audioEngine.getState();
+  PlaybackTicker.updatePosition(s.position, s.duration);
+
   const store = usePlaybackStore.getState();
   if (store.source === 'music') {
     const snapshot = JSON.stringify([
-      state.currentFile?.uri,
-      state.isPlaying,
-      state.position,
-      state.duration,
-      state.currentIndex,
-      state.shuffle,
-      state.repeat,
-      state.playbackSpeed,
+      s.currentFile?.uri, s.isPlaying, s.position, s.duration,
+      s.currentIndex, s.shuffle, s.repeat, s.playbackSpeed,
     ]);
     if (snapshot === _lastEngineState) return;
     _lastEngineState = snapshot;
     usePlaybackStore.setState({
-      currentFile: state.currentFile,
-      isPlaying: state.isPlaying,
-      position: state.position,
-      duration: state.duration,
-      queue: state.queue,
-      currentIndex: state.currentIndex,
-      shuffle: state.shuffle,
-      repeat: state.repeat,
-      playbackSpeed: state.playbackSpeed,
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      position: s.position,
+      duration: s.duration,
+      progress: s.duration > 0 ? s.position / s.duration : 0,
+      queue: s.queue,
+      currentIndex: s.currentIndex,
+      shuffle: s.shuffle,
+      repeat: s.repeat,
+      playbackSpeed: s.playbackSpeed,
     });
   }
 });

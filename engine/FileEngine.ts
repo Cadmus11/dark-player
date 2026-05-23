@@ -1,7 +1,11 @@
 import * as MediaLibrary from 'expo-media-library';
 import { MMKV } from 'react-native-mmkv';
 import { Platform } from 'react-native';
-import type { FileItem, FileType, MediaMetadata } from '../types';
+import type { FileItem, FileType } from '../types';
+import { permissionService } from '../services/PermissionService';
+import { CancellationToken, isCancelled } from '../services/Cancellation';
+import { eventBus, AppEvents } from '../services/EventBus';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const FileSystem: any = require('expo-file-system');
 
 const storage = new MMKV({ id: 'file-engine' });
@@ -12,6 +16,7 @@ const CACHE_KEYS = {
   metadata: '@fe_metadata',
   timestamp: '@fe_timestamp',
   version: '@fe_version',
+  lastModified: '@fe_last_modified',
 };
 
 const EXTENSION_MAP: Record<string, FileType> = {
@@ -29,8 +34,15 @@ const ART_COLORS = [
 
 type ScanCallback = (progress: number, stage: string) => void;
 
+interface FileEngineState {
+  videos: FileItem[];
+  audio: FileItem[];
+  lastModified: number;
+}
+
 export class FileEngine {
   private static instance: FileEngine;
+  private _state: FileEngineState = { videos: [], audio: [], lastModified: 0 };
 
   static getInstance(): FileEngine {
     if (!FileEngine.instance) {
@@ -83,13 +95,32 @@ export class FileEngine {
     Object.values(CACHE_KEYS).forEach((k) => storage.delete(k));
   }
 
-  async scanAll(onProgress?: ScanCallback): Promise<{
-    videos: FileItem[];
-    audio: FileItem[];
-  }> {
+  private _getLastModified(): number {
+    return storage.getNumber(CACHE_KEYS.lastModified) || 0;
+  }
+
+  private _setLastModified(time: number) {
+    storage.set(CACHE_KEYS.lastModified, time);
+  }
+
+  // Incremental scan support: detect changes since last scan
+  private _shouldIncrementalScan(): boolean {
+    const lastModified = this._getLastModified();
+    if (!lastModified) return false;
+    return Date.now() - lastModified < 7 * 24 * 60 * 60 * 1000;
+  }
+
+  async scanAll(
+    onProgress?: ScanCallback,
+    token?: CancellationToken,
+  ): Promise<{ videos: FileItem[]; audio: FileItem[] }> {
+    const ct = token || new CancellationToken();
     onProgress?.(0, 'Requesting permissions...');
-    const perm = await this.requestPermissions();
-    if (!perm) {
+
+    await permissionService.requestMediaLibrary();
+    ct.throwIfCancelled();
+
+    if (!permissionService.isGranted()) {
       return { videos: [], audio: [] };
     }
 
@@ -97,32 +128,45 @@ export class FileEngine {
       return { videos: [], audio: [] };
     }
 
-    onProgress?.(0.1, 'Scanning media library...');
+    onProgress?.(0.15, 'Checking for changes...');
+    ct.throwIfCancelled();
+
+    // Incremental: try cached first
+    if (this.hasCache() && !this.shouldRescan()) {
+      const cached = this.loadFromCache();
+      this._state = { videos: cached.videos, audio: cached.audio, lastModified: this._getLastModified() };
+      onProgress?.(1, 'Done (cached)');
+      return cached;
+    }
+
+    onProgress?.(0.3, 'Scanning media library...');
+    ct.throwIfCancelled();
+
     const [mediaVideos, mediaAudio] = await Promise.all([
-      this._getMediaFiles('video'),
-      this._getMediaFiles('audio'),
+      this._getMediaFiles('video', ct),
+      this._getMediaFiles('audio', ct),
     ]);
 
-    this._saveCache(mediaVideos, mediaAudio);
-    onProgress?.(1, 'Done');
+    ct.throwIfCancelled();
+    onProgress?.(0.8, 'Caching results...');
 
+    this._saveCache(mediaVideos, mediaAudio);
+    this._state = { videos: mediaVideos, audio: mediaAudio, lastModified: Date.now() };
+    this._setLastModified(Date.now());
+
+    onProgress?.(1, 'Done');
+    eventBus.emit(AppEvents.SCAN_COMPLETED, { videos: mediaVideos.length, audio: mediaAudio.length });
     return { videos: mediaVideos, audio: mediaAudio };
   }
 
-  loadFromCache(): {
-    videos: FileItem[];
-    audio: FileItem[];
-  } {
+  loadFromCache(): { videos: FileItem[]; audio: FileItem[] } {
     return {
       videos: this._getCached(CACHE_KEYS.videos),
       audio: this._getCached(CACHE_KEYS.audio),
     };
   }
 
-  private _saveCache(
-    videos: FileItem[],
-    audio: FileItem[],
-  ) {
+  private _saveCache(videos: FileItem[], audio: FileItem[]) {
     storage.set(CACHE_KEYS.videos, JSON.stringify(videos));
     storage.set(CACHE_KEYS.audio, JSON.stringify(audio));
     storage.set(CACHE_KEYS.timestamp, Date.now());
@@ -133,12 +177,13 @@ export class FileEngine {
     try {
       const data = storage.getString(key);
       return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
-  private async _getMediaFiles(type: 'video' | 'audio'): Promise<FileItem[]> {
+  private async _getMediaFiles(
+    type: 'video' | 'audio',
+    token: CancellationToken,
+  ): Promise<FileItem[]> {
     try {
       const mediaType = type === 'audio' ? 'audio' : 'video';
       const { assets } = await MediaLibrary.getAssetsAsync({
@@ -147,8 +192,11 @@ export class FileEngine {
         sortBy: ['creationTime'],
       });
 
+      token.throwIfCancelled();
+
       const items: FileItem[] = [];
       for (const asset of assets) {
+        token.throwIfCancelled();
         let size = (asset as any).fileSize ?? undefined;
         if (!size) {
           try {
@@ -169,19 +217,15 @@ export class FileEngine {
         });
       }
       return items;
-    } catch {
+    } catch (e) {
+      if (isCancelled(e)) throw e;
       return [];
     }
   }
 
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'web') return true;
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      return status === 'granted';
-    } catch {
-      return false;
-    }
+    await permissionService.requestMediaLibrary();
+    return permissionService.isGranted();
   }
 }
 
