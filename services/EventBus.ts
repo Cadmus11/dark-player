@@ -20,6 +20,7 @@ export const AppEvents = {
   FAVORITES_CHANGED: 'favorites:changed',
   STORAGE_PRESSURE: 'storage:pressure',
   MEMORY_WARNING: 'memory:warning',
+  HYDRATION_PHASE: 'hydration:phase',
 } as const;
 
 export type AppEvent = (typeof AppEvents)[keyof typeof AppEvents];

@@ -5,7 +5,7 @@ import { fileEngine } from '../engine/FileEngine';
 import { lifecycleManager } from './LifecycleManager';
 import { permissionService } from './PermissionService';
 import { taskManager } from './Cancellation';
-import { eventBus } from './EventBus';
+import { eventBus, AppEvents } from './EventBus';
 
 type HydrationPhase = (() => Promise<void>)[];
 
@@ -64,7 +64,7 @@ export function startHydration(): Promise<void> {
     for (let i = 0; i < HYDRATION_PHASES.length; i++) {
       try {
         await HYDRATION_PHASES[i]();
-        eventBus.emit('hydration:phase' as any, i + 1);
+        eventBus.emit(AppEvents.HYDRATION_PHASE, i + 1);
       } catch {}
     }
   })();

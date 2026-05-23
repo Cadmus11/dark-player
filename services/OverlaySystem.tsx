@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import {
   View,
+  Text,
   Modal,
   Animated,
   Dimensions,
@@ -207,9 +208,9 @@ export function BottomSheet({
             <View className="mb-4 h-1 w-10 self-center rounded-full bg-zinc-500" />
             {title ? (
               <View className="mb-2 px-5">
-                <Animated.Text className="text-center text-lg font-extrabold text-white">
+                <Text className="text-center text-lg font-extrabold text-white">
                   {title}
-                </Animated.Text>
+                </Text>
               </View>
             ) : null}
             {children}

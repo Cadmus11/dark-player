@@ -83,16 +83,6 @@ export class AudioEngine {
     this._state.shuffle = qs.shuffle;
   }
 
-  private _syncToQueueEngine() {
-    queueEngine['_audioQueue'] = {
-      queue: this._state.queue,
-      currentIndex: this._state.currentIndex,
-      repeat: this._state.repeat,
-      shuffle: this._state.shuffle,
-      shuffledOrder: [],
-    };
-  }
-
   private _loadSettings() {
     try {
       const data = storage.getString(SETTINGS_KEY);
