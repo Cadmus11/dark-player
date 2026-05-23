@@ -56,7 +56,7 @@ import { NeonSlider } from '../components/NeonSlider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MusicPlayer'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function MusicPlayerScreen({ navigation, route }: Props) {
@@ -142,6 +142,8 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     })
   ).current;
 
+  const translateMenuY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
   const menuPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -153,8 +155,14 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       },
       onPanResponderRelease: (_, gs) => {
         if (gs.dy > 80) {
-          setShowMenu(false);
-          translateMenuY.setValue(0);
+          Animated.timing(translateMenuY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowMenu(false);
+            translateMenuY.setValue(SCREEN_HEIGHT);
+          });
         } else {
           Animated.spring(translateMenuY, {
             toValue: 0,
@@ -163,12 +171,28 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         }
       },
       onPanResponderTerminate: () => {
-        translateMenuY.setValue(0);
+        Animated.timing(translateMenuY, {
+          toValue: SCREEN_HEIGHT,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => translateMenuY.setValue(SCREEN_HEIGHT));
       },
     })
   ).current;
 
-  const translateMenuY = useRef(new Animated.Value(0)).current;
+  const prevShowMenu = useRef(showMenu);
+  useEffect(() => {
+    if (showMenu && !prevShowMenu.current) {
+      translateMenuY.setValue(SCREEN_HEIGHT);
+      Animated.spring(translateMenuY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    }
+    prevShowMenu.current = showMenu;
+  }, [showMenu, translateMenuY]);
 
   const pulseAnim = useState(() => new Animated.Value(0))[0];
 
@@ -576,10 +600,19 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       </Animated.View>
 
       {/* Menu Bottom Sheet */}
-      <Modal visible={showMenu} transparent animationType="slide">
+      <Modal visible={showMenu} transparent animationType="fade">
         <TouchableOpacity
           className="flex-1 justify-end bg-black/70"
-          onPress={() => setShowMenu(false)}
+          onPress={() => {
+            Animated.timing(translateMenuY, {
+              toValue: SCREEN_HEIGHT,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
+              setShowMenu(false);
+              translateMenuY.setValue(SCREEN_HEIGHT);
+            });
+          }}
           activeOpacity={1}>
           <Animated.View
             style={{ transform: [{ translateY: translateMenuY }] }}

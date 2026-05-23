@@ -25,7 +25,7 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
   { field: 'type', label: 'Type' },
 ];
 
-export function VideosScreen() {
+export const VideosScreen = React.memo(function VideosScreen() {
   const { videos } = useFiles();
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor } = useTheme();
@@ -144,4 +144,4 @@ export function VideosScreen() {
       {renderSortModal}
     </ScreenLayout>
   );
-}
+});

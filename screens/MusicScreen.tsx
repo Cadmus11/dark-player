@@ -44,7 +44,7 @@ function getLetter(name: string): string {
   return /[A-Z]/.test(char) ? char : '#';
 }
 
-export function MusicScreen() {
+export const MusicScreen = React.memo(function MusicScreen() {
   const { audio, createPlaylist, addToPlaylist, playlists } = useFiles();
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor } = useTheme();
@@ -420,4 +420,4 @@ export function MusicScreen() {
       )}
     </ScreenLayout>
   );
-}
+});

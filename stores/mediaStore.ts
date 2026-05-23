@@ -35,6 +35,7 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
       videos: cached.videos,
       audio: cached.audio,
       loading: false,
+      permissionsGranted: true,
     });
   },
 

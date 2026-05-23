@@ -147,17 +147,28 @@ export class FileEngine {
         sortBy: ['creationTime'],
       });
 
-      return assets.map((asset) => ({
-        uri: asset.uri,
-        name: asset.filename,
-        type,
-        modifiedAt: asset.modificationTime * 1000,
-        createdAt: asset.creationTime * 1000,
-        thumbnail: type !== 'audio' ? asset.uri : undefined,
-        duration: asset.duration ? asset.duration * 1000 : undefined,
-        artColor: this.getArtColor(asset.filename),
-        size: (asset as any).fileSize ?? undefined,
-      }));
+      const items: FileItem[] = [];
+      for (const asset of assets) {
+        let size = (asset as any).fileSize ?? undefined;
+        if (!size) {
+          try {
+            const info = await FileSystem.getInfoAsync(asset.uri);
+            if (info.exists) size = info.size;
+          } catch {}
+        }
+        items.push({
+          uri: asset.uri,
+          name: asset.filename,
+          type,
+          modifiedAt: asset.modificationTime * 1000,
+          createdAt: asset.creationTime * 1000,
+          thumbnail: type !== 'audio' ? asset.uri : undefined,
+          duration: asset.duration ? asset.duration * 1000 : undefined,
+          artColor: this.getArtColor(asset.filename),
+          size,
+        });
+      }
+      return items;
     } catch {
       return [];
     }

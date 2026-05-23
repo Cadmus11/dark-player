@@ -23,7 +23,7 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
   { type: 'audio', label: 'Music', Icon: MusicNote },
 ];
 
-export function SearchScreen() {
+export const SearchScreen = React.memo(function SearchScreen() {
   const navigation = useNavigation<any>();
   const { files } = useFiles();
   const { primaryColor, textColor, mutedColor } = useTheme();
@@ -193,4 +193,4 @@ export function SearchScreen() {
       />
     </ScreenLayout>
   );
-}
+});

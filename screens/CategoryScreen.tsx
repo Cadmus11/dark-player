@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, VideoCamera, MusicNote } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
+import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
@@ -25,6 +26,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon } = route.params;
   const { videos, audio } = useFiles();
+  const { textColor, mutedColor } = useTheme();
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || MusicNote;
 
@@ -42,19 +44,19 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
           <FileIcon type={item.type} size={22} />
         </View>
         <View className="flex-1">
-          <Text className="text-[15px] text-white mb-1" numberOfLines={1}>{item.name}</Text>
+          <Text className="text-[15px] mb-1" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
           <View className="flex-row items-center">
-            {item.size && <Text className="text-xs text-white/50">{formatFileSize(item.size)}</Text>}
+            {item.size && <Text className="text-xs" style={{ color: mutedColor }}>{formatFileSize(item.size)}</Text>}
             {item.duration && (
               <>
-                <Text className="text-xs text-white/30 mx-1.5">•</Text>
-                <Text className="text-xs text-white/50">{formatDuration(item.duration)}</Text>
+                <Text className="text-xs mx-1.5" style={{ color: mutedColor }}>•</Text>
+                <Text className="text-xs" style={{ color: mutedColor }}>{formatDuration(item.duration)}</Text>
               </>
             )}
           </View>
         </View>
       </View>
-      <Text className="text-xl text-white/30">›</Text>
+      <Text className="text-xl" style={{ color: mutedColor }}>›</Text>
     </TouchableOpacity>
   );
 
@@ -62,11 +64,11 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
     <ScreenLayout noTopBar>
       <View className="flex-row items-center justify-between pt-[60] px-5 pb-5">
         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2.5">
-          <CaretLeft size={24} color="#ffffff" />
+          <CaretLeft size={24} color={textColor} />
         </TouchableOpacity>
         <View className="flex-row items-center">
-          <CategoryIcon size={20} color="#ffffff" />
-          <Text className="text-xl font-semibold text-white ml-1"> {title}</Text>
+          <CategoryIcon size={20} color={textColor} />
+          <Text className="text-xl font-semibold ml-1" style={{ color: textColor }}> {title}</Text>
         </View>
         <View className="w-10" />
       </View>
@@ -82,8 +84,8 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         initialNumToRender={8}
         ListEmptyComponent={
           <View className="items-center justify-center py-[100]">
-            <CategoryIcon size={64} color="rgba(255, 255, 255, 0.5)" />
-            <Text className="text-base text-white/50 mt-4">No {title.toLowerCase()} found</Text>
+            <CategoryIcon size={64} color={mutedColor} />
+            <Text className="text-base mt-4" style={{ color: mutedColor }}>No {title.toLowerCase()} found</Text>
           </View>
         }
       />

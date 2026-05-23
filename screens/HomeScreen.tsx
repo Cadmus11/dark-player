@@ -11,6 +11,8 @@ import {
   Alert,
   Linking,
   Platform,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as MediaLibrary from 'expo-media-library';
@@ -125,7 +127,7 @@ function DoughnutChart({
   );
 }
 
-export function HomeScreen() {
+export const HomeScreen = React.memo(function HomeScreen() {
   const navigation = useNavigation<any>();
   const {
     permissionsGranted,
@@ -237,31 +239,20 @@ export function HomeScreen() {
     { value: deviceFree, color: 'rgba(255,255,255,0.1)' },
   ];
 
+  const [showPlaylistInput, setShowPlaylistInput] = useState(false);
+  const [playlistInput, setPlaylistInput] = useState('');
+
   const handleCreatePlaylist = () => {
-    const defaultName = `Playlist ${playlists.length + 1}`;
-    if (Platform.OS === 'ios') {
-      Alert.prompt(
-        'New Playlist',
-        'Enter a name',
-        async (name) => {
-          if (name?.trim()) {
-            await createPlaylist(name.trim());
-          }
-        },
-        'plain-text',
-        defaultName
-      );
-    } else {
-      Alert.alert('New Playlist', 'Enter a name', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Create',
-          onPress: async () => {
-            await createPlaylist(defaultName);
-          },
-        },
-      ]);
+    setPlaylistInput(`Playlist ${playlists.length + 1}`);
+    setShowPlaylistInput(true);
+  };
+
+  const handlePlaylistCreateConfirm = async () => {
+    if (playlistInput.trim()) {
+      await createPlaylist(playlistInput.trim());
     }
+    setShowPlaylistInput(false);
+    setPlaylistInput('');
   };
 
   const handlePlaylistLongPress = (playlist: Playlist) => {
@@ -577,6 +568,43 @@ export function HomeScreen() {
 
         <View className="h-[100px]" />
       </Animated.ScrollView>
+
+      {/* Playlist Name Input Modal */}
+      <Modal visible={showPlaylistInput} transparent animationType="fade">
+        <View className="flex-1 items-center justify-center bg-black/70">
+          <View className="w-[85%] max-w-[360px] rounded-2xl border border-white/10 bg-[#1a1a2e] p-6">
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
+              New Playlist
+            </Text>
+            <TextInput
+              className="mb-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+              style={{ color: textColor }}
+              placeholder="Playlist name"
+              placeholderTextColor={mutedColor}
+              value={playlistInput}
+              onChangeText={setPlaylistInput}
+              autoFocus
+              selectTextOnFocus
+            />
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl bg-white/10 py-3"
+                onPress={() => {
+                  setShowPlaylistInput(false);
+                  setPlaylistInput('');
+                }}>
+                <Text className="text-sm font-semibold" style={{ color: mutedColor }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: primaryColor }}
+                onPress={handlePlaylistCreateConfirm}>
+                <Text className="text-sm font-bold" style={{ color: '#18181b' }}>Create</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
-}
+});

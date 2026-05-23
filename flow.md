@@ -10,22 +10,23 @@ FileEngine (singleton, MMKV cache)
   - scanAll() reads from device APIs, caches results as JSON in MMKV
   - loadFromCache() reads MMKV for instant offline startup
   - ShouldRescan() triggers full scan if >24h stale or CACHE_VERSION mismatch
+  - Falls back to FileSystem.getInfoAsync() when asset.fileSize is null
   |
   v
 mediaStore (Zustand)
   - scanMedia() calls FileEngine.scanAll(), sets loading/progress/result arrays
-  - loadCache() calls FileEngine.loadFromCache() on startup
+  - loadCache() calls FileEngine.loadFromCache() on startup, sets permissionsGranted: true
   - getFilteredAudio() applies hidden-files filter (<15s songs excluded by default)
   |
   v
 FileContext (React context)
   - Reads mediaStore, playlistStore, settingsStore
-  - Derives: visibleAudio, allFiles, categories, docCategories, playlists,
+  - Derives: visibleAudio, allFiles, categories, playlists,
     favoriteFiles, recentlyPlayed, searchHistory (all via useMemo)
   - On mount: loads settings, playlists, cache; triggers scan if needed
   |
   v
-Screens & Components
+Screens & Components (React.memo wrapped)
   - useFiles() hook from FileContext for file data/actions
   - useMediaStore(selector) for direct store reads (minimal re-renders)
 ```
@@ -64,11 +65,12 @@ Components
 User taps video file -> VideoPlayerScreen
   |
   v
-VideoPlayerScreen (no store wrapper, uses VideoEngine directly)
-  - Creates <Video ref={videoRef}> and passes to VideoEngine.attachVideoRef()
-  - VideoEngine handles load, play/pause, subtitle polling, fullscreen
+VideoPlayerScreen (no store wrapper, uses expo-video VideoPlayer + VideoView)
+  - Creates useVideoPlayer({ uri }) and renders <VideoView style={{ flex: 1 }}>
   - Play modes (loop, loopAll, shuffle, pauseAfter) managed locally
-  - HistoryService.record() on track end
+  - Subtitle support (SRT parsing, sync polling)
+  - PanResponder swipe-up/down for next/prev video
+  - Bottom sheets animate from off-screen (translateY = screenHeight -> 0)
   |
   v
 MiniPlayer (persistent above tab bar when source==='video')
@@ -78,27 +80,28 @@ MiniPlayer (persistent above tab bar when source==='video')
 
 ```
 App.tsx
-  NavigationContainer
-    Stack.Navigator (no header, transparent cards)
-      MainTabs (BottomTabNavigator, custom BottomTabBar)
-      | -- HomeTab       -> HomeScreen
-      | -- MusicTab      -> MusicScreen
-      | -- VideosTab     -> VideosScreen
-      | -- DocumentsTab  -> DocumentsScreen
-      | -- SearchTab     -> SearchScreen
-      | -- SettingsTab   -> SettingsScreen
-      |
-      | -- (modal) Category       -> CategoryScreen
-      | -- (modal) VideoPlayer    -> VideoPlayerScreen
-      | -- (modal) MusicPlayer    -> MusicPlayerScreen
-      | -- (modal) ImageViewer    -> ImageViewerScreen
-      | -- (modal) DocumentViewer -> DocumentViewerScreen
-      | -- (modal) DocumentReader -> DocumentReaderScreen
-      | -- (modal) Profile        -> ProfileScreen
-      |
-      Permanent overlays (inside MainTabs):
-        - NowPlayingBar (audio, above tab bar)
-        - MiniPlayer (video, above tab bar)
+  SafeAreaProvider
+    LanguageProvider
+      FontProvider
+        ThemeProvider
+          FileProvider
+            ErrorBoundary
+              NavigationContainer
+                Stack.Navigator (no header, transparent cards)
+                  MainTabs (BottomTabNavigator, tabBar={() => null})
+                  | -- HomeTab       -> HomeScreen
+                  | -- MusicTab      -> MusicScreen
+                  | -- VideosTab     -> VideosScreen
+                  | -- SearchTab     -> SearchScreen
+                  | -- SettingsTab   -> SettingsScreen
+                  |
+                  | -- (modal) Category       -> CategoryScreen
+                  | -- (modal) VideoPlayer    -> VideoPlayerScreen
+                  | -- (modal) MusicPlayer    -> MusicPlayerScreen
+                  |
+                  Permanent overlays (inside MainTabs):
+                    - NowPlayingBar (audio, above tab bar)
+                    - MiniPlayer (video, above tab bar)
 ```
 
 ## 4. State Management Flow
@@ -124,7 +127,35 @@ App.tsx
   └─────────────────────────┬───────────────────────────────┘
                             │
                             v
-  SCREENS & COMPONENTS (selectors for perf)
+  SCREENS & COMPONENTS (React.memo, selectors for perf)
+```
+
+## 5. Bottom Sheet Pattern
+
+```
+User taps trigger (e.g. 3-dot menu)
+  |
+  v
+State setter (e.g. setShowMenu(true))
+  |
+  v
+Modal visible={true} animationType="fade"
+  |
+  v
+useEffect watches isVisible:
+  - translateY = screenHeight (off-screen below)
+  -> Animated.spring(translateY, { toValue: 0, ... })
+  |
+  v
+Content slides up from below the screen into view
+  |
+  v
+On swipe-down (>80px) or backdrop tap:
+  -> Animated.timing(translateY, { toValue: screenHeight })
+     .start(() => onClose())
+  |
+  v
+Sheet exits downward, then modal hides
 ```
 
 ## Key Flow Patterns
@@ -135,3 +166,6 @@ App.tsx
 - **Screens** prefer direct store selectors over FileContext when reading individual fields (performance)
 - **VideoPlayerScreen** is the exception — reads VideoEngine directly without a store wrapper
 - **Settings** persist to MMKV via settingsStore and load on every app start
+- **Bottom sheets** use spring entry (from off-screen) and timed exit (to off-screen) for smooth animations
+- **Theme** provides dynamic textColor/mutedColor — never hardcode `text-white` (breaks light mode)
+- **Permissions** are auto-granted on cache load so permission screen doesn't reappear every open

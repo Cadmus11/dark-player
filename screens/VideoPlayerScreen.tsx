@@ -355,8 +355,25 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   ).current;
 
   // Bottom sheet swipe down helpers
-  function useSheetSwipe(onClose: () => void) {
-    const translateY = useRef(new Animated.Value(0)).current;
+  const SHEET_OFFSCREEN = Dimensions.get('window').height;
+
+  function useSheetSwipe(onClose: () => void, isVisible: boolean) {
+    const translateY = useRef(new Animated.Value(SHEET_OFFSCREEN)).current;
+    const prevVisible = useRef(isVisible);
+
+    useEffect(() => {
+      if (isVisible && !prevVisible.current) {
+        translateY.setValue(SHEET_OFFSCREEN);
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }).start();
+      }
+      prevVisible.current = isVisible;
+    }, [isVisible, translateY]);
+
     const pan = useRef(
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
@@ -366,24 +383,36 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         },
         onPanResponderRelease: (_, gs) => {
           if (gs.dy > 80) {
-            onClose();
-            translateY.setValue(0);
+            Animated.timing(translateY, {
+              toValue: SHEET_OFFSCREEN,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
+              onClose();
+              translateY.setValue(SHEET_OFFSCREEN);
+            });
           } else {
             Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
           }
         },
-        onPanResponderTerminate: () => translateY.setValue(0),
+        onPanResponderTerminate: () => {
+          Animated.timing(translateY, {
+            toValue: SHEET_OFFSCREEN,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => translateY.setValue(SHEET_OFFSCREEN));
+        },
       })
     ).current;
     return { translateY, panHandlers: pan.panHandlers };
   }
 
-  const menuSheet = useSheetSwipe(() => setShowMenu(false));
-  const playModeSheet = useSheetSwipe(() => setShowPlayModeModal(false));
-  const audioTrackSheet = useSheetSwipe(() => setShowAudioTrackModal(false));
-  const speedSheet = useSheetSwipe(() => setShowSpeedModal(false));
-  const resizeSheet = useSheetSwipe(() => setShowResizeModal(false));
-  const infoSheet = useSheetSwipe(() => setShowInfo(false));
+  const menuSheet = useSheetSwipe(() => setShowMenu(false), showMenu);
+  const playModeSheet = useSheetSwipe(() => setShowPlayModeModal(false), showPlayModeModal);
+  const audioTrackSheet = useSheetSwipe(() => setShowAudioTrackModal(false), showAudioTrackModal);
+  const speedSheet = useSheetSwipe(() => setShowSpeedModal(false), showSpeedModal);
+  const resizeSheet = useSheetSwipe(() => setShowResizeModal(false), showResizeModal);
+  const infoSheet = useSheetSwipe(() => setShowInfo(false), showInfo);
 
   function renderSheet(
     visible: boolean,
@@ -394,9 +423,18 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     children: React.ReactNode
   ) {
     return (
-      <Modal visible={visible} transparent animationType="slide">
+      <Modal visible={visible} transparent animationType="fade">
         <View className="flex-1 justify-end bg-black/70">
-          <TouchableOpacity className="flex-1" onPress={onClose} activeOpacity={1} />
+          <TouchableOpacity className="flex-1" onPress={() => {
+            Animated.timing(translateY, {
+              toValue: SHEET_OFFSCREEN,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
+              onClose();
+              translateY.setValue(SHEET_OFFSCREEN);
+            });
+          }} activeOpacity={1} />
           <Animated.View style={{ transform: [{ translateY }] }} {...panHandlers}>
             <TouchableOpacity
               activeOpacity={1}
@@ -420,7 +458,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         {!isAudioOnly && (
           <VideoView
             player={player}
-            className="h-full w-full"
+            style={{ flex: 1, width: '100%', height: '100%' }}
             contentFit={contentFit}
             nativeControls={false}
             allowsPictureInPicture={Platform.OS !== 'web'}

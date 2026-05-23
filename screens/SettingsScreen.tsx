@@ -111,7 +111,7 @@ type ActiveView =
   | 'privateFolder'
   | 'futureUpdates';
 
-export function SettingsScreen() {
+export const SettingsScreen = React.memo(function SettingsScreen() {
   const {
     setBackgroundImage,
     clearBackgroundImage,
@@ -125,6 +125,8 @@ export function SettingsScreen() {
     setDarkMode,
     isDarkMode,
     primaryColor,
+    textColor,
+    mutedColor,
     availableColorThemes,
     currentColorThemeName,
   } = useTheme();
@@ -353,7 +355,7 @@ export function SettingsScreen() {
           className="flex-row items-center border-b border-b-white/5 px-2 py-[14]"
           onPress={() => handleSettingPress(item.id)}>
           <item.Icon size={22} color="#ffffff" />
-          <Text className="ml-[14] flex-1 text-[15px] text-white">{item.label}</Text>
+          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>{item.label}</Text>
           {item.id === 'playtime' && totalPlaytime !== '0s' && (
             <Text className="mr-2 text-[13px] text-white/50">{totalPlaytime}</Text>
           )}
@@ -376,7 +378,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.theme')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.theme')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -384,7 +386,7 @@ export function SettingsScreen() {
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
           <Sun size={22} color="#ffffff" />
-          <Text className="ml-[14] flex-1 text-[15px] text-white">Dark Mode</Text>
+          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>Dark Mode</Text>
           <Switch
             value={isDarkMode}
             onValueChange={setDarkMode}
@@ -395,7 +397,7 @@ export function SettingsScreen() {
       </View>
 
       {/* Gradient Themes */}
-      <Text className="mb-3 mt-2 text-lg font-semibold text-white">Gradients</Text>
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>Gradients</Text>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         <View className="flex-row flex-wrap gap-2.5 p-2">
           {[
@@ -428,7 +430,7 @@ export function SettingsScreen() {
       </View>
 
       {/* Color Themes */}
-      <Text className="mb-3 mt-2 text-lg font-semibold text-white">
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         {t('settings.colorThemes')}
       </Text>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -462,7 +464,7 @@ export function SettingsScreen() {
       </View>
 
       {/* Accent Colors */}
-      <Text className="mb-3 mt-2 text-lg font-semibold text-white">
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         {t('settings.accentColor')}
       </Text>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -490,7 +492,7 @@ export function SettingsScreen() {
       </View>
 
       {/* Layout Size */}
-      <Text className="mb-3 mt-5 text-lg font-semibold text-white">Layout Size</Text>
+      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>Layout Size</Text>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         <View className="flex-row gap-2 p-1">
           {(['small', 'medium', 'big'] as const).map((size) => (
@@ -525,7 +527,7 @@ export function SettingsScreen() {
       </View>
 
       {/* Background Image */}
-      <Text className="mb-3 mt-2 text-lg font-semibold text-white">Background Image</Text>
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>Background Image</Text>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-4">
         {theme.backgroundImageUri ? (
           <View className="mb-3">
@@ -664,7 +666,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('about.title')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('about.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -724,7 +726,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.selectLanguage')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectLanguage')}</Text>
         <View style={{ width: 44 }} />
       </View>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -754,7 +756,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.selectFont')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectFont')}</Text>
         <View style={{ width: 44 }} />
       </View>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -783,7 +785,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.hiddenFiles')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.hiddenFiles')}</Text>
         <View style={{ width: 44 }} />
       </View>
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
@@ -826,7 +828,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.recentlyDeleted')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.recentlyDeleted')}</Text>
         <View style={{ width: 44 }} />
       </View>
       {recentlyDeleted.length > 0 && (
@@ -938,7 +940,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">Private Folder</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>Private Folder</Text>
         <View style={{ width: 44 }} />
       </View>
       {!privateFolderExists ? (
@@ -1054,7 +1056,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.playback')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.playback')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -1136,7 +1138,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.notifications')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.notifications')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -1178,7 +1180,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.sleepTimer')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.sleepTimer')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -1302,7 +1304,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">{t('settings.removeAds')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.removeAds')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -1314,8 +1316,8 @@ export function SettingsScreen() {
             weight={adsRemoved ? 'fill' : 'regular'}
           />
           <Text
-            className="text-[22px] font-bold text-white"
-            style={adsRemoved && { color: primaryColor }}>
+            className="text-[22px] font-bold"
+            style={adsRemoved ? { color: primaryColor } : { color: textColor }}>
             {adsRemoved ? t('settings.removeAdsPurchased') : t('settings.removeAdsPurchase')}
           </Text>
           <Text className="px-5 text-center text-sm text-white/50">
@@ -1441,7 +1443,7 @@ export function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color="#ffffff" />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold text-white">Future Updates</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>Future Updates</Text>
         <View style={{ width: 44 }} />
       </View>
       <Text className="mb-4 px-1 text-[13px] text-white/40">
@@ -1513,7 +1515,7 @@ export function SettingsScreen() {
   return (
     <ScreenLayout>
       <ScrollView contentContainerClassName="px-5">
-        <Text className="mb-4 text-xl font-semibold text-white">{t('settings.title')}</Text>
+        <Text className="mb-4 text-xl font-semibold" style={{ color: textColor }}>{t('settings.title')}</Text>
         <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
           {renderMainList()}
         </View>
@@ -1521,4 +1523,4 @@ export function SettingsScreen() {
       </ScrollView>
     </ScreenLayout>
   );
-}
+});

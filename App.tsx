@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { FileProvider } from './context/FileContext';
@@ -81,7 +80,6 @@ export default function App() {
               <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
             </Stack.Navigator>
           </NavigationContainer>
-          <StatusBar style="auto" />
           </ErrorBoundary>
         </FileProvider>
       </ThemeProvider>
