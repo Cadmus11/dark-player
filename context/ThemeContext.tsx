@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'nativewind';
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
-import type { ThemeSettings, ColorTheme } from '../types';
+import type { ThemeSettings, ColorTheme, LayoutSize } from '../types';
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -28,6 +28,7 @@ interface ThemeContextType {
   clearBackgroundImage: () => Promise<void>;
   setBackgroundBlur: (blur: number) => Promise<void>;
   setBackgroundFit: (fit: 'cover' | 'contain') => Promise<void>;
+  setSizeMode: (mode: LayoutSize) => Promise<void>;
   getAccentWithOpacity: (alpha: number) => string;
   availableColorThemes: ColorTheme[];
   currentColorThemeName: string;
@@ -43,6 +44,7 @@ const DARK_THEME: ThemeSettings = {
   backgroundImageFit: 'cover',
   primaryColor: '#C2FC4A',
   accentColor: '#C2FC4A',
+  sizeMode: 'medium',
 };
 
 const LIGHT_THEME: ThemeSettings = {
@@ -53,6 +55,7 @@ const LIGHT_THEME: ThemeSettings = {
   backgroundImageFit: 'cover',
   primaryColor: '#F97316',
   accentColor: '#F97316',
+  sizeMode: 'medium',
 };
 
 const AVAILABLE_THEMES = [
@@ -220,6 +223,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     await updateTheme({ backgroundImageFit: fit });
   }
 
+  async function setSizeMode(mode: LayoutSize) {
+    await updateTheme({ sizeMode: mode });
+  }
+
   async function setDarkMode(dark: boolean) {
     setIsDarkMode(dark);
     setColorScheme(dark ? 'dark' : 'light');
@@ -254,6 +261,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         clearBackgroundImage,
         setBackgroundBlur,
         setBackgroundFit,
+        setSizeMode,
         isDarkMode,
         textColor,
         mutedColor,

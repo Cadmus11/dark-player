@@ -39,6 +39,7 @@ export interface ThemeSettings {
   backgroundImageFit?: 'cover' | 'contain';
   primaryColor: string;
   accentColor: string;
+  sizeMode: LayoutSize;
 }
 
 export interface PlayerState {

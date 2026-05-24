@@ -3,6 +3,7 @@ import { View, ScrollView, StatusBar, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurBackground } from './BlurBackground';
 import { TopBar } from './TopBar';
+import { useTheme } from '../context/ThemeContext';
 
 interface ScreenLayoutProps {
   children: ReactNode;
@@ -21,6 +22,7 @@ export function ScreenLayout({
   style,
   contentStyle,
 }: ScreenLayoutProps) {
+  const { isDarkMode, theme } = useTheme();
   const content = (
     <View className="flex-1" style={contentStyle}>
       {!noTopBar && <TopBar />}
@@ -41,7 +43,7 @@ export function ScreenLayout({
 
   const wrapped = (
     <BlurBackground>
-      <StatusBar barStyle="light-content" backgroundColor="#06060B" translucent />
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#06060B' : '#F0F8FF'} translucent />
       {noSafeArea ? content : <SafeAreaView className="flex-1">{content}</SafeAreaView>}
     </BlurBackground>
   );

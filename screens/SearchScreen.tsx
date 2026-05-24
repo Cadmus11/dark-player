@@ -26,7 +26,7 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 export const SearchScreen = React.memo(function SearchScreen() {
   const navigation = useNavigation<any>();
   const { files } = useFiles();
-  const { primaryColor, textColor, mutedColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, borderColor } = useTheme();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
   const [isFocused, setIsFocused] = useState(false);
@@ -129,8 +129,8 @@ export const SearchScreen = React.memo(function SearchScreen() {
               style={{ backgroundColor: activeFilter === type ? primaryColor : '#27272a' }}
               onPress={() => setActiveFilter(type)}
             >
-              <Icon size={14} color={activeFilter === type ? '#18181b' : mutedColor} weight={activeFilter === type ? 'bold' : 'regular'} />
-              <Text className="text-xs font-semibold" style={[activeFilter === type && { color: '#18181b', fontWeight: '700' }, { color: mutedColor }]}>{label}</Text>
+              <Icon size={14} color={activeFilter === type ? textColor : mutedColor} weight={activeFilter === type ? 'bold' : 'regular'} />
+              <Text className="text-xs font-semibold" style={{ color: activeFilter === type ? textColor : mutedColor, fontWeight: activeFilter === type ? '700' : '500' }}>{label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -151,7 +151,7 @@ export const SearchScreen = React.memo(function SearchScreen() {
           </View>
           {searchHistory.length > 0 ? (
             searchHistory.slice(0, 10).map((search) => (
-              <View key={search.id} className="flex-row items-center justify-between py-3 border-b border-b-[#27272a]">
+              <View key={search.id} className="flex-row items-center justify-between py-3 border-b" style={{ borderBottomColor: borderColor }}>
                 <TouchableOpacity className="flex-row items-center gap-3 flex-1" onPress={() => handleHistoryTap(search.query)}>
                   <Clock size={16} color={mutedColor} />
                   <Text className="text-sm flex-1" style={{ color: textColor }} numberOfLines={1}>{search.query}</Text>

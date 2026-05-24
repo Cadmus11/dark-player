@@ -8,7 +8,9 @@ interface BlurBackgroundProps {
 }
 
 export function BlurBackground({ children }: BlurBackgroundProps) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+
+  const baseColor = isDarkMode ? '#09090b' : '#F0F8FF';
 
   const renderBg = () => {
     if (theme.backgroundImageUri) {
@@ -17,7 +19,6 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
           source={{ uri: theme.backgroundImageUri }}
           className="absolute inset-0"
           style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
-          blurRadius={theme.backgroundBlur ?? 0}
         />
       );
     }
@@ -33,12 +34,20 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
       );
     }
 
-    return <View className="absolute inset-0 bg-bg-primary dark:bg-dark-bg-primary" />;
+    return null;
   };
 
+  const blurIntensity = (theme.backgroundBlur ?? 0) / 100;
+
   return (
-    <View className="flex-1">
+    <View className="flex-1" style={{ backgroundColor: baseColor }}>
       {renderBg()}
+      {theme.backgroundImageUri && (
+        <View
+          className="absolute inset-0"
+          style={{ backgroundColor: isDarkMode ? `rgba(9,9,11,${blurIntensity * 0.7})` : `rgba(240,248,255,${blurIntensity * 0.6})` }}
+        />
+      )}
       {children}
     </View>
   );

@@ -31,6 +31,7 @@ import { useFiles } from '../context/FileContext';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { GlassIcon } from '../components/GlassIcon';
 import { SplashScreen } from './SplashScreen';
 import { HistoryService } from '../services/History/HistoryService';
 import type { FileItem, Playlist } from '../types';
@@ -141,7 +142,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
     videos,
     createPlaylist,
   } = useFiles();
-  const { textColor, mutedColor, primaryColor } = useTheme();
+  const { textColor, mutedColor, primaryColor, isDarkMode, borderColor } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showPermissionRationale, setShowPermissionRationale] = useState(false);
@@ -408,11 +409,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
               className="flex-1 rounded-[20px] border p-5"
               style={{ backgroundColor: '#C2FC4A15', borderColor: '#C2FC4A25' }}
               onPress={() => navigation.navigate('MusicTab')}>
-              <View
-                className="mb-3 h-11 w-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: '#C2FC4A25' }}>
-                <MusicNote size={22} color="#C2FC4A" weight="bold" />
-              </View>
+              <GlassIcon size={44}>
+                <MusicNote size={22} color={primaryColor} weight="bold" />
+              </GlassIcon>
               <Text className="mb-0.5 text-base font-bold" style={{ color: textColor }}>
                 Music
               </Text>
@@ -424,11 +423,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
               className="flex-1 rounded-[20px] border p-5"
               style={{ backgroundColor: '#EF444415', borderColor: '#EF444425' }}
               onPress={() => navigation.navigate('VideosTab')}>
-              <View
-                className="mb-3 h-11 w-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: '#EF444425' }}>
-                <VideoCamera size={22} color="#EF4444" weight="bold" />
-              </View>
+              <GlassIcon size={44}>
+                <VideoCamera size={22} color={primaryColor} weight="bold" />
+              </GlassIcon>
               <Text className="mb-0.5 text-base font-bold" style={{ color: textColor }}>
                 Videos
               </Text>
@@ -445,11 +442,10 @@ export const HomeScreen = React.memo(function HomeScreen() {
             <Text className="text-lg font-bold tracking-[0.5]" style={{ color: textColor }}>
               Playlists
             </Text>
-            <TouchableOpacity
-              className="h-8 w-8 items-center justify-center rounded-full"
-              style={{ backgroundColor: `${primaryColor}20` }}
-              onPress={handleCreatePlaylist}>
-              <Plus size={16} color={primaryColor} weight="bold" />
+            <TouchableOpacity onPress={handleCreatePlaylist}>
+              <GlassIcon size={32}>
+                <Plus size={16} color={primaryColor} weight="bold" />
+              </GlassIcon>
             </TouchableOpacity>
           </View>
           {playlists.length > 0 ? (
@@ -488,7 +484,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
             <TouchableOpacity
               className="items-center rounded-2xl border border-dashed border-white/10 bg-white/5 p-5"
               onPress={handleCreatePlaylist}>
-              <Plus size={24} color={mutedColor} weight="bold" />
+              <GlassIcon size={48}>
+                <Plus size={24} color={primaryColor} weight="bold" />
+              </GlassIcon>
               <Text className="mt-2 text-sm" style={{ color: mutedColor }}>
                 Create your first playlist
               </Text>
@@ -504,37 +502,32 @@ export const HomeScreen = React.memo(function HomeScreen() {
           <View className="flex-row flex-wrap gap-2.5">
             {[
               {
-                icon: <ArrowCounterClockwise size={22} color="#8b5cf6" weight="bold" />,
+                icon: <ArrowCounterClockwise size={20} color={primaryColor} weight="bold" />,
                 label: 'Recents',
-                color: '#8b5cf6',
                 count: allRecents.length,
                 onPress: () => {},
               },
               {
-                icon: <TrendUp size={22} color="#f59e0b" weight="bold" />,
+                icon: <TrendUp size={20} color={primaryColor} weight="bold" />,
                 label: 'Recommendations',
-                color: '#f59e0b',
                 count: recommended.length,
                 onPress: () => {},
               },
               {
-                icon: <Disc size={22} color="#06b6d4" weight="bold" />,
+                icon: <Disc size={20} color={primaryColor} weight="bold" />,
                 label: 'Random',
-                color: '#06b6d4',
                 count: randomFiles.length,
                 onPress: () => {},
               },
               {
-                icon: <Play size={22} color="#ec4899" weight="bold" />,
+                icon: <Play size={20} color={primaryColor} weight="bold" />,
                 label: 'Most Played',
-                color: '#ec4899',
                 count: mostPlayed.length,
                 onPress: () => {},
               },
               {
-                icon: <VideoCamera size={22} color="#10b981" weight="bold" />,
+                icon: <VideoCamera size={20} color={primaryColor} weight="bold" />,
                 label: 'Others',
-                color: '#10b981',
                 count: 0,
                 onPress: () => {},
               },
@@ -544,16 +537,14 @@ export const HomeScreen = React.memo(function HomeScreen() {
                 className="rounded-[16px] border p-4"
                 style={{
                   width: (width - 42 - 2.5) / 2,
-                  backgroundColor: `${folder.color}10`,
-                  borderColor: `${folder.color}18`,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  borderColor: borderColor,
                 }}
                 onPress={folder.onPress}>
                 <View className="mb-2 flex-row items-center gap-3">
-                  <View
-                    className="h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `${folder.color}18` }}>
+                  <GlassIcon size={36}>
                     {folder.icon}
-                  </View>
+                  </GlassIcon>
                   <Text className="text-sm font-bold" style={{ color: textColor }}>
                     {folder.label}
                   </Text>

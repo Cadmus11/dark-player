@@ -28,7 +28,7 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
 export const VideosScreen = React.memo(function VideosScreen() {
   const { videos } = useFiles();
   const navigation = useNavigation<any>();
-  const { primaryColor, textColor, mutedColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -92,13 +92,13 @@ export const VideosScreen = React.memo(function VideosScreen() {
                 setShowSortModal(false);
               }}
             >
-              <Text
-                className="text-base font-medium"
-                style={{
-                  color: sortField === opt.field ? primaryColor : '#e4e4e7',
-                  fontWeight: sortField === opt.field ? '700' : '500',
-                }}
-              >
+                <Text
+                  className="text-base font-medium"
+                  style={{
+                    color: sortField === opt.field ? primaryColor : textColor,
+                    fontWeight: sortField === opt.field ? '700' : '500',
+                  }}
+                >
                 {opt.label}
               </Text>
               {sortField === opt.field && (
@@ -120,8 +120,8 @@ export const VideosScreen = React.memo(function VideosScreen() {
       <View className="flex-row justify-between items-center px-4 mb-2">
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Videos</Text>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity className="flex-row items-center bg-[#27272a] px-2.5 py-1.5 rounded-lg gap-1" onPress={() => setShowSortModal(true)}>
-            <FunnelSimple size={16} color={mutedColor} />
+          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-lg gap-1" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', borderWidth: 0.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} onPress={() => setShowSortModal(true)}>
+            <FunnelSimple size={16} color={primaryColor} />
             <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
             {sortDirection === 'asc' ? (
               <ArrowUp size={14} color={mutedColor} />

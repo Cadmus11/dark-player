@@ -23,7 +23,7 @@ export const StorageService = {
       const stored = await AsyncStorage.getItem(KEYS.THEME);
       if (stored) return JSON.parse(stored);
     } catch {}
-    return { backgroundType: 'solid', backgroundColor: '#06060B', gradientColors: ['#06060B', '#1D1D21'], primaryColor: '#C2FC4A', accentColor: '#C2FC4A' };
+    return { backgroundType: 'solid', backgroundColor: '#06060B', gradientColors: ['#06060B', '#1D1D21'], primaryColor: '#C2FC4A', accentColor: '#C2FC4A', sizeMode: 'medium' };
   },
   async saveThemeSettings(settings: ThemeSettings): Promise<void> {
     await AsyncStorage.setItem(KEYS.THEME, JSON.stringify(settings));

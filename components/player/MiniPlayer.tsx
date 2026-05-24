@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { X, Play, Pause, ArrowsOut } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
+import { useTheme } from '../../context/ThemeContext';
 
 export function MiniPlayer() {
   const navigation = useNavigation<any>();
+  const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const source = usePlaybackStore((s) => s.source);
@@ -24,24 +26,24 @@ export function MiniPlayer() {
   };
 
   return (
-    <View className="flex-row items-center bg-[#1a1a2e] px-3 py-2 border-t border-t-white/[0.08] gap-2.5">
+    <View className="flex-row items-center px-3 py-2 border-t gap-2.5" style={{ backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5', borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#d4d4d8' }}>
       {currentFile.thumbnail ? (
         <Image source={{ uri: currentFile.thumbnail }} className="w-10 h-10 rounded-lg" />
       ) : (
-        <View className="w-10 h-10 rounded-lg" style={{ backgroundColor: 'rgba(194,252,74,0.15)' }} />
+        <View className="w-10 h-10 rounded-lg" style={{ backgroundColor: primaryColor + '25' }} />
       )}
       <View className="flex-1">
-        <Text className="text-[13px] font-semibold text-white" numberOfLines={1}>{currentFile.name}</Text>
-        <Text className="text-[11px] text-white/40">Video Mini Player</Text>
+        <Text className="text-[13px] font-semibold" style={{ color: textColor }} numberOfLines={1}>{currentFile.name}</Text>
+        <Text className="text-[11px]" style={{ color: mutedColor }}>Video Mini Player</Text>
       </View>
       <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume}>
-        {isPlaying ? <Pause size={20} color="#ffffff" weight="fill" /> : <Play size={20} color="#ffffff" weight="fill" />}
+        {isPlaying ? <Pause size={20} color={textColor} weight="fill" /> : <Play size={20} color={textColor} weight="fill" />}
       </TouchableOpacity>
       <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleExpand}>
-        <ArrowsOut size={18} color="#ffffff" />
+        <ArrowsOut size={18} color={textColor} />
       </TouchableOpacity>
       <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleClose}>
-        <X size={18} color="#ffffff" />
+        <X size={18} color={textColor} />
       </TouchableOpacity>
     </View>
   );

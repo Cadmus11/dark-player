@@ -48,6 +48,7 @@ import { useFont, FONT_OPTIONS } from '../context/FontContext';
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { GlassIcon } from '../components/GlassIcon';
 import {
   getPlaybackSettings,
   savePlaybackSettings,
@@ -72,7 +73,7 @@ import type {
   RecentlyDeleted,
   FileItem,
 } from '../types';
-import { COLOR_THEMES } from '../types';
+import { COLOR_THEMES, LayoutSize } from '../types';
 import { PrivateFolderService } from '../services/PrivateFolderService';
 
 const APP_VERSION = '1.0.0';
@@ -127,6 +128,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     primaryColor,
     textColor,
     mutedColor,
+    borderColor,
+    cardBg,
+    setSizeMode,
     availableColorThemes,
     currentColorThemeName,
   } = useTheme();
@@ -354,17 +358,19 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           key={item.id}
           className="flex-row items-center border-b border-b-white/5 px-2 py-[14]"
           onPress={() => handleSettingPress(item.id)}>
-          <item.Icon size={22} color="#ffffff" />
+          <GlassIcon size={36}>
+            <item.Icon size={18} color={primaryColor} />
+          </GlassIcon>
           <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>{item.label}</Text>
           {item.id === 'playtime' && totalPlaytime !== '0s' && (
-            <Text className="mr-2 text-[13px] text-white/50">{totalPlaytime}</Text>
+            <Text className="mr-2 text-[13px]" style={{ color: mutedColor }}>{totalPlaytime}</Text>
           )}
           {item.badge && (
-            <View className="mr-2 rounded-[10] bg-[#C2FC4A]/20 px-2 py-0.5">
-              <Text className="text-xs font-semibold text-[#C2FC4A]">{item.badge}</Text>
+            <View className="mr-2 rounded-[10] px-2 py-0.5" style={{ backgroundColor: primaryColor + '20' }}>
+              <Text className="text-xs font-semibold" style={{ color: primaryColor }}>{item.badge}</Text>
             </View>
           )}
-          <Text className="text-[22px] text-white/30">›</Text>
+          <Text className="text-[22px]" style={{ color: mutedColor }}>›</Text>
         </TouchableOpacity>
       ))}
     </>
@@ -376,7 +382,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.theme')}</Text>
         <View style={{ width: 44 }} />
@@ -385,7 +391,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       {/* Dark/Light Mode Toggle */}
       <View className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-2">
         <View className="flex-row items-center justify-between border-b border-b-white/5 px-2 py-3">
-          <Sun size={22} color="#ffffff" />
+          <Sun size={22} color={textColor} />
           <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>Dark Mode</Text>
           <Switch
             value={isDarkMode}
@@ -393,6 +399,37 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             trackColor={{ false: '#3f3f46', true: primaryColor }}
             thumbColor="#ffffff"
           />
+        </View>
+      </View>
+
+      {/* File Size Mode */}
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>File Size</Text>
+      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+        <View className="flex-row gap-2 p-1">
+          {(['small', 'medium', 'big'] as LayoutSize[]).map((mode) => {
+            const labels = { small: 'Small', medium: 'Medium', big: 'Big' };
+            const descs = {
+              small: '4 columns, compact',
+              medium: '3 columns, balanced',
+              big: '1-2 columns, large',
+            };
+            const active = theme.sizeMode === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                className="flex-1 items-center rounded-xl py-3 px-2"
+                style={active ? { backgroundColor: primaryColor + '20' } : undefined}
+                onPress={() => setSizeMode(mode)}
+              >
+                <Text className="text-sm font-bold" style={{ color: active ? primaryColor : textColor }}>
+                  {labels[mode]}
+                </Text>
+                <Text className="text-[10px] mt-1 text-center" style={{ color: mutedColor }}>
+                  {descs[mode]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -664,7 +701,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('about.title')}</Text>
         <View style={{ width: 44 }} />
@@ -724,7 +761,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectLanguage')}</Text>
         <View style={{ width: 44 }} />
@@ -754,7 +791,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectFont')}</Text>
         <View style={{ width: 44 }} />
@@ -783,7 +820,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.hiddenFiles')}</Text>
         <View style={{ width: 44 }} />
@@ -826,7 +863,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.recentlyDeleted')}</Text>
         <View style={{ width: 44 }} />
@@ -938,7 +975,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>Private Folder</Text>
         <View style={{ width: 44 }} />
@@ -1054,7 +1091,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.playback')}</Text>
         <View style={{ width: 44 }} />
@@ -1136,7 +1173,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.notifications')}</Text>
         <View style={{ width: 44 }} />
@@ -1178,7 +1215,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.sleepTimer')}</Text>
         <View style={{ width: 44 }} />
@@ -1302,7 +1339,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.removeAds')}</Text>
         <View style={{ width: 44 }} />
@@ -1441,7 +1478,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <TouchableOpacity
           onPress={() => setActiveView('list')}
           className="h-11 w-11 items-center justify-center">
-          <CaretLeft size={28} color="#ffffff" />
+          <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
         <Text className="text-xl font-semibold" style={{ color: textColor }}>Future Updates</Text>
         <View style={{ width: 44 }} />
@@ -1453,14 +1490,14 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         {FUTURE_UPDATES.map((item, idx) => (
           <View
             key={idx}
-            className="flex-row items-center border-b border-b-white/5 px-2 py-[14]"
-            style={idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }}>
+          className="flex-row items-center border-b px-2 py-[14]"
+            style={[{ borderBottomColor: borderColor }, idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }]}>
             <item.Icon size={22} color={primaryColor} />
             <View className="ml-[14] flex-1">
-              <Text className="ml-[14] flex-1 text-[15px] text-white" style={{ marginLeft: 0 }}>
+              <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor, marginLeft: 0 }}>
                 {item.title}
               </Text>
-              <Text className="mt-0.5 text-xs text-white/40" style={{ marginLeft: 0 }}>
+              <Text className="mt-0.5 text-xs" style={{ color: mutedColor, marginLeft: 0 }}>
                 {item.desc}
               </Text>
             </View>

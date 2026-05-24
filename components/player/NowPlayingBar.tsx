@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Play, Pause, SkipForward, MusicNote } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
+import { useTheme } from '../../context/ThemeContext';
 
 export function NowPlayingBar() {
   const navigation = useNavigation<any>();
+  const { textColor, mutedColor, isDarkMode } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const source = usePlaybackStore((s) => s.source);
@@ -21,7 +23,8 @@ export function NowPlayingBar() {
 
   return (
     <TouchableOpacity
-      className="flex-row items-center bg-[#1a1a2e] px-3.5 py-2.5 border-t border-t-white/[0.06] gap-3"
+      className="flex-row items-center px-3.5 py-2.5 border-t gap-3"
+      style={{ backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5', borderTopColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#d4d4d8' }}
       onPress={handleOpenPlayer}
       activeOpacity={0.8}
     >
@@ -33,14 +36,14 @@ export function NowPlayingBar() {
         </View>
       )}
       <View className="flex-1">
-        <Text className="text-sm font-semibold text-white" numberOfLines={1}>{currentFile.name}</Text>
-        <Text className="text-xs text-white/40" numberOfLines={1}>{currentFile.artist || 'Lumora'}</Text>
+        <Text className="text-sm font-semibold" style={{ color: textColor }} numberOfLines={1}>{currentFile.name}</Text>
+        <Text className="text-xs" style={{ color: mutedColor }} numberOfLines={1}>{currentFile.artist || 'Lumora'}</Text>
       </View>
       <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume} hitSlop={12}>
-        {isPlaying ? <Pause size={22} color="#ffffff" weight="fill" /> : <Play size={22} color="#ffffff" weight="fill" />}
+        {isPlaying ? <Pause size={22} color={textColor} weight="fill" /> : <Play size={22} color={textColor} weight="fill" />}
       </TouchableOpacity>
       <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={next} hitSlop={12}>
-        <SkipForward size={20} color="rgba(255,255,255,0.6)" weight="fill" />
+        <SkipForward size={20} color={mutedColor} weight="fill" />
       </TouchableOpacity>
     </TouchableOpacity>
   );

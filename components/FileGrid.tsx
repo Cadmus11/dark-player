@@ -1,9 +1,10 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
 import type { FileItem, LayoutSize } from '../types';
 import { MusicNote, VideoCamera, Play } from 'phosphor-react-native';
 import type { FileType } from '../types';
 import { formatDuration } from '../services/FileService';
+import { useTheme } from '../context/ThemeContext';
 
 interface FileGridProps {
   data: FileItem[];
@@ -14,6 +15,7 @@ interface FileGridProps {
   emptyMessage?: string;
   columns?: number;
   layoutSize?: LayoutSize;
+  fileType?: FileType;
   renderOverlay?: (item: FileItem) => React.ReactNode;
   renderSubtitle?: (item: FileItem) => React.ReactNode;
 }
@@ -30,6 +32,7 @@ const GridItem = memo(function GridItem({
   textColor,
   mutedColor,
   columns,
+  itemAspect,
   renderOverlay,
   renderSubtitle,
 }: {
@@ -39,12 +42,14 @@ const GridItem = memo(function GridItem({
   textColor: string;
   mutedColor: string;
   columns: number;
+  itemAspect: number;
   renderOverlay?: (item: FileItem) => React.ReactNode;
   renderSubtitle?: (item: FileItem) => React.ReactNode;
 }) {
+  const maxWidth = columns === 4 ? '23%' : columns === 1 ? '96%' : columns === 2 ? '48%' : '31%';
   return (
-    <TouchableOpacity className="flex-1 m-1.5" style={{ maxWidth: columns === 4 ? '23%' : columns === 2 ? '48%' : '31%' } as any} onPress={() => onPress(item)}>
-      <View className="w-full aspect-square rounded-xl justify-center items-center mb-2" style={{ backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }}>
+    <TouchableOpacity className="flex-1 m-1.5" style={{ maxWidth } as any} onPress={() => onPress(item)}>
+      <View className="w-full rounded-xl justify-center items-center mb-2" style={{ aspectRatio: itemAspect, backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }}>
         {item.thumbnail ? (
           <Image source={{ uri: item.thumbnail }} className="w-full h-full rounded-xl" />
         ) : (
@@ -74,11 +79,27 @@ function FileGrid({
   mutedColor,
   emptyMessage = 'No items found',
   columns,
-  layoutSize = 'medium',
+  layoutSize: sizeProp,
+  fileType,
   renderOverlay,
   renderSubtitle,
 }: FileGridProps) {
-  const colCount = columns || (layoutSize === 'small' ? 4 : layoutSize === 'big' ? 2 : 3);
+  const { theme } = useTheme();
+  const sizeMode: LayoutSize = sizeProp || theme.sizeMode;
+
+  const colCount = useMemo(() => {
+    if (columns) return columns;
+    if (sizeMode === 'small') return 4;
+    if (sizeMode === 'big') return fileType === 'video' ? 1 : 2;
+    if (fileType === 'video') return 3;
+    return 3;
+  }, [columns, sizeMode, fileType]);
+
+  const itemAspect = useMemo(() => {
+    if (sizeMode === 'small') return 0.8;
+    if (sizeMode === 'big' && fileType === 'video') return 0.6;
+    return 1;
+  }, [sizeMode, fileType]);
   const keyExtractor = useCallback((item: FileItem) => item.uri, []);
 
   const renderItem = useCallback(({ item }: { item: FileItem }) => (
@@ -89,10 +110,11 @@ function FileGrid({
       textColor={textColor}
       mutedColor={mutedColor}
       columns={colCount}
+      itemAspect={itemAspect}
       renderOverlay={renderOverlay}
       renderSubtitle={renderSubtitle}
     />
-  ), [onPress, primaryColor, textColor, mutedColor, colCount, renderOverlay, renderSubtitle]);
+  ), [onPress, primaryColor, textColor, mutedColor, colCount, itemAspect, renderOverlay, renderSubtitle]);
 
   const renderEmpty = useCallback(() => (
     <View className="items-center justify-center py-[100]">

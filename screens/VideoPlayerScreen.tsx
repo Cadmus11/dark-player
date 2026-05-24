@@ -56,7 +56,7 @@ type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
-  const { primaryColor } = useTheme();
+  const { primaryColor, textColor, mutedColor } = useTheme();
   const videos = useVideoPlaybackStore((s) => []);
   const sortedVideos = useMemo(() => Sorting.sort(
     useVideoPlaybackStore.getState().currentFile ? [useVideoPlaybackStore.getState().currentFile!] : [],
@@ -117,7 +117,10 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     videoEngine.loadFile(file);
     queueEngine.setVideoQueue([file], 0);
     currentVideoIndexRef.current = 0;
-    return () => { videoEngine.cleanup(); };
+    return () => {
+      videoEngine.cleanup();
+      ScreenOrientation.unlockAsync().catch(() => {});
+    };
   }, [file.uri]);
 
   useEffect(() => {
@@ -131,6 +134,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   // Attach/detach player to engine
   useEffect(() => {
     videoEngine.attachPlayer(player);
+    player.play();
     return () => videoEngine.attachPlayer(null);
   }, [player]);
 
@@ -204,12 +208,13 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
   const toggleControls = () => {
     if (isLocked) return;
-    const toValue = showControls ? 0 : 1;
+    const newShow = !showControls;
+    setShowControls(newShow);
     Animated.timing(controlsOpacity, {
-      toValue: showControls ? 0 : 1,
-      duration: 200,
+      toValue: newShow ? 1 : 0,
+      duration: 250,
       useNativeDriver: true,
-    }).start(() => setShowControls(!showControls));
+    }).start();
   };
 
   const handleDelete = () => {
@@ -297,8 +302,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        {showControls && (
-          <TouchableOpacity className="absolute inset-0 justify-between bg-black/50" activeOpacity={1} onPress={toggleControls}>
+        <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: controlsOpacity }} pointerEvents={showControls ? 'auto' : 'none'}>
+          <TouchableOpacity className="flex-1 justify-between bg-black/50" activeOpacity={1} onPress={toggleControls}>
             <View className="flex-row items-center px-4 pt-[50px]">
               <TouchableOpacity className="h-11 w-11 items-center justify-center" onPress={(e) => { e.stopPropagation(); goBack(); }}>
                 <CaretLeft size={26} color="#ffffff" weight="bold" />
@@ -352,7 +357,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               </View>
             </View>
           </TouchableOpacity>
-        )}
+        </Animated.View>
       </View>
 
       {/* Bottom Sheets */}

@@ -47,7 +47,7 @@ function getLetter(name: string): string {
 export const MusicScreen = React.memo(function MusicScreen() {
   const { audio, createPlaylist, addToPlaylist, playlists } = useFiles();
   const navigation = useNavigation<any>();
-  const { primaryColor, textColor, mutedColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -289,7 +289,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
                 setShowSortModal(false);
               }}
             >
-              <Text className="text-base font-medium" style={[{ color: sortField === opt.field ? primaryColor : '#e4e4e7' }, sortField === opt.field && { fontWeight: '700' }]}>
+              <Text className="text-base font-medium" style={{ color: sortField === opt.field ? primaryColor : mutedColor, fontWeight: sortField === opt.field ? '700' : '500' }}>
                 {opt.label}
               </Text>
               {sortField === opt.field && (
@@ -313,8 +313,8 @@ export const MusicScreen = React.memo(function MusicScreen() {
       <View className="flex-row justify-between items-center px-4 mb-2">
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Music</Text>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity className="flex-row items-center bg-[#27272a] px-2.5 py-1.5 rounded-lg gap-1" onPress={() => setShowSortModal(true)}>
-            <FunnelSimple size={16} color={mutedColor} />
+          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-lg gap-1" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', borderWidth: 0.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} onPress={() => setShowSortModal(true)}>
+            <FunnelSimple size={16} color={primaryColor} />
             <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
             {sortDirection === 'asc' ? <ArrowUp size={14} color={mutedColor} /> : <ArrowDown size={14} color={mutedColor} />}
           </TouchableOpacity>
@@ -354,7 +354,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
                   className="text-[9px] font-semibold text-center leading-[13px]"
                   style={[
                     selectedSection === letter && { color: primaryColor, fontWeight: '800' },
-                    sections.some((s) => s.title === letter) ? { color: textColor } : { color: 'rgba(255,255,255,0.15)' },
+                    sections.some((s) => s.title === letter) ? { color: textColor } : { color: mutedColor },
                   ]}
                 >
                   {letter}
@@ -387,7 +387,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
             <View
               ref={scrollTrackRef}
               className="absolute right-0.5 top-2 bottom-2 w-3 rounded-md justify-start items-center"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
               onLayout={(e) => { handleScrollTrackLayout(e); scrollTrackLayoutRef.current = { y: e.nativeEvent.layout.y, height: e.nativeEvent.layout.height }; }}
               {...scrollThumbPanResponder.panHandlers}
             >
