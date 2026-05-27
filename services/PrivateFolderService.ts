@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const FileSystem: any = require('expo-file-system');
+import RNFS from 'react-native-fs';
 import type { FileItem } from '../types';
 
 const PRIVATE_FOLDER_KEY = '@lumora_private_folder';
 const PRIVATE_FILES_KEY = '@lumora_private_files';
 
-const PRIVATE_DIR = (FileSystem.documentDirectory || '') + 'private/';
+const PRIVATE_DIR = (RNFS.DocumentDirectoryPath || '') + 'private/';
 
 interface PrivateFileEntry {
   uri: string;
@@ -16,14 +16,13 @@ interface PrivateFileEntry {
 export const PrivateFolderService = {
   async isSetup(): Promise<boolean> {
     try {
-      const info = await FileSystem.getInfoAsync(PRIVATE_DIR);
-      return info.exists;
+      return await RNFS.exists(PRIVATE_DIR);
     } catch { return false; }
   },
 
   async setupFolder(): Promise<boolean> {
     try {
-      await FileSystem.makeDirectoryAsync(PRIVATE_DIR, { intermediates: true });
+      await RNFS.mkdir(PRIVATE_DIR);
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({ createdAt: Date.now() }));
       return true;
     } catch { return false; }
@@ -31,7 +30,7 @@ export const PrivateFolderService = {
 
   async deleteFolder(): Promise<boolean> {
     try {
-      await FileSystem.deleteAsync(PRIVATE_DIR, { idempotent: true });
+      await RNFS.unlink(PRIVATE_DIR);
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify([]));
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({}));
       return true;
@@ -49,7 +48,7 @@ export const PrivateFolderService = {
     try {
       const destName = Date.now() + '_' + file.name;
       const destUri = PRIVATE_DIR + destName;
-      await FileSystem.copyAsync({ from: file.uri, to: destUri });
+      await RNFS.copyFile(file.uri, destUri);
       const files = await this.getPrivateFiles();
       files.push({ uri: destUri, name: file.name, addedAt: Date.now() });
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify(files));
@@ -59,7 +58,7 @@ export const PrivateFolderService = {
 
   async removeFile(uri: string): Promise<boolean> {
     try {
-      await FileSystem.deleteAsync(uri, { idempotent: true });
+      await RNFS.unlink(uri);
       const files = await this.getPrivateFiles();
       const updated = files.filter((f) => f.uri !== uri);
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify(updated));
@@ -69,8 +68,8 @@ export const PrivateFolderService = {
 
   async restoreToOriginal(uri: string, originalName: string): Promise<string | null> {
     try {
-      const restoreUri = (FileSystem.cacheDirectory || '') + 'restored_' + originalName;
-      await FileSystem.copyAsync({ from: uri, to: restoreUri });
+      const restoreUri = (RNFS.CachesDirectoryPath || '') + 'restored_' + originalName;
+      await RNFS.copyFile(uri, restoreUri);
       await this.removeFile(uri);
       return restoreUri;
     } catch { return null; }
@@ -81,8 +80,8 @@ export const PrivateFolderService = {
     let totalSize = 0;
     for (const f of files) {
       try {
-        const info = await FileSystem.getInfoAsync(f.uri, { size: true });
-        if (info.exists) totalSize += (info as any).size || 0;
+        const stat = await RNFS.stat(f.uri);
+        totalSize += stat.size;
       } catch {}
     }
     return { fileCount: files.length, totalSize };

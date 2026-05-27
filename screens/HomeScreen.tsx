@@ -19,14 +19,18 @@ import * as MediaLibrary from 'expo-media-library';
 import {
   Play,
   MusicNote,
-  TrendUp,
   Disc,
   VideoCamera,
   ArrowCounterClockwise,
+  Heart,
+  Copy,
+  ClockCountdown,
+  HardDrive,
+  Star,
   Plus,
 } from 'phosphor-react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
-import { Paths } from 'expo-file-system';
+import RNFS from 'react-native-fs';
 import { useFiles } from '../context/FileContext';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useTheme } from '../context/ThemeContext';
@@ -140,13 +144,15 @@ export const HomeScreen = React.memo(function HomeScreen() {
     requestPermissions,
     audio,
     videos,
+    favoriteUris,
     createPlaylist,
   } = useFiles();
   const { textColor, mutedColor, primaryColor, isDarkMode, borderColor } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showPermissionRationale, setShowPermissionRationale] = useState(false);
-  const [recommended, setRecommended] = useState<FileItem[]>([]);
+  const [deviceTotal, setDeviceTotal] = useState(1);
+  const [deviceFree, setDeviceFree] = useState(0);
   const playlistStore = usePlaylistStore();
 
   const groupedRecents = useMemo(() => {
@@ -178,29 +184,46 @@ export const HomeScreen = React.memo(function HomeScreen() {
   }, [showSplash]);
 
   useEffect(() => {
-    if (!loading && !showSplash && categories.length > 0) {
-      const mostPlayed = HistoryService.getMostPlayed(6).map((h) => h.file);
-      const history = HistoryService.getRecentlyPlayed(6).map((h) => h.file);
-      const seen = new Set<string>();
-      const combined: FileItem[] = [];
-      for (const item of [...mostPlayed, ...history]) {
-        if (!seen.has(item.uri) && combined.length < 10) {
-          seen.add(item.uri);
-          combined.push(item);
-        }
-      }
-      if (combined.length < 6) {
-        const extra = recentFiles.length > 0 ? recentFiles : [];
-        for (const file of extra) {
-          if (!seen.has(file.uri)) {
-            seen.add(file.uri);
-            combined.push(file);
-          }
-        }
-      }
-      setRecommended(combined);
+    RNFS.getFSInfo().then((info) => {
+      setDeviceTotal(info.totalSpace || 1);
+      setDeviceFree(info.freeSpace || 0);
+    }).catch(() => {});
+  }, []);
+
+  const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
+
+  const duplicateCount = useMemo(() => {
+    const nameMap = new Map<string, number>();
+    for (const f of allFiles) {
+      const key = f.name.toLowerCase();
+      nameMap.set(key, (nameMap.get(key) || 0) + 1);
     }
-  }, [loading, showSplash, categories, recentFiles]);
+    let count = 0;
+    for (const c of nameMap.values()) {
+      if (c > 1) count += c;
+    }
+    return count;
+  }, [allFiles]);
+
+  const unusedCount = useMemo(() => {
+    const history = HistoryService.getAll();
+    const lastPlayedMap = new Map<string, number>();
+    for (const h of history) {
+      const existing = lastPlayedMap.get(h.file.uri);
+      if (!existing || h.playedAt > existing) {
+        lastPlayedMap.set(h.file.uri, h.playedAt);
+      }
+    }
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return allFiles.filter((f) => {
+      const lastPlayed = lastPlayedMap.get(f.uri);
+      return !lastPlayed || lastPlayed < cutoff;
+    }).length;
+  }, [allFiles]);
+
+  const largeFileCount = useMemo(() => {
+    return allFiles.filter((f) => (f.size || 0) >= 100 * 1024 * 1024).length;
+  }, [allFiles]);
 
   const allRecents = useMemo(
     () => [
@@ -228,8 +251,6 @@ export const HomeScreen = React.memo(function HomeScreen() {
     }
   }, [recentlyPlayed]);
 
-  const deviceTotal = Paths.totalDiskSpace || 1;
-  const deviceFree = Paths.availableDiskSpace || 0;
   const deviceUsed = deviceTotal - deviceFree;
   const otherUsedSize = Math.max(0, deviceUsed - musicSize - videoSize);
 
@@ -494,7 +515,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
           )}
         </View>
 
-        {/* FOLDERS - Recents, Recommendations, Random, Most Played, Others */}
+        {/* FOLDERS */}
         <View className="mb-8 px-4">
           <Text className="mb-3 text-lg font-bold tracking-[0.5]" style={{ color: textColor }}>
             Folders
@@ -505,31 +526,57 @@ export const HomeScreen = React.memo(function HomeScreen() {
                 icon: <ArrowCounterClockwise size={20} color={primaryColor} weight="bold" />,
                 label: 'Recents',
                 count: allRecents.length,
-                onPress: () => {},
-              },
-              {
-                icon: <TrendUp size={20} color={primaryColor} weight="bold" />,
-                label: 'Recommendations',
-                count: recommended.length,
-                onPress: () => {},
-              },
-              {
-                icon: <Disc size={20} color={primaryColor} weight="bold" />,
-                label: 'Random',
-                count: randomFiles.length,
-                onPress: () => {},
+                screen: 'FolderList',
+                params: { title: 'Recents', filterType: 'recent' as const },
               },
               {
                 icon: <Play size={20} color={primaryColor} weight="bold" />,
                 label: 'Most Played',
                 count: mostPlayed.length,
-                onPress: () => {},
+                screen: 'FolderList',
+                params: { title: 'Most Played', filterType: 'mostPlayed' as const },
               },
               {
-                icon: <VideoCamera size={20} color={primaryColor} weight="bold" />,
-                label: 'Others',
+                icon: <Disc size={20} color={primaryColor} weight="bold" />,
+                label: 'Random',
+                count: randomFiles.length,
+                screen: 'FolderList',
+                params: { title: 'Random', filterType: 'random' as const },
+              },
+              {
+                icon: <Heart size={20} color={primaryColor} weight="bold" />,
+                label: 'Favorites',
+                count: favoriteUris.length,
+                screen: 'FolderList',
+                params: { title: 'Favorites', filterType: 'favorites' as const },
+              },
+              {
+                icon: <Copy size={20} color={primaryColor} weight="bold" />,
+                label: 'Duplicates',
+                count: duplicateCount,
+                screen: 'FolderList',
+                params: { title: 'Duplicates', filterType: 'duplicates' as const },
+              },
+              {
+                icon: <ClockCountdown size={20} color={primaryColor} weight="bold" />,
+                label: 'Unused',
+                count: unusedCount,
+                screen: 'FolderList',
+                params: { title: 'Unused Files', filterType: 'unused' as const },
+              },
+              {
+                icon: <HardDrive size={20} color={primaryColor} weight="bold" />,
+                label: 'Large Files',
+                count: largeFileCount,
+                screen: 'FolderList',
+                params: { title: 'Large Files', filterType: 'largeFiles' as const },
+              },
+              {
+                icon: <Star size={20} color={primaryColor} weight="bold" />,
+                label: 'Top Videos',
                 count: 0,
-                onPress: () => {},
+                screen: 'VideoTop',
+                params: undefined,
               },
             ].map((folder) => (
               <TouchableOpacity
@@ -540,7 +587,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
                   backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                   borderColor: borderColor,
                 }}
-                onPress={folder.onPress}>
+                onPress={() => navigation.navigate(folder.screen, folder.params as any)}>
                 <View className="mb-2 flex-row items-center gap-3">
                   <GlassIcon size={36}>
                     {folder.icon}

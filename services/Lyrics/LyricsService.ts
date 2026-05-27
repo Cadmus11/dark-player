@@ -1,5 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
-import * as FileSystem from 'expo-file-system';
+import RNFS from 'react-native-fs';
 import type { LyricsData } from '../../types';
 
 const storage = new MMKV({ id: 'lyrics-cache' });
@@ -64,9 +64,9 @@ export const LyricsService = {
   async loadLocalLrc(filePath: string): Promise<LyricsData | null> {
     try {
       const lrcPath = filePath.replace(/\.[^.]+$/, '.lrc');
-      const info = await FileSystem.getInfoAsync(lrcPath);
-      if (info.exists) {
-        const content = await FileSystem.readAsStringAsync(lrcPath);
+      const exists = await RNFS.exists(lrcPath);
+      if (exists) {
+        const content = await RNFS.readFile(lrcPath, 'utf8');
         const synced = parseLRC(content);
         const plainText = synced.map((s) => s.text).join('\n');
         const songId = 'lrc_' + filePath;

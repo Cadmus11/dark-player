@@ -1,11 +1,11 @@
-const FileSystem: any = require('expo-file-system');
+import RNFS from 'react-native-fs';
 import type {
   VideoEnhancementSettings,
   VideoQualityTarget,
   EnhancementJob,
 } from '../types';
 
-const ENHANCED_DIR = `${FileSystem.cacheDirectory}enhanced/`;
+const ENHANCED_DIR = `${RNFS.CachesDirectoryPath}enhanced/`;
 
 const QUALITY_DIMENSIONS: Record<VideoQualityTarget, { width: number; height: number; label: string }> = {
   original: { width: 0, height: 0, label: 'Original' },
@@ -17,9 +17,9 @@ const QUALITY_DIMENSIONS: Record<VideoQualityTarget, { width: number; height: nu
 let jobCounter = 0;
 
 async function ensureDirectory(): Promise<void> {
-  const info = await FileSystem.getInfoAsync(ENHANCED_DIR);
-  if (!info.exists) {
-    await FileSystem.makeDirectoryAsync(ENHANCED_DIR, { intermediates: true });
+  const exists = await RNFS.exists(ENHANCED_DIR);
+  if (!exists) {
+    await RNFS.mkdir(ENHANCED_DIR);
   }
 }
 
@@ -132,7 +132,7 @@ export const VideoEnhancementService = {
     if (!hasFFmpeg) {
       onLog?.('FFmpeg not available. Copying file as fallback.');
       const dest = job.outputUri;
-      await FileSystem.copyAsync({ from: sourceUri, to: dest });
+      await RNFS.copyFile(sourceUri, dest);
       job.status = 'completed';
       job.progress = 1;
       onProgress?.(1);
@@ -179,8 +179,8 @@ export const VideoEnhancementService = {
 
   getEnhancedFileUri: async (sourceUri: string, settings: VideoEnhancementSettings): Promise<string | null> => {
     const outputUri = buildOutputUri(sourceUri, settings.qualityTarget);
-    const info = await FileSystem.getInfoAsync(outputUri);
-    if (info.exists) {
+    const exists = await RNFS.exists(outputUri);
+    if (exists) {
       return outputUri;
     }
     return null;
@@ -188,19 +188,16 @@ export const VideoEnhancementService = {
 
   clearCache: async (): Promise<void> => {
     await ensureDirectory();
-    const files = await FileSystem.readDirectoryAsync(ENHANCED_DIR);
-    await Promise.all(files.map((f: string) => FileSystem.deleteAsync(`${ENHANCED_DIR}${f}`, { idempotent: true })));
+    const files = await RNFS.readDir(ENHANCED_DIR);
+    await Promise.all(files.map((f) => RNFS.unlink(f.path)));
   },
 
   getCacheSize: async (): Promise<number> => {
     await ensureDirectory();
-    const files = await FileSystem.readDirectoryAsync(ENHANCED_DIR);
+    const files = await RNFS.readDir(ENHANCED_DIR);
     let total = 0;
     for (const f of files) {
-      const info = await FileSystem.getInfoAsync(`${ENHANCED_DIR}${f}`);
-      if (info.exists && 'size' in info) {
-        total += info.size || 0;
-      }
+      total += f.size || 0;
     }
     return total;
   },

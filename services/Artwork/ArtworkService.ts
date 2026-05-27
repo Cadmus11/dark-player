@@ -1,15 +1,15 @@
 import { MMKV } from 'react-native-mmkv';
-const FileSystem: any = require('expo-file-system');
+import RNFS from 'react-native-fs';
 import type { ArtworkCache, FileItem } from '../../types';
 
 const storage = new MMKV({ id: 'artwork-cache' });
 const CACHE_INDEX_KEY = '@artwork_index';
-const ARTWORK_DIR = FileSystem.cacheDirectory + 'artwork/';
+const ARTWORK_DIR = RNFS.CachesDirectoryPath + 'artwork/';
 
 async function ensureDir() {
-  const dirInfo = await FileSystem.getInfoAsync(ARTWORK_DIR);
-  if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(ARTWORK_DIR, { intermediates: true });
+  const exists = await RNFS.exists(ARTWORK_DIR);
+  if (!exists) {
+    await RNFS.mkdir(ARTWORK_DIR);
   }
 }
 
@@ -32,11 +32,9 @@ export const ArtworkService = {
 
     if (file.thumbnail) {
       try {
-        const info = await FileSystem.getInfoAsync(file.thumbnail);
-        if (info.exists) {
-          const base64 = await FileSystem.readAsStringAsync(file.thumbnail, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
+        const exists = await RNFS.exists(file.thumbnail);
+        if (exists) {
+          const base64 = await RNFS.readFile(file.thumbnail, 'base64');
           const ext = file.thumbnail.split('.').pop()?.toLowerCase() || 'jpeg';
           const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
           const dataUri = getDataUri(mimeType, base64);

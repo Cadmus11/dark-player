@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import { MusicNote, ArrowDown, ArrowUp, FunnelSimple, Microphone, CheckCircle } from 'phosphor-react-native';
 import { useFiles } from '../context/FileContext';
 import { useTheme } from '../context/ThemeContext';
-const FileSystem: any = require('expo-file-system');
 interface MusicSection { title: string; data: FileItem[]; }
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';

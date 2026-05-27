@@ -1,21 +1,15 @@
-import { MMKV } from 'react-native-mmkv';
-const FileSystem: any = require('expo-file-system');
+import RNFS from 'react-native-fs';
+import MediaMeta from 'react-native-media-meta';
+import { DatabaseService } from '../DatabaseService';
 import type { MediaMetadata } from '../../types';
 
-let getAudioMetadata: any = null;
-try {
-  getAudioMetadata = require('@missingcore/audio-metadata').getAudioMetadata;
-} catch {}
-
-const storage = new MMKV({ id: 'metadata-cache' });
-const CACHE_PREFIX = '@meta_v2_';
-const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
+const ARTWORK_DIR = (RNFS.CachesDirectoryPath || '') + 'metadata_artwork/';
 
 async function ensureArtworkDir() {
   try {
-    const info = await FileSystem.getInfoAsync(ARTWORK_DIR);
-    if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(ARTWORK_DIR, { intermediates: true });
+    const exists = await RNFS.exists(ARTWORK_DIR);
+    if (!exists) {
+      await RNFS.mkdir(ARTWORK_DIR);
     }
   } catch {}
 }
@@ -39,36 +33,31 @@ function formatArtworkPath(uri: string): string {
 
 export const MetadataService = {
   async extract(uri: string, name: string): Promise<MediaMetadata> {
-    const cached = this.getCached(uri);
+    const cached = await this.getCached(uri);
     if (cached) return cached;
 
     const metadata: MediaMetadata = {};
 
-    if (getAudioMetadata) {
-      try {
-        const wanted = ['album', 'albumArtist', 'artist', 'name', 'track', 'year'] as const;
-        const data = await getAudioMetadata(uri, wanted);
-        if (data?.metadata) {
-          const m = data.metadata;
-          metadata.title = m.name || undefined;
-          metadata.artist = m.artist || undefined;
-          metadata.album = m.album || undefined;
-          metadata.year = m.year || undefined;
-          metadata.trackNumber = m.track || undefined;
-          metadata.composer = m.albumArtist || undefined;
+    try {
+      const data = await MediaMeta.get(uri, { getThumb: false });
+      if (data) {
+        metadata.title = data.title || undefined;
+        metadata.artist = data.artist || undefined;
+        metadata.album = data.albumName || data.album || undefined;
+        metadata.composer = data.composer || data.album_artist || undefined;
+        metadata.year = data.year ? parseInt(data.year, 10) : data.date ? parseInt(data.date, 10) : undefined;
+        metadata.trackNumber = data.track ? parseInt(data.track, 10) || undefined : undefined;
+        metadata.duration = data.duration ? parseInt(data.duration, 10) : undefined;
 
-          if (m.artwork) {
-            const artworkPath = formatArtworkPath(uri);
-            try {
-              await FileSystem.writeAsStringAsync(artworkPath, m.artwork, {
-                encoding: FileSystem.EncodingType.Base64,
-              });
-              metadata.artwork = artworkPath;
-            } catch {}
-          }
+        if (data.thumb) {
+          const artworkPath = formatArtworkPath(uri);
+          try {
+            await RNFS.writeFile(artworkPath, data.thumb, 'base64');
+            metadata.artwork = artworkPath;
+          } catch {}
         }
-      } catch {}
-    }
+      }
+    } catch {}
 
     if (!metadata.title) {
       const parsed = parseArtistTitle(name);
@@ -76,7 +65,7 @@ export const MetadataService = {
       if (parsed.artist && !metadata.artist) metadata.artist = parsed.artist;
     }
 
-    this.cache(uri, metadata);
+    await this.cache(uri, metadata);
     return metadata;
   },
 
@@ -88,29 +77,23 @@ export const MetadataService = {
     }
   },
 
-  cache(uri: string, metadata: MediaMetadata) {
-    storage.set(CACHE_PREFIX + uri, JSON.stringify(metadata));
+  async cache(uri: string, metadata: MediaMetadata) {
+    await DatabaseService.cacheMetadata(uri, metadata);
   },
 
-  getCached(uri: string): MediaMetadata | null {
-    try {
-      const data = storage.getString(CACHE_PREFIX + uri);
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
+  async getCached(uri: string): Promise<MediaMetadata | null> {
+    return DatabaseService.getCachedMetadata(uri);
   },
 
-  getArtworkPath(uri: string): string | null {
-    const cached = this.getCached(uri);
+  async getArtworkPath(uri: string): Promise<string | null> {
+    const cached = await this.getCached(uri);
     return cached?.artwork || null;
   },
 
-  clearCache() {
-    const keys = storage.getAllKeys();
-    keys.filter((k) => k.startsWith(CACHE_PREFIX)).forEach((k) => storage.delete(k));
+  async clearCache() {
     try {
-      FileSystem.deleteAsync(ARTWORK_DIR, { idempotent: true });
+      await RNFS.unlink(ARTWORK_DIR);
     } catch {}
+    await DatabaseService.clearMetadataCache();
   },
 };

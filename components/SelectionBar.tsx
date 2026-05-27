@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Share, Alert } from 'react-native';
-const FileSystem: any = require('expo-file-system');
 import { Playlist, Queue, ShareNetwork, EyeSlash, Trash, X } from 'phosphor-react-native';
 import type { FileItem, FileAction } from '../types';
 import { useTheme } from '../context/ThemeContext';
