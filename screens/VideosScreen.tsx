@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { VideoCamera, FunnelSimple, ArrowUp, ArrowDown } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
 import type { FileItem, SortField, SortDirection } from '../types';
@@ -26,7 +26,7 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
 ];
 
 export const VideosScreen = React.memo(function VideosScreen() {
-  const { videos } = useFiles();
+  const videos = useMediaStore((s) => s.videos);
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');

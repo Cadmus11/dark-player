@@ -2,6 +2,8 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { FileItem } from '../types';
 
+export const NOTIFICATION_CATEGORY = 'media-playback';
+
 const CHANNEL_ID = 'lumora-media-playback';
 const NOTIFICATION_ID = 'lumora-now-playing';
 

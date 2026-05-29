@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  FlatList,
   SectionList,
   GestureResponderEvent,
   PanResponder,
@@ -14,9 +13,11 @@ import {
   NativeScrollEvent,
   Image,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { MusicNote, ArrowDown, ArrowUp, FunnelSimple, Microphone, CheckCircle } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useVisibleAudio } from '../hooks/useVisibleAudio';
+import { usePlaylistStore } from '../stores/playlistStore';
 import { useTheme } from '../context/ThemeContext';
 interface MusicSection { title: string; data: FileItem[]; }
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
@@ -44,7 +45,8 @@ function getLetter(name: string): string {
 }
 
 export const MusicScreen = React.memo(function MusicScreen() {
-  const { audio, createPlaylist, addToPlaylist, playlists } = useFiles();
+  const audio = useVisibleAudio();
+  const playlists = usePlaylistStore((s) => s.playlists);
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('name');
@@ -160,15 +162,16 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const handleSelectionAction = useCallback(async (action: FileAction, files: FileItem[]) => {
     switch (action) {
       case 'addToPlaylist': {
-        const existing = playlists[0];
+        const store = usePlaylistStore.getState();
+        const existing = store.playlists[0];
         if (existing) {
           for (const f of files) {
-            await addToPlaylist(existing.id, f);
+            store.addSongs(existing.id, [f]);
           }
         } else {
-          const pl = await createPlaylist(`Playlist ${new Date().toLocaleDateString()}`);
+          const pl = store.create(`Playlist ${new Date().toLocaleDateString()}`);
           for (const f of files) {
-            await addToPlaylist(pl.id, f);
+            store.addSongs(pl.id, [f]);
           }
         }
         setSelectedUris(new Set());
@@ -363,17 +366,13 @@ export const MusicScreen = React.memo(function MusicScreen() {
           </>
         ) : (
           <>
-            <FlatList
+            <FlashList
               ref={flatListRef}
               data={sortedAudio}
               renderItem={renderFileItem}
               keyExtractor={(item: FileItem) => item.uri}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
               showsVerticalScrollIndicator={false}
-              windowSize={7}
-              maxToRenderPerBatch={10}
-              removeClippedSubviews
-              initialNumToRender={15}
               onScroll={handleNonAlphaScroll}
               scrollEventThrottle={16}
               ListEmptyComponent={

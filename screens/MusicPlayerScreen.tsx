@@ -43,7 +43,8 @@ import {
   Bell,
   BellSimple,
 } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useVisibleAudio } from '../hooks/useVisibleAudio';
+import { useFavorites } from '../hooks/useFavorites';
 import { useTheme } from '../context/ThemeContext';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
 import { usePlaylistStore } from '../stores/playlistStore';
@@ -62,7 +63,8 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 export function MusicPlayerScreen({ navigation, route }: Props) {
   const { file } = route.params;
   const { primaryColor } = useTheme();
-  const { audio, toggleFavorite, isFavorite, favoriteUris } = useFiles();
+  const audio = useVisibleAudio();
+  const { toggleFavorite, isFavorite } = useFavorites([]);
 
   const {
     isPlaying,

@@ -26,6 +26,7 @@ interface ThemeContextType {
   backgroundOverlayColor: string;
   setBackgroundImage: (uri: string) => Promise<void>;
   clearBackgroundImage: () => Promise<void>;
+  setPresetImage: (key: string | null) => Promise<void>;
   setBackgroundBlur: (blur: number) => Promise<void>;
   setBackgroundFit: (fit: 'cover' | 'contain') => Promise<void>;
   setSizeMode: (mode: LayoutSize) => Promise<void>;
@@ -212,7 +213,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   async function clearBackgroundImage() {
-    await updateTheme({ backgroundImageUri: undefined, backgroundBlur: 0 });
+    await updateTheme({ backgroundImageUri: undefined, presetImageKey: undefined, backgroundBlur: 0 });
+  }
+
+  async function setPresetImage(key: string | null) {
+    if (key) {
+      await updateTheme({ presetImageKey: key, backgroundImageUri: undefined, backgroundBlur: 20 });
+    } else {
+      await updateTheme({ presetImageKey: undefined });
+    }
   }
 
   async function setBackgroundBlur(blur: number) {
@@ -259,6 +268,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setDarkMode,
         setBackgroundImage,
         clearBackgroundImage,
+        setPresetImage,
         setBackgroundBlur,
         setBackgroundFit,
         setSizeMode,

@@ -105,6 +105,8 @@ export class VideoEngine {
   attachPlayer(player: VideoPlayer | null) {
     this._player = player;
     if (player) {
+      player.showNowPlayingNotification = true;
+      player.staysActiveInBackground = true;
       this._startStatusPolling();
     } else {
       this._stopStatusPolling();

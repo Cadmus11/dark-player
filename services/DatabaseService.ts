@@ -1,21 +1,19 @@
-import SQLite from 'react-native-sqlite-storage';
+import * as SQLite from 'expo-sqlite';
 import type { MediaMetadata } from '../types';
 
-SQLite.enablePromise(true);
+let db: SQLite.SQLiteDatabase | null = null;
 
-let db: any = null;
-
-async function getDb(): Promise<any> {
+async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
-  db = await SQLite.openDatabase({ name: 'lumora.db', location: 'default' });
-  await db.executeSql(
+  db = await SQLite.openDatabaseAsync('lumora.db');
+  await db.execAsync(
     `CREATE TABLE IF NOT EXISTS metadata_cache (
       uri TEXT PRIMARY KEY,
       metadata TEXT NOT NULL,
       cached_at INTEGER NOT NULL
     )`
   );
-  await db.executeSql(
+  await db.execAsync(
     `CREATE TABLE IF NOT EXISTS artwork_cache (
       uri TEXT PRIMARY KEY,
       file_path TEXT NOT NULL,
@@ -28,7 +26,7 @@ async function getDb(): Promise<any> {
 export const DatabaseService = {
   async cacheMetadata(uri: string, metadata: MediaMetadata): Promise<void> {
     const d = await getDb();
-    await d.executeSql(
+    await d.runAsync(
       'INSERT OR REPLACE INTO metadata_cache (uri, metadata, cached_at) VALUES (?, ?, ?)',
       [uri, JSON.stringify(metadata), Date.now()]
     );
@@ -37,12 +35,12 @@ export const DatabaseService = {
   async getCachedMetadata(uri: string): Promise<MediaMetadata | null> {
     try {
       const d = await getDb();
-      const [results] = await d.executeSql(
+      const row = await d.getFirstAsync<{ metadata: string }>(
         'SELECT metadata FROM metadata_cache WHERE uri = ?',
         [uri]
       );
-      if (results.rows.length > 0) {
-        return JSON.parse(results.rows.item(0).metadata);
+      if (row) {
+        return JSON.parse(row.metadata);
       }
     } catch {}
     return null;
@@ -50,12 +48,12 @@ export const DatabaseService = {
 
   async clearMetadataCache(): Promise<void> {
     const d = await getDb();
-    await d.executeSql('DELETE FROM metadata_cache');
+    await d.execAsync('DELETE FROM metadata_cache');
   },
 
   async cacheArtworkPath(uri: string, filePath: string): Promise<void> {
     const d = await getDb();
-    await d.executeSql(
+    await d.runAsync(
       'INSERT OR REPLACE INTO artwork_cache (uri, file_path, cached_at) VALUES (?, ?, ?)',
       [uri, filePath, Date.now()]
     );
@@ -64,12 +62,12 @@ export const DatabaseService = {
   async getCachedArtworkPath(uri: string): Promise<string | null> {
     try {
       const d = await getDb();
-      const [results] = await d.executeSql(
+      const row = await d.getFirstAsync<{ file_path: string }>(
         'SELECT file_path FROM artwork_cache WHERE uri = ?',
         [uri]
       );
-      if (results.rows.length > 0) {
-        return results.rows.item(0).file_path;
+      if (row) {
+        return row.file_path;
       }
     } catch {}
     return null;
@@ -77,13 +75,13 @@ export const DatabaseService = {
 
   async clearAll(): Promise<void> {
     const d = await getDb();
-    await d.executeSql('DELETE FROM metadata_cache');
-    await d.executeSql('DELETE FROM artwork_cache');
+    await d.execAsync('DELETE FROM metadata_cache');
+    await d.execAsync('DELETE FROM artwork_cache');
   },
 
   async close(): Promise<void> {
     if (db) {
-      await db.close();
+      await db.closeAsync();
       db = null;
     }
   },

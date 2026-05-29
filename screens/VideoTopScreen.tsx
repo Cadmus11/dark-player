@@ -10,7 +10,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, Play, Star } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -30,7 +30,7 @@ function scoreVideoQuality(v: FileItem): number {
 }
 
 export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
-  const { videos } = useFiles();
+  const videos = useMediaStore((s) => s.videos);
   const { textColor, mutedColor, primaryColor, borderColor } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 

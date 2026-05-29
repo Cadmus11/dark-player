@@ -3,14 +3,14 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
   Image,
   ScrollView,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useAllFiles } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, FileType, SavedSearch } from '../types';
 import { FileIcon } from '../components/FileIcon';
@@ -25,7 +25,7 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 
 export const SearchScreen = React.memo(function SearchScreen() {
   const navigation = useNavigation<any>();
-  const { files } = useFiles();
+  const files = useAllFiles();
   const { primaryColor, textColor, mutedColor, borderColor } = useTheme();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
@@ -167,16 +167,12 @@ export const SearchScreen = React.memo(function SearchScreen() {
         </View>
       )}
 
-      <FlatList
+      <FlashList
         data={query.trim() ? results : []}
         renderItem={renderItem}
         keyExtractor={(item: FileItem) => item.uri}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
-        windowSize={7}
-        maxToRenderPerBatch={10}
-        removeClippedSubviews
-        initialNumToRender={8}
         ListEmptyComponent={
           query.trim() ? (
             <View className="items-center justify-center py-20">

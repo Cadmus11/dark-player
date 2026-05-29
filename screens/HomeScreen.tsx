@@ -31,8 +31,11 @@ import {
 } from 'phosphor-react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import RNFS from 'react-native-fs';
-import { useFiles } from '../context/FileContext';
+import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
+import { useVisibleAudio } from '../hooks/useVisibleAudio';
+import { useCategories, useRecentFiles, useRecentlyPlayed, useExpandedPlaylists } from '../hooks/useDomainSelectors';
+import { useFavorites } from '../hooks/useFavorites';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { GlassIcon } from '../components/GlassIcon';
@@ -134,19 +137,14 @@ function DoughnutChart({
 
 export const HomeScreen = React.memo(function HomeScreen() {
   const navigation = useNavigation<any>();
-  const {
-    permissionsGranted,
-    loading,
-    categories,
-    recentFiles,
-    recentlyPlayed,
-    playlists,
-    requestPermissions,
-    audio,
-    videos,
-    favoriteUris,
-    createPlaylist,
-  } = useFiles();
+  const permissionsGranted = useMediaStore((s) => s.permissionsGranted);
+  const loading = useMediaStore((s) => s.loading);
+  const videos = useMediaStore((s) => s.videos);
+  const audio = useVisibleAudio();
+  const categories = useCategories();
+  const recentFiles = useRecentFiles();
+  const recentlyPlayed = useRecentlyPlayed();
+  const playlists = useExpandedPlaylists();
   const { textColor, mutedColor, primaryColor, isDarkMode, borderColor } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -191,6 +189,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
   }, []);
 
   const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
+  const { favoriteUris } = useFavorites(allFiles);
 
   const duplicateCount = useMemo(() => {
     const nameMap = new Map<string, number>();
@@ -271,7 +270,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
 
   const handlePlaylistCreateConfirm = async () => {
     if (playlistInput.trim()) {
-      await createPlaylist(playlistInput.trim());
+      await playlistStore.create(playlistInput.trim());
     }
     setShowPlaylistInput(false);
     setPlaylistInput('');
@@ -313,7 +312,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status === 'granted') {
         setShowPermissionRationale(false);
-        await requestPermissions();
+        await useMediaStore.getState().scanMedia();
       } else {
         Alert.alert(
           'Permission Required',
@@ -325,7 +324,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
         );
       }
     } catch {
-      await requestPermissions();
+      await useMediaStore.getState().scanMedia();
     }
   };
 

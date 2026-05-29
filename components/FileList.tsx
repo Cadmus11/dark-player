@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, TouchableOpacity, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import type { FileItem } from '../types';
 import { MusicNote, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
 import type { FileType } from '../types';
@@ -145,7 +146,7 @@ function FileList({
   ), [mutedColor, emptyMessage]);
 
   return (
-    <FlatList
+    <FlashList
       ref={scrollRef}
       data={data}
       renderItem={renderItem}
@@ -155,10 +156,6 @@ function FileList({
       ListEmptyComponent={renderEmpty}
       onScroll={onScroll}
       scrollEventThrottle={16}
-      removeClippedSubviews
-      windowSize={7}
-      maxToRenderPerBatch={10}
-      initialNumToRender={15}
     />
   );
 }

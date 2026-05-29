@@ -5,7 +5,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
-import { FileProvider } from './context/FileContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
 import { OverlayProvider } from './services/OverlaySystem';
@@ -86,8 +85,7 @@ export default function App() {
       <LanguageProvider>
         <FontProvider>
         <ThemeProvider>
-          <FileProvider>
-            <OverlayProvider>
+          <OverlayProvider>
               <NavigationContainer>
                 <Stack.Navigator screenOptions={screenOptions}>
                   <Stack.Screen name="MainTabs" component={MainTabs} />
@@ -105,7 +103,6 @@ export default function App() {
                 </Stack.Navigator>
               </NavigationContainer>
             </OverlayProvider>
-          </FileProvider>
         </ThemeProvider>
         </FontProvider>
       </LanguageProvider>

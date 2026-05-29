@@ -1,6 +1,7 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { MMKV } from 'react-native-mmkv';
 import type { FileItem, RepeatMode } from '../types';
+import type { AudioMetadata } from 'expo-audio';
 import { queueEngine } from './QueueEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { NowPlayingNotification } from '../services/NowPlayingNotification';
@@ -256,6 +257,13 @@ export class AudioEngine {
         player.playbackRate = this._state.playbackSpeed;
         player.shouldCorrectPitch = true;
       }
+      const metadata: AudioMetadata = {
+        title: file.name,
+        artist: file.artist,
+        albumTitle: file.album,
+        artworkUrl: file.thumbnail,
+      };
+      player.setActiveForLockScreen(true, metadata, { showSeekForward: true, showSeekBackward: true });
       player.play();
       this._state.isPlaying = true;
       HistoryService.record(file, 0, 'music');
@@ -328,6 +336,9 @@ export class AudioEngine {
   }
 
   stop() {
+    if (this._player) {
+      try { this._player.clearLockScreenControls(); } catch {}
+    }
     this._unload();
     this._state.currentFile = null;
     this._state.currentIndex = -1;
@@ -455,6 +466,9 @@ export class AudioEngine {
   }
 
   cleanup() {
+    if (this._player) {
+      try { this._player.clearLockScreenControls(); } catch {}
+    }
     this._unload();
     this._listeners.clear();
     this._stopPositionCheck();

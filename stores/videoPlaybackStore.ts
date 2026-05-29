@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { videoEngine } from '../engine/VideoEngine';
 import { queueEngine } from '../engine/QueueEngine';
+import { PlaybackTicker } from '../services/PlaybackTicker';
 import type { FileItem, SubtitleEntry } from '../types';
 
 interface VideoPlaybackStoreState {
@@ -134,6 +135,7 @@ export const useVideoPlaybackStore = create<VideoPlaybackStoreState>((set) => ({
 let _lastVideoState = '';
 videoEngine.subscribe(() => {
   const s = videoEngine.getState();
+  PlaybackTicker.updatePosition(s.position, s.duration);
   const snapshot = JSON.stringify([
     s.currentFile?.uri, s.isPlaying, s.position, s.duration,
     s.playbackSpeed, s.contentFit, s.subtitlesEnabled,

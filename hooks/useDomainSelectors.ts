@@ -1,11 +1,13 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
-import type { FileItem, Category, Playlist, PlaylistData } from '../types';
+import { useVisibleAudio } from './useVisibleAudio';
+import { StorageService } from '../services/StorageService';
+import type { FileItem, Category, Playlist, PlaylistData, RecentlyPlayed } from '../types';
 
 export function useCategories(): Category[] {
   const videos = useMediaStore((s) => s.videos);
-  const audio = useMediaStore((s) => s.audio);
+  const audio = useVisibleAudio();
 
   return useMemo(() => [
     { id: 'videos', name: 'Videos', icon: 'videos', type: 'video', count: videos.length, color: '#6c5ce7' },
@@ -75,4 +77,38 @@ export function useFavoriteFiles(): FileItem[] {
   }, []);
 
   return useMemo(() => allFiles.filter((f) => favoriteUris.includes(f.uri)), [allFiles, favoriteUris]);
+}
+
+export function useRecentFiles(): FileItem[] {
+  const allFiles = useAllFiles();
+  const [recentFiles, setRecentFiles] = useState<FileItem[]>([]);
+
+  useEffect(() => {
+    StorageService.getRecentFiles().then(setRecentFiles);
+  }, []);
+
+  return useMemo(
+    () => recentFiles.filter((f) => allFiles.some((af) => af.uri === f.uri)),
+    [recentFiles, allFiles]
+  );
+}
+
+export function useRecentlyPlayed(): RecentlyPlayed[] {
+  const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayed[]>([]);
+
+  useEffect(() => {
+    StorageService.getRecentlyPlayed().then(setRecentlyPlayed);
+  }, []);
+
+  return recentlyPlayed;
+}
+
+export function useSearchHistory() {
+  const [searchHistory, setSearchHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    StorageService.getSearchHistory().then(setSearchHistory);
+  }, []);
+
+  return searchHistory;
 }

@@ -2,13 +2,15 @@ import React, { useMemo } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, MusicNote, Play, Shuffle, Heart, Copy, ClockCountdown, HardDrive } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useMediaStore } from '../stores/mediaStore';
+import { useRecentlyPlayed } from '../hooks/useDomainSelectors';
+import { useFavorites } from '../hooks/useFavorites';
 import { useTheme } from '../context/ThemeContext';
 import { HistoryService } from '../services/History/HistoryService';
 import { formatDuration, formatFileSize } from '../services/FileService';
@@ -73,9 +75,12 @@ function getUnusedFiles(files: FileItem[]): FileItem[] {
 
 export function FolderScreen({ navigation, route }: FolderScreenProps) {
   const { title, filterType } = route.params;
-  const { videos, audio, favoriteUris, recentlyPlayed } = useFiles();
+  const videos = useMediaStore((s) => s.videos);
+  const audio = useMediaStore((s) => s.audio);
+  const recentlyPlayed = useRecentlyPlayed();
   const { textColor, mutedColor, primaryColor } = useTheme();
   const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
+  const { favoriteUris } = useFavorites(allFiles);
 
   const FolderIcon = FILTER_ICONS[filterType] || MusicNote;
 
@@ -152,16 +157,12 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
         </View>
         <View className="w-10" />
       </View>
-      <FlatList
+      <FlashList
         data={files}
         renderItem={renderListItem}
         keyExtractor={(item: FileItem) => item.uri + (filterType === 'duplicates' ? '_dup' : '')}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
-        windowSize={7}
-        maxToRenderPerBatch={10}
-        removeClippedSubviews
-        initialNumToRender={8}
         ListEmptyComponent={
           <View className="items-center justify-center py-[100]">
             <FolderIcon size={64} color={mutedColor} />

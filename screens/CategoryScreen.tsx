@@ -2,13 +2,13 @@ import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, VideoCamera, MusicNote } from 'phosphor-react-native';
-import { useFiles } from '../context/FileContext';
+import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -25,7 +25,8 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon } = route.params;
-  const { videos, audio } = useFiles();
+  const videos = useMediaStore((s) => s.videos);
+  const audio = useMediaStore((s) => s.audio);
   const { textColor, mutedColor } = useTheme();
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || MusicNote;
@@ -72,16 +73,12 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         </View>
         <View className="w-10" />
       </View>
-      <FlatList
+      <FlashList
         data={files}
         renderItem={renderListItem}
         keyExtractor={(item: FileItem) => item.uri}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
-        windowSize={7}
-        maxToRenderPerBatch={10}
-        removeClippedSubviews
-        initialNumToRender={8}
         ListEmptyComponent={
           <View className="items-center justify-center py-[100]">
             <CategoryIcon size={64} color={mutedColor} />

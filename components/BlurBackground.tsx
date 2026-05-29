@@ -12,7 +12,23 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
 
   const baseColor = isDarkMode ? '#09090b' : '#F0F8FF';
 
+  const hasBackground = !!(theme.backgroundImageUri || theme.presetImageKey);
+
   const renderBg = () => {
+    if (theme.presetImageKey) {
+      const { getPresetImageSource } = require('../constants/ThemeImages');
+      const source = getPresetImageSource(theme.presetImageKey);
+      if (source) {
+        return (
+          <Image
+            source={source}
+            className="absolute inset-0"
+            style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
+          />
+        );
+      }
+    }
+
     if (theme.backgroundImageUri) {
       return (
         <Image
@@ -42,7 +58,7 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
   return (
     <View className="flex-1" style={{ backgroundColor: baseColor }}>
       {renderBg()}
-      {theme.backgroundImageUri && (
+      {hasBackground && (
         <View
           className="absolute inset-0"
           style={{ backgroundColor: isDarkMode ? `rgba(9,9,11,${blurIntensity * 0.7})` : `rgba(240,248,255,${blurIntensity * 0.6})` }}

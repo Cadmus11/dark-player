@@ -35,6 +35,7 @@ export interface ThemeSettings {
   backgroundColor: string;
   gradientColors?: string[];
   backgroundImageUri?: string;
+  presetImageKey?: string;
   backgroundBlur?: number;
   backgroundImageFit?: 'cover' | 'contain';
   primaryColor: string;
