@@ -207,6 +207,7 @@ export class FileEngine {
           uri: asset.uri,
           name: asset.filename,
           type,
+          assetId: asset.id,
           modifiedAt: asset.modificationTime * 1000,
           createdAt: asset.creationTime * 1000,
           thumbnail: type !== 'audio' ? asset.uri : undefined,

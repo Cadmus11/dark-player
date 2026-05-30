@@ -19,6 +19,7 @@ export interface FileItem {
   artColor?: string;
   artist?: string;
   album?: string;
+  assetId?: string;
 }
 
 export interface Category {

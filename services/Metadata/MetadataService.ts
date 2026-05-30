@@ -1,5 +1,5 @@
 import RNFS from 'react-native-fs';
-import MediaMeta from 'react-native-media-meta';
+import { parseBuffer } from 'music-metadata-browser';
 import { DatabaseService } from '../DatabaseService';
 import type { MediaMetadata } from '../../types';
 
@@ -20,15 +20,64 @@ function parseArtistTitle(filename: string): { artist?: string; title: string } 
   for (const sep of separators) {
     const idx = name.indexOf(sep);
     if (idx > 0) {
-      return { artist: name.substring(0, idx).trim(), title: name.substring(idx + sep.length).trim() };
+      return {
+        artist: name.substring(0, idx).trim(),
+        title: name.substring(idx + sep.length).trim(),
+      };
     }
   }
   return { title: name };
 }
 
 function formatArtworkPath(uri: string): string {
-  const hash = uri.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0).toString(36);
+  const hash = uri
+    .split('')
+    .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+    .toString(36);
   return ARTWORK_DIR + hash + '.jpg';
+}
+
+function getMimeType(uri: string): string | undefined {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'mp3':
+      return 'audio/mpeg';
+    case 'flac':
+      return 'audio/flac';
+    case 'm4a':
+    case 'm4b':
+    case 'alac':
+      return 'audio/mp4';
+    case 'ogg':
+      return 'audio/ogg';
+    case 'opus':
+      return 'audio/opus';
+    case 'wav':
+      return 'audio/wav';
+    case 'wma':
+      return 'audio/x-ms-wma';
+    case 'aac':
+      return 'audio/aac';
+    default:
+      return undefined;
+  }
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryStr = atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function uint8ArrayToBase64(uint8Array: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binary);
 }
 
 export const MetadataService = {
@@ -39,20 +88,32 @@ export const MetadataService = {
     const metadata: MediaMetadata = {};
 
     try {
-      const data = await MediaMeta.get(uri, { getThumb: false });
-      if (data) {
-        metadata.title = data.title || undefined;
-        metadata.artist = data.artist || undefined;
-        metadata.album = data.albumName || data.album || undefined;
-        metadata.composer = data.composer || data.album_artist || undefined;
-        metadata.year = data.year ? parseInt(data.year, 10) : data.date ? parseInt(data.date, 10) : undefined;
-        metadata.trackNumber = data.track ? parseInt(data.track, 10) || undefined : undefined;
-        metadata.duration = data.duration ? parseInt(data.duration, 10) : undefined;
+      const base64 = await RNFS.readFile(uri, 'base64');
+      const buffer = base64ToUint8Array(base64);
+      const mimeType = getMimeType(uri);
+      const data = await parseBuffer(buffer, mimeType || 'audio/mpeg');
 
-        if (data.thumb) {
+      if (data) {
+        const { common, format } = data;
+
+        metadata.title = common.title || undefined;
+        metadata.artist = common.artist || undefined;
+        metadata.album = common.album || undefined;
+        metadata.composer = common.composer?.[0] || common.albumartist || undefined;
+        metadata.year = common.year || undefined;
+        metadata.trackNumber = common.track?.no ?? undefined;
+        metadata.duration = format.duration ? Math.round(format.duration * 1000) : undefined;
+        metadata.bitrate = format.bitrate || undefined;
+        metadata.sampleRate = format.sampleRate || undefined;
+        metadata.genre = common.genre?.[0] || undefined;
+
+        const picture = common.picture?.[0];
+        if (picture?.data) {
           const artworkPath = formatArtworkPath(uri);
           try {
-            await RNFS.writeFile(artworkPath, data.thumb, 'base64');
+            await ensureArtworkDir();
+            const artworkBase64 = uint8ArrayToBase64(picture.data);
+            await RNFS.writeFile(artworkPath, artworkBase64, 'base64');
             metadata.artwork = artworkPath;
           } catch {}
         }
@@ -69,7 +130,10 @@ export const MetadataService = {
     return metadata;
   },
 
-  async extractBatch(files: { uri: string; name: string }[], onProgress?: (done: number, total: number) => void) {
+  async extractBatch(
+    files: { uri: string; name: string }[],
+    onProgress?: (done: number, total: number) => void
+  ) {
     const total = files.length;
     for (let i = 0; i < total; i++) {
       await this.extract(files[i].uri, files[i].name);
