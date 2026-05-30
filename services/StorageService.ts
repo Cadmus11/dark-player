@@ -1,5 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RNFS from 'react-native-fs';
+import {
+  cacheDirectory,
+  getInfoAsync,
+  makeDirectoryAsync,
+  deleteAsync,
+  copyAsync,
+} from 'expo-file-system/legacy';
 import type {
   ThemeSettings,
   FileItem,
@@ -13,7 +19,7 @@ import type {
   HiddenFilesSettings,
 } from '../types';
 
-const TRASH_DIR = (RNFS.CachesDirectoryPath || '') + 'trash/';
+const TRASH_DIR = (cacheDirectory || '') + 'trash/';
 
 const KEYS = {
   THEME: '@lumora_theme',
@@ -188,9 +194,9 @@ export const StorageService = {
   // Trash operations: backup file before deletion for later restore
   async ensureTrashDir(): Promise<void> {
     try {
-      const exists = await RNFS.exists(TRASH_DIR);
-      if (!exists) {
-        await RNFS.mkdir(TRASH_DIR);
+      const info = await getInfoAsync(TRASH_DIR);
+      if (!info.exists) {
+        await makeDirectoryAsync(TRASH_DIR);
       }
     } catch {}
   },
@@ -200,12 +206,12 @@ export const StorageService = {
     const trashName = Date.now() + '_' + file.name;
     const trashUri = TRASH_DIR + trashName;
     try {
-      await RNFS.copyFile(file.uri, trashUri);
+      await copyAsync({ from: file.uri, to: trashUri });
       const trashFiles = await this._getTrashFiles();
       trashFiles.push({ originalUri: file.uri, trashUri, fileName: file.name });
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(trashFiles));
       try {
-        await RNFS.unlink(file.uri);
+        await deleteAsync(file.uri, { idempotent: true });
       } catch {}
       return trashUri;
     } catch {
@@ -218,9 +224,9 @@ export const StorageService = {
     const entry = trashFiles.find((t: any) => t.originalUri === originalUri);
     if (!entry) return false;
     try {
-      await RNFS.copyFile(entry.trashUri, originalUri);
+      await copyAsync({ from: entry.trashUri, to: originalUri });
       try {
-        await RNFS.unlink(entry.trashUri);
+        await deleteAsync(entry.trashUri, { idempotent: true });
       } catch {}
       const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(updated));
@@ -235,7 +241,7 @@ export const StorageService = {
     const entry = trashFiles.find((t: any) => t.originalUri === originalUri);
     if (entry) {
       try {
-        await RNFS.unlink(entry.trashUri);
+        await deleteAsync(entry.trashUri, { idempotent: true });
       } catch {}
     }
     const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);

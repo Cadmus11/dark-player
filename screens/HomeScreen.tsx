@@ -30,7 +30,7 @@ import {
   Plus,
 } from 'phosphor-react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
-import RNFS from 'react-native-fs';
+import { getFreeDiskStorageAsync, getTotalDiskCapacityAsync } from 'expo-file-system/legacy';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
@@ -187,10 +187,10 @@ export const HomeScreen = React.memo(function HomeScreen() {
   }, [showSplash]);
 
   useEffect(() => {
-    RNFS.getFSInfo()
-      .then((info) => {
-        setDeviceTotal(info.totalSpace || 1);
-        setDeviceFree(info.freeSpace || 0);
+    Promise.all([getTotalDiskCapacityAsync(), getFreeDiskStorageAsync()])
+      .then(([total, free]) => {
+        setDeviceTotal(total || 1);
+        setDeviceFree(free || 0);
       })
       .catch(() => {});
   }, []);

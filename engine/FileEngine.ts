@@ -5,7 +5,7 @@ import type { FileItem, FileType } from '../types';
 import { permissionService } from '../services/PermissionService';
 import { CancellationToken, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
-import RNFS from 'react-native-fs';
+import { getInfoAsync } from 'expo-file-system/legacy';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -227,8 +227,8 @@ export class FileEngine {
         let size = (asset as any).fileSize ?? undefined;
         if (!size) {
           try {
-            const stat = await RNFS.stat(asset.uri);
-            size = stat.size;
+            const info = await getInfoAsync(asset.uri);
+            if (info.exists) size = info.size;
           } catch {}
         }
         items.push({

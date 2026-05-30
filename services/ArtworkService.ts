@@ -1,4 +1,10 @@
-import RNFS from 'react-native-fs';
+import {
+  cacheDirectory,
+  getInfoAsync,
+  makeDirectoryAsync,
+  readAsStringAsync,
+  writeAsStringAsync,
+} from 'expo-file-system/legacy';
 import { eventBus, AppEvents } from './EventBus';
 
 interface MemoryCacheEntry {
@@ -25,11 +31,11 @@ class ArtworkServiceClass {
 
   private async _ensureDiskDir(): Promise<string> {
     if (this._diskCacheDir) return this._diskCacheDir;
-    this._diskCacheDir = RNFS.CachesDirectoryPath + 'artwork/';
+    this._diskCacheDir = cacheDirectory + 'artwork/';
     try {
-      const exists = await RNFS.exists(this._diskCacheDir);
-      if (!exists) {
-        await RNFS.mkdir(this._diskCacheDir);
+      const info = await getInfoAsync(this._diskCacheDir);
+      if (!info.exists) {
+        await makeDirectoryAsync(this._diskCacheDir);
       }
     } catch {}
     return this._diskCacheDir;
@@ -153,9 +159,9 @@ class ArtworkServiceClass {
       const dir = await this._ensureDiskDir();
       const cacheKey = this._hashUri(fileUri);
       const cachePath = dir + cacheKey;
-      const exists = await RNFS.exists(cachePath);
-      if (exists) {
-        const base64 = await RNFS.readFile(cachePath, 'base64');
+      const info = await getInfoAsync(cachePath);
+      if (info.exists) {
+        const base64 = await readAsStringAsync(cachePath, { encoding: 'base64' });
         const mimeType = 'image/jpeg';
         return `data:${mimeType};base64,${base64}`;
       }
@@ -170,7 +176,7 @@ class ArtworkServiceClass {
       const cacheKey = this._hashUri(fileUri);
       const base64 = dataUri.split(',')[1];
       if (base64) {
-        await RNFS.writeFile(dir + cacheKey, base64, 'base64');
+        await writeAsStringAsync(dir + cacheKey, base64, { encoding: 'base64' });
       }
     } catch {}
   }

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
-import RNFS from 'react-native-fs';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import type { FileItem, FileType } from '../types';
 
 const isWeb = Platform.OS === 'web';
@@ -144,7 +144,7 @@ export function findSubtitleFile(videoUri: string, _allFiles: FileItem[]): strin
 
 export async function readTextFile(uri: string): Promise<string> {
   try {
-    return await RNFS.readFile(uri, 'utf8');
+    return await readAsStringAsync(uri, { encoding: 'utf8' });
   } catch {
     return '';
   }

@@ -3,7 +3,7 @@ import { parseBuffer } from 'music-metadata-browser';
 import { DatabaseService } from '../DatabaseService';
 import type { MediaMetadata } from '../../types';
 
-const ARTWORK_DIR = (FileSystem.documentDirectory || '') + 'metadata_artwork/';
+const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
 
 async function ensureArtworkDir() {
   try {

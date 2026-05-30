@@ -41,11 +41,11 @@
         "POST_NOTIFICATIONS",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "FOREGROUND_SERVICE_DATA_SYNC"
-    ],
-    //   "foregroundService": {
-    //     "appsUsing": ["mediaPlayback"]
-    //   }
-         },
+      ]
+      //   "foregroundService": {
+      //     "appsUsing": ["mediaPlayback"]
+      //   }
+    },
     "web": {
       "favicon": "./assets/adaptive-icon.png"
     },
@@ -53,29 +53,29 @@
       "tsconfigPaths": true
     },
     "plugins": [
-  [
-    "expo-media-library",
-    {
-      "photosPermission": "Allow Lumora to access your photos.",
-      "savePhotosPermission": "Allow Lumora to save photos.",
-      "isAccessMediaLocationEnabled": true
-    }
-  ],
-  [
-    "expo-audio",
-    {
-      "microphonePermission": "Allow Lumora to access your microphone.",
-      "enableBackgroundPlayback": true
-    }
-  ],
-  [
-    "expo-video",
-    {
-      "supportsBackgroundPlayback": true,
-      "supportsPictureInPicture": true
-    }
-  ]
-],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Lumora to access your photos.",
+          "savePhotosPermission": "Allow Lumora to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Lumora to access your microphone.",
+          "enableBackgroundPlayback": true
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "39e64c2f-573a-4d24-83ac-8e332d418794"
