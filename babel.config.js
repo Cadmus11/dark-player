@@ -29,14 +29,8 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
 
     plugins: [
-      // 1. NativeWind must be first
       'nativewind/babel',
-
-      // 2. Reanimated must come BEFORE worklets
       'react-native-reanimated/plugin',
-
-      // 3. Worklets last
-      'react-native-worklets/plugin',
     ],
   };
 };

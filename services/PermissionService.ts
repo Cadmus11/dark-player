@@ -63,11 +63,12 @@ class PermissionServiceClass {
 
     try {
       this._state.lastChecked = now;
-      const { status, canAskAgain } = await MediaLibrary.getPermissionsAsync();
+      const { status, granted, canAskAgain } = await MediaLibrary.getPermissionsAsync();
+      const s: string = status;
 
-      if (status === 'granted') {
+      if (s === 'granted') {
         this._state.mediaLibrary = 'GRANTED';
-      } else if (status === 'limited') {
+      } else if (s === 'limited') {
         this._state.mediaLibrary = 'PARTIAL';
       } else if (canAskAgain) {
         this._state.mediaLibrary = 'DENIED';
@@ -100,10 +101,11 @@ class PermissionServiceClass {
       this._state.lastChecked = Date.now();
 
       const { status, canAskAgain } = await MediaLibrary.requestPermissionsAsync();
+      const s: string = status;
 
-      if (status === 'granted') {
+      if (s === 'granted') {
         this._state.mediaLibrary = 'GRANTED';
-      } else if (status === 'limited') {
+      } else if (s === 'limited') {
         this._state.mediaLibrary = 'PARTIAL';
       } else if (canAskAgain) {
         this._state.mediaLibrary = 'DENIED';
