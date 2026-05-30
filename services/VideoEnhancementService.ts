@@ -38,98 +38,25 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-function buildOutputUri(sourceUri: string, qualityTarget: VideoQualityTarget): string {
+function buildOutputUri(sourceUri: string, _qualityTarget: VideoQualityTarget): string {
   const parts = sourceUri.split('/');
   const fileName = parts[parts.length - 1] || 'video.mp4';
   const sanitized = sanitizeFileName(fileName);
   const ext = sanitized.includes('.') ? sanitized.split('.').pop() : 'mp4';
   const base = sanitized.includes('.') ? sanitized.slice(0, sanitized.lastIndexOf('.')) : sanitized;
-  const suffix = qualityTarget !== 'original' ? `_${qualityTarget}` : '_enhanced';
-  return `${ENHANCED_DIR}${base}${suffix}.${ext || 'mp4'}`;
-}
-
-async function ensureFFmpeg(): Promise<boolean> {
-  try {
-    const FFmpegKit = require('ffmpeg-kit-react-native');
-    return !!FFmpegKit;
-  } catch {
-    return false;
-  }
-}
-
-function buildFFmpegCommand(
-  sourceUri: string,
-  outputUri: string,
-  settings: VideoEnhancementSettings
-): string[] {
-  const filters: string[] = [];
-
-  if (settings.colorEnhancement) {
-    filters.push('eq=brightness=0.06:saturation=1.3:contrast=1.1');
-  }
-
-  if (settings.sharpening) {
-    filters.push('unsharp=5:5:1.0:5:5:0.0');
-  }
-
-  if (settings.denoise) {
-    filters.push('hqdn3d=3:2:3:2');
-  }
-
-  if (settings.hdr) {
-    filters.push('zscale=t=linear:npl=100,tonemap=hable:desat=0,zscale=t=bt709,format=yuv420p');
-  }
-
-  const dims = QUALITY_DIMENSIONS[settings.qualityTarget];
-  const scaleFilter =
-    settings.qualityTarget !== 'original' && dims.width > 0
-      ? `scale=${dims.width}:${dims.height}:flags=lanczos`
-      : null;
-
-  let vf = '';
-  if (scaleFilter && filters.length > 0) {
-    vf = `-vf ${[scaleFilter, ...filters].join(',')}`;
-  } else if (scaleFilter) {
-    vf = `-vf ${scaleFilter}`;
-  } else if (filters.length > 0) {
-    vf = `-vf ${filters.join(',')}`;
-  }
-
-  const cmd = ['-i', sourceUri];
-  if (vf) cmd.push(...vf.split(' '));
-  cmd.push(
-    '-c:v',
-    'libx264',
-    '-preset',
-    'fast',
-    '-crf',
-    '23',
-    '-c:a',
-    'aac',
-    '-b:a',
-    '192k',
-    '-y',
-    outputUri
-  );
-
-  return cmd;
+  return `${ENHANCED_DIR}${base}_enhanced.${ext || 'mp4'}`;
 }
 
 export const VideoEnhancementService = {
   getQualityOptions: () => QUALITY_DIMENSIONS,
 
   isAvailable: async (): Promise<boolean> => {
-    try {
-      const hasFFmpeg = await ensureFFmpeg();
-      return hasFFmpeg;
-    } catch {
-      return false;
-    }
+    return false;
   },
 
   enhanceVideo: async (
     sourceUri: string,
-    settings: VideoEnhancementSettings,
+    _settings: VideoEnhancementSettings,
     onProgress?: (progress: number) => void,
     onLog?: (log: string) => void
   ): Promise<EnhancementJob> => {
@@ -137,8 +64,8 @@ export const VideoEnhancementService = {
     const job: EnhancementJob = {
       id: jobId,
       sourceUri,
-      outputUri: buildOutputUri(sourceUri, settings.qualityTarget),
-      settings,
+      outputUri: buildOutputUri(sourceUri, _settings.qualityTarget),
+      settings: _settings,
       status: 'processing',
       progress: 0,
       createdAt: Date.now(),
@@ -146,52 +73,12 @@ export const VideoEnhancementService = {
 
     await ensureDirectory();
 
-    const hasFFmpeg = await ensureFFmpeg();
-
-    if (!hasFFmpeg) {
-      onLog?.('FFmpeg not available. Copying file as fallback.');
-      const dest = job.outputUri;
-      await copyAsync({ from: sourceUri, to: dest });
-      job.status = 'completed';
-      job.progress = 1;
-      onProgress?.(1);
-      return job;
-    }
-
-    try {
-      const FFmpegKit = require('ffmpeg-kit-react-native');
-      const cmd = buildFFmpegCommand(sourceUri, job.outputUri, settings);
-
-      const session = await FFmpegKit.FFmpegKit.executeAsync(
-        cmd.join(' '),
-        async (session: any) => {
-          const returnCode = await session.getReturnCode();
-          if (returnCode?.isValueSuccess()) {
-            job.status = 'completed';
-            job.progress = 1;
-            onProgress?.(1);
-            onLog?.('Enhancement completed successfully');
-          } else {
-            job.status = 'failed';
-            const logs = await session.getAllLogsAsString();
-            onLog?.(`FFmpeg failed: ${logs}`);
-          }
-        },
-        (log: any) => {
-          const text = log.getMessage();
-          onLog?.(text);
-          const match = text.match(/time=(\d+):(\d+):(\d+)/);
-          if (match) {
-            onProgress?.(0.5);
-          }
-        }
-      );
-
-      onProgress?.(0.1);
-    } catch (error) {
-      job.status = 'failed';
-      onLog?.(`Enhancement error: ${error}`);
-    }
+    onLog?.('Enhancing not available. Copying file.');
+    const dest = job.outputUri;
+    await copyAsync({ from: sourceUri, to: dest });
+    job.status = 'completed';
+    job.progress = 1;
+    onProgress?.(1);
 
     return job;
   },

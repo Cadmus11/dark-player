@@ -10,9 +10,6 @@ import {
 } from 'react-native';
 import {
   MagicWand,
-  CheckCircle,
-  WarningCircle,
-  DownloadSimple,
   PaintBrush,
   ImageSquare,
   Sparkle,
@@ -20,7 +17,6 @@ import {
   SunDim,
 } from 'phosphor-react-native';
 import type { VideoEnhancementSettings, VideoQualityTarget } from '../../types';
-import { VideoEnhancementService } from '../../services/VideoEnhancementService';
 
 interface Props {
   visible: boolean;
@@ -48,12 +44,6 @@ export function VideoEnhancementModal({
 }: Props) {
   const [settings, setSettings] = useState<VideoEnhancementSettings>(currentSettings);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [ffmpegAvailable, setFfmpegAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    VideoEnhancementService.isAvailable().then(setFfmpegAvailable);
-  }, []);
-
   useEffect(() => {
     if (visible) setSettings(currentSettings);
   }, [visible, currentSettings]);
@@ -115,17 +105,6 @@ export function VideoEnhancementModal({
           </View>
 
           <ScrollView className="px-5" showsVerticalScrollIndicator={false}>
-            {ffmpegAvailable === false && (
-              <View
-                className="mb-4 flex-row items-center gap-2 rounded-xl p-3"
-                style={{ backgroundColor: `${primaryColor}15` }}>
-                <WarningCircle size={16} color={primaryColor} />
-                <Text className="flex-1 text-xs font-medium" style={{ color: primaryColor }}>
-                  Install ffmpeg-kit for full enhancement: npm install ffmpeg-kit-react-native
-                </Text>
-              </View>
-            )}
-
             <Text
               className="mb-2.5 text-[11px] font-bold tracking-[1]"
               style={{ color: '#a1a1aa' }}>
