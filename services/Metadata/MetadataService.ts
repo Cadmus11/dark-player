@@ -1,15 +1,15 @@
-import RNFS from 'react-native-fs';
+import * as FileSystem from 'expo-file-system/legacy';
 import { parseBuffer } from 'music-metadata-browser';
 import { DatabaseService } from '../DatabaseService';
 import type { MediaMetadata } from '../../types';
 
-const ARTWORK_DIR = (RNFS.CachesDirectoryPath || '') + 'metadata_artwork/';
+const ARTWORK_DIR = (FileSystem.documentDirectory || '') + 'metadata_artwork/';
 
 async function ensureArtworkDir() {
   try {
-    const exists = await RNFS.exists(ARTWORK_DIR);
-    if (!exists) {
-      await RNFS.mkdir(ARTWORK_DIR);
+    const info = await FileSystem.getInfoAsync(ARTWORK_DIR);
+    if (!info.exists) {
+      await FileSystem.makeDirectoryAsync(ARTWORK_DIR, { intermediates: true });
     }
   } catch {}
 }
@@ -88,7 +88,7 @@ export const MetadataService = {
     const metadata: MediaMetadata = {};
 
     try {
-      const base64 = await RNFS.readFile(uri, 'base64');
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       const buffer = base64ToUint8Array(base64);
       const mimeType = getMimeType(uri);
       const data = await parseBuffer(buffer, mimeType || 'audio/mpeg');
@@ -113,7 +113,7 @@ export const MetadataService = {
           try {
             await ensureArtworkDir();
             const artworkBase64 = uint8ArrayToBase64(picture.data);
-            await RNFS.writeFile(artworkPath, artworkBase64, 'base64');
+            await FileSystem.writeAsStringAsync(artworkPath, artworkBase64, { encoding: FileSystem.EncodingType.Base64 });
             metadata.artwork = artworkPath;
           } catch {}
         }
@@ -156,7 +156,7 @@ export const MetadataService = {
 
   async clearCache() {
     try {
-      await RNFS.unlink(ARTWORK_DIR);
+      await FileSystem.deleteAsync(ARTWORK_DIR, { idempotent: true });
     } catch {}
     await DatabaseService.clearMetadataCache();
   },
