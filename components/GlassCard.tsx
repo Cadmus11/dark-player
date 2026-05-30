@@ -9,10 +9,16 @@ interface GlassCardProps {
   onPress?: () => void;
 }
 
-export function GlassCard({ children, style, intensity = 0.06, glowColor, onPress }: GlassCardProps) {
+export function GlassCard({
+  children,
+  style,
+  intensity = 0.06,
+  glowColor,
+  onPress,
+}: GlassCardProps) {
   return (
     <View
-      className="rounded-[28px] border overflow-hidden"
+      className="overflow-hidden rounded-[28px] border"
       style={[
         {
           backgroundColor: `rgba(255, 255, 255, ${intensity})`,
@@ -28,8 +34,7 @@ export function GlassCard({ children, style, intensity = 0.06, glowColor, onPres
             : {}),
         },
         style,
-      ]}
-    >
+      ]}>
       {children}
     </View>
   );

@@ -99,9 +99,13 @@ export function cancellableSleep(ms: number, token: CancellationToken): Promise<
       return;
     }
     const timer = setTimeout(resolve, ms);
-    token.signal.addEventListener('abort', () => {
-      clearTimeout(timer);
-      reject(new CancelledError(token.id));
-    }, { once: true });
+    token.signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(new CancelledError(token.id));
+      },
+      { once: true }
+    );
   });
 }

@@ -38,9 +38,7 @@ export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoun
       return (
         <View className="flex-1 items-center justify-center rounded-2xl bg-[#18181b] p-6">
           <WarningCircle size={32} color="#ef4444" weight="bold" />
-          <Text className="mb-1 mt-3 text-base font-bold text-white">
-            {this.props.name} Error
-          </Text>
+          <Text className="mb-1 mt-3 text-base font-bold text-white">{this.props.name} Error</Text>
           <Text className="mb-4 text-center text-xs text-[#a1a1aa]">
             {this.state.error?.message || 'Something went wrong'}
           </Text>

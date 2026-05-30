@@ -31,8 +31,7 @@ export function ScreenLayout({
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+          keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
       ) : (
@@ -43,13 +42,21 @@ export function ScreenLayout({
 
   const wrapped = (
     <BlurBackground>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={isDarkMode ? '#06060B' : '#F0F8FF'} translucent />
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={isDarkMode ? '#06060B' : '#F0F8FF'}
+        translucent
+      />
       {noSafeArea ? content : <SafeAreaView className="flex-1">{content}</SafeAreaView>}
     </BlurBackground>
   );
 
   if (style) {
-    return <View className="flex-1" style={style}>{wrapped}</View>;
+    return (
+      <View className="flex-1" style={style}>
+        {wrapped}
+      </View>
+    );
   }
 
   return wrapped;

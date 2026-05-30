@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
@@ -39,37 +35,54 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   };
 
   const renderListItem = ({ item }: { item: FileItem }) => (
-    <TouchableOpacity className="flex-row items-center justify-between py-3 border-b border-b-white/10" onPress={() => navigateToFile(item)}>
-      <View className="flex-row items-center flex-1">
-        <View className="w-11 h-11 rounded-xl bg-white/10 justify-center items-center mr-3">
+    <TouchableOpacity
+      className="flex-row items-center justify-between border-b border-b-white/10 py-3"
+      onPress={() => navigateToFile(item)}>
+      <View className="flex-1 flex-row items-center">
+        <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-white/10">
           <FileIcon type={item.type} size={22} />
         </View>
         <View className="flex-1">
-          <Text className="text-[15px] mb-1" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
+          <Text className="mb-1 text-[15px]" style={{ color: textColor }} numberOfLines={1}>
+            {item.name}
+          </Text>
           <View className="flex-row items-center">
-            {item.size && <Text className="text-xs" style={{ color: mutedColor }}>{formatFileSize(item.size)}</Text>}
+            {item.size && (
+              <Text className="text-xs" style={{ color: mutedColor }}>
+                {formatFileSize(item.size)}
+              </Text>
+            )}
             {item.duration && (
               <>
-                <Text className="text-xs mx-1.5" style={{ color: mutedColor }}>•</Text>
-                <Text className="text-xs" style={{ color: mutedColor }}>{formatDuration(item.duration)}</Text>
+                <Text className="mx-1.5 text-xs" style={{ color: mutedColor }}>
+                  •
+                </Text>
+                <Text className="text-xs" style={{ color: mutedColor }}>
+                  {formatDuration(item.duration)}
+                </Text>
               </>
             )}
           </View>
         </View>
       </View>
-      <Text className="text-xl" style={{ color: mutedColor }}>›</Text>
+      <Text className="text-xl" style={{ color: mutedColor }}>
+        ›
+      </Text>
     </TouchableOpacity>
   );
 
   return (
     <ScreenLayout noTopBar>
-      <View className="flex-row items-center justify-between pt-[60] px-5 pb-5">
+      <View className="flex-row items-center justify-between px-5 pb-5 pt-[60]">
         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2.5">
           <CaretLeft size={24} color={textColor} />
         </TouchableOpacity>
         <View className="flex-row items-center">
           <CategoryIcon size={20} color={textColor} />
-          <Text className="text-xl font-semibold ml-1" style={{ color: textColor }}> {title}</Text>
+          <Text className="ml-1 text-xl font-semibold" style={{ color: textColor }}>
+            {' '}
+            {title}
+          </Text>
         </View>
         <View className="w-10" />
       </View>
@@ -82,7 +95,9 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         ListEmptyComponent={
           <View className="items-center justify-center py-[100]">
             <CategoryIcon size={64} color={mutedColor} />
-            <Text className="text-base mt-4" style={{ color: mutedColor }}>No {title.toLowerCase()} found</Text>
+            <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+              No {title.toLowerCase()} found
+            </Text>
           </View>
         }
       />

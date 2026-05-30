@@ -15,11 +15,21 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
-import { MusicNote, ArrowDown, ArrowUp, FunnelSimple, Microphone, CheckCircle } from 'phosphor-react-native';
+import {
+  MusicNote,
+  ArrowDown,
+  ArrowUp,
+  FunnelSimple,
+  Microphone,
+  CheckCircle,
+} from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useTheme } from '../context/ThemeContext';
-interface MusicSection { title: string; data: FileItem[]; }
+interface MusicSection {
+  title: string;
+  data: FileItem[];
+}
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
@@ -66,23 +76,26 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const thumbAnim = useRef(new Animated.Value(0)).current;
   const sortedAudioRef = useRef<FileItem[]>([]);
 
-  const handleScrollTrackTouch = useCallback((locationY: number) => {
-    const { height } = scrollTrackLayoutRef.current;
-    if (height <= 0) return;
-    const pct = Math.max(0, Math.min(1, locationY / height));
-    setScrollProgress(pct);
-    Animated.timing(thumbAnim, {
-      toValue: pct,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-    const items = sortedAudioRef.current;
-    const total = items.length;
-    if (total > 0 && flatListRef.current) {
-      const index = Math.floor(pct * (total - 1));
-      flatListRef.current.scrollToIndex({ index, viewPosition: 0, animated: false });
-    }
-  }, [thumbAnim]);
+  const handleScrollTrackTouch = useCallback(
+    (locationY: number) => {
+      const { height } = scrollTrackLayoutRef.current;
+      if (height <= 0) return;
+      const pct = Math.max(0, Math.min(1, locationY / height));
+      setScrollProgress(pct);
+      Animated.timing(thumbAnim, {
+        toValue: pct,
+        duration: 50,
+        useNativeDriver: false,
+      }).start();
+      const items = sortedAudioRef.current;
+      const total = items.length;
+      if (total > 0 && flatListRef.current) {
+        const index = Math.floor(pct * (total - 1));
+        flatListRef.current.scrollToIndex({ index, viewPosition: 0, animated: false });
+      }
+    },
+    [thumbAnim]
+  );
 
   const scrollThumbPanResponder = useRef(
     PanResponder.create({
@@ -97,15 +110,18 @@ export const MusicScreen = React.memo(function MusicScreen() {
     })
   ).current;
 
-  const handleNonAlphaScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    const maxOffset = contentSize.height - layoutMeasurement.height;
-    if (maxOffset > 0) {
-      const pct = contentOffset.y / maxOffset;
-      setScrollProgress(pct);
-      thumbAnim.setValue(pct);
-    }
-  }, [thumbAnim]);
+  const handleNonAlphaScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      const maxOffset = contentSize.height - layoutMeasurement.height;
+      if (maxOffset > 0) {
+        const pct = contentOffset.y / maxOffset;
+        setScrollProgress(pct);
+        thumbAnim.setValue(pct);
+      }
+    },
+    [thumbAnim]
+  );
 
   const handleScrollTrackLayout = useCallback((e: LayoutChangeEvent) => {
     const { y, height } = e.nativeEvent.layout;
@@ -137,25 +153,31 @@ export const MusicScreen = React.memo(function MusicScreen() {
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.field === sortField)?.label || 'Name';
 
-  const navigateToFile = useCallback((file: FileItem) => {
-    if (selectionMode) {
+  const navigateToFile = useCallback(
+    (file: FileItem) => {
+      if (selectionMode) {
+        const next = new Set(selectedUris);
+        if (next.has(file.uri)) next.delete(file.uri);
+        else next.add(file.uri);
+        setSelectedUris(next);
+        return;
+      }
+      navigation.navigate('MusicPlayer', { file });
+    },
+    [navigation, selectionMode, selectedUris]
+  );
+
+  const handleLongPress = useCallback(
+    (file: FileItem) => {
       const next = new Set(selectedUris);
-      if (next.has(file.uri)) next.delete(file.uri);
-      else next.add(file.uri);
+      next.add(file.uri);
       setSelectedUris(next);
-      return;
-    }
-    navigation.navigate('MusicPlayer', { file });
-  }, [navigation, selectionMode, selectedUris]);
+    },
+    [selectedUris]
+  );
 
-  const handleLongPress = useCallback((file: FileItem) => {
-    const next = new Set(selectedUris);
-    next.add(file.uri);
-    setSelectedUris(next);
-  }, [selectedUris]);
-
-  const selectedFiles = useMemo(() =>
-    sortedAudio.filter((f) => selectedUris.has(f.uri)),
+  const selectedFiles = useMemo(
+    () => sortedAudio.filter((f) => selectedUris.has(f.uri)),
     [sortedAudio, selectedUris]
   );
 
@@ -189,7 +211,9 @@ export const MusicScreen = React.memo(function MusicScreen() {
       case 'share': {
         const { Share } = require('react-native');
         for (const f of files) {
-          try { await Share.share({ url: f.uri, title: f.name }); } catch {}
+          try {
+            await Share.share({ url: f.uri, title: f.name });
+          } catch {}
         }
         setSelectedUris(new Set());
         break;
@@ -213,112 +237,160 @@ export const MusicScreen = React.memo(function MusicScreen() {
     alphabetLayoutRef.current = { x, y, height };
   };
 
-  const handleAlphabetTouch = useCallback((evt: GestureResponderEvent) => {
-    const { locationY } = evt.nativeEvent;
-    const { height } = alphabetLayoutRef.current;
-    const index = Math.min(
-      Math.floor((locationY / height) * ALPHABET.length),
-      ALPHABET.length - 1
-    );
-    const letter = ALPHABET[index];
-    setSelectedSection(letter);
-    const sectionIndex = sections.findIndex((s) => s.title === letter);
-    if (sectionIndex >= 0 && sectionListRef.current) {
-      sectionListRef.current.scrollToLocation({
-        sectionIndex,
-        itemIndex: 0,
-        viewPosition: 0,
-      });
-    }
-  }, [sections]);
+  const handleAlphabetTouch = useCallback(
+    (evt: GestureResponderEvent) => {
+      const { locationY } = evt.nativeEvent;
+      const { height } = alphabetLayoutRef.current;
+      const index = Math.min(
+        Math.floor((locationY / height) * ALPHABET.length),
+        ALPHABET.length - 1
+      );
+      const letter = ALPHABET[index];
+      setSelectedSection(letter);
+      const sectionIndex = sections.findIndex((s) => s.title === letter);
+      if (sectionIndex >= 0 && sectionListRef.current) {
+        sectionListRef.current.scrollToLocation({
+          sectionIndex,
+          itemIndex: 0,
+          viewPosition: 0,
+        });
+      }
+    },
+    [sections]
+  );
 
-  const renderFileItem = useCallback(({ item }: { item: FileItem }) => {
-    const isSelected = selectedUris.has(item.uri);
-    const itemColor = item.artColor || primaryColor;
-    return (
-      <TouchableOpacity
-        className="flex-row items-center py-2.5 px-4 gap-3"
-        style={isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 }}
-        onPress={() => navigateToFile(item)}
-        onLongPress={() => handleLongPress(item)}
-        delayLongPress={400}
-      >
-        {isSelected && (
-          <CheckCircle size={18} color={primaryColor} weight="fill" />
-        )}
-        <View className="w-11 h-11 rounded-xl justify-center items-center overflow-hidden" style={{ backgroundColor: `${itemColor}20` }}>
-          {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} className="w-11 h-11 rounded-xl" />
-          ) : (
-            <MusicNote size={22} color={itemColor} weight="fill" />
-          )}
-        </View>
-        <View className="flex-1">
-          <Text className="text-[15px] font-semibold mb-[3px]" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-[13px]" style={{ color: mutedColor }} numberOfLines={1}>
-              {item.artist || 'Unknown'}
-            </Text>
-            {item.hasLyrics && (
-              <View className="flex-row items-center gap-[3px] px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${primaryColor}20` }}>
-                <Microphone size={10} color={primaryColor} weight="fill" />
-                <Text className="text-[9px] font-bold tracking-wider" style={{ color: primaryColor }}>LYRICS</Text>
-              </View>
+  const renderFileItem = useCallback(
+    ({ item }: { item: FileItem }) => {
+      const isSelected = selectedUris.has(item.uri);
+      const itemColor = item.artColor || primaryColor;
+      return (
+        <TouchableOpacity
+          className="flex-row items-center gap-3 px-4 py-2.5"
+          style={isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 }}
+          onPress={() => navigateToFile(item)}
+          onLongPress={() => handleLongPress(item)}
+          delayLongPress={400}>
+          {isSelected && <CheckCircle size={18} color={primaryColor} weight="fill" />}
+          <View
+            className="h-11 w-11 items-center justify-center overflow-hidden rounded-xl"
+            style={{ backgroundColor: `${itemColor}20` }}>
+            {item.thumbnail ? (
+              <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />
+            ) : (
+              <MusicNote size={22} color={itemColor} weight="fill" />
             )}
           </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [navigateToFile, handleLongPress, selectedUris, primaryColor, textColor, mutedColor]);
-
-  const renderSortModal = useMemo(() => (
-    <Modal visible={showSortModal} transparent animationType="fade">
-      <TouchableOpacity className="flex-1 justify-center items-center bg-black/70" onPress={() => setShowSortModal(false)}>
-        <View className="bg-[#27272a] rounded-3xl p-6 w-4/5 max-w-[320px]">
-          <Text className="text-lg font-extrabold mb-4 text-center text-white">Sort by</Text>
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.field}
-              className="flex-row items-center justify-between py-3.5 px-4 rounded-xl mb-2"
-              style={sortField === opt.field && { backgroundColor: `${primaryColor}15` }}
-              onPress={() => {
-                if (sortField === opt.field) {
-                  toggleDirection();
-                } else {
-                  setSortField(opt.field);
-                  setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
-                }
-                setShowSortModal(false);
-              }}
-            >
-              <Text className="text-base font-medium" style={{ color: sortField === opt.field ? primaryColor : mutedColor, fontWeight: sortField === opt.field ? '700' : '500' }}>
-                {opt.label}
+          <View className="flex-1">
+            <Text
+              className="mb-[3px] text-[15px] font-semibold"
+              style={{ color: textColor }}
+              numberOfLines={1}>
+              {item.name}
+            </Text>
+            <View className="flex-row items-center gap-1.5">
+              <Text className="text-[13px]" style={{ color: mutedColor }} numberOfLines={1}>
+                {item.artist || 'Unknown'}
               </Text>
-              {sortField === opt.field && (
-                sortDirection === 'asc' ? <ArrowUp size={18} color={primaryColor} /> : <ArrowDown size={18} color={primaryColor} />
+              {item.hasLyrics && (
+                <View
+                  className="flex-row items-center gap-[3px] rounded-md px-1.5 py-0.5"
+                  style={{ backgroundColor: `${primaryColor}20` }}>
+                  <Microphone size={10} color={primaryColor} weight="fill" />
+                  <Text
+                    className="text-[9px] font-bold tracking-wider"
+                    style={{ color: primaryColor }}>
+                    LYRICS
+                  </Text>
+                </View>
               )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  ), [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]);
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [navigateToFile, handleLongPress, selectedUris, primaryColor, textColor, mutedColor]
+  );
 
-  const renderSectionHeader = useCallback((info: { section: MusicSection }) => (
-    <View className="py-1.5 px-1 mt-1">
-      <Text className="text-sm font-extrabold tracking-wider" style={{ color: primaryColor }}>{info.section.title}</Text>
-    </View>
-  ), [primaryColor]);
+  const renderSortModal = useMemo(
+    () => (
+      <Modal visible={showSortModal} transparent animationType="fade">
+        <TouchableOpacity
+          className="flex-1 items-center justify-center bg-black/70"
+          onPress={() => setShowSortModal(false)}>
+          <View className="w-4/5 max-w-[320px] rounded-3xl bg-[#27272a] p-6">
+            <Text className="mb-4 text-center text-lg font-extrabold text-white">Sort by</Text>
+            {SORT_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.field}
+                className="mb-2 flex-row items-center justify-between rounded-xl px-4 py-3.5"
+                style={sortField === opt.field && { backgroundColor: `${primaryColor}15` }}
+                onPress={() => {
+                  if (sortField === opt.field) {
+                    toggleDirection();
+                  } else {
+                    setSortField(opt.field);
+                    setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
+                  }
+                  setShowSortModal(false);
+                }}>
+                <Text
+                  className="text-base font-medium"
+                  style={{
+                    color: sortField === opt.field ? primaryColor : mutedColor,
+                    fontWeight: sortField === opt.field ? '700' : '500',
+                  }}>
+                  {opt.label}
+                </Text>
+                {sortField === opt.field &&
+                  (sortDirection === 'asc' ? (
+                    <ArrowUp size={18} color={primaryColor} />
+                  ) : (
+                    <ArrowDown size={18} color={primaryColor} />
+                  ))}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    ),
+    [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]
+  );
+
+  const renderSectionHeader = useCallback(
+    (info: { section: MusicSection }) => (
+      <View className="mt-1 px-1 py-1.5">
+        <Text className="text-sm font-extrabold tracking-wider" style={{ color: primaryColor }}>
+          {info.section.title}
+        </Text>
+      </View>
+    ),
+    [primaryColor]
+  );
 
   return (
     <ScreenLayout>
-      <View className="flex-row justify-between items-center px-4 mb-2">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Music</Text>
+      <View className="mb-2 flex-row items-center justify-between px-4">
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
+          Music
+        </Text>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-lg gap-1" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', borderWidth: 0.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} onPress={() => setShowSortModal(true)}>
+          <TouchableOpacity
+            className="flex-row items-center gap-1 rounded-lg px-2.5 py-1.5"
+            style={{
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              borderWidth: 0.5,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            }}
+            onPress={() => setShowSortModal(true)}>
             <FunnelSimple size={16} color={primaryColor} />
-            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
-            {sortDirection === 'asc' ? <ArrowUp size={14} color={mutedColor} /> : <ArrowDown size={14} color={mutedColor} />}
+            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>
+              {currentSortLabel}
+            </Text>
+            {sortDirection === 'asc' ? (
+              <ArrowUp size={14} color={mutedColor} />
+            ) : (
+              <ArrowDown size={14} color={mutedColor} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -343,22 +415,22 @@ export const MusicScreen = React.memo(function MusicScreen() {
             {/* A-Z Scrollbar */}
             <View
               ref={alphabetRef}
-              className="absolute right-0.5 top-0 bottom-0 w-[22px] justify-center items-center py-2"
+              className="absolute bottom-0 right-0.5 top-0 w-[22px] items-center justify-center py-2"
               onLayout={handleAlphabetLayout}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
               onResponderGrant={handleAlphabetTouch}
-              onResponderMove={handleAlphabetTouch}
-            >
+              onResponderMove={handleAlphabetTouch}>
               {ALPHABET.map((letter) => (
                 <Text
                   key={letter}
-                  className="text-[9px] font-semibold text-center leading-[13px]"
+                  className="text-center text-[9px] font-semibold leading-[13px]"
                   style={[
                     selectedSection === letter && { color: primaryColor, fontWeight: '800' },
-                    sections.some((s) => s.title === letter) ? { color: textColor } : { color: mutedColor },
-                  ]}
-                >
+                    sections.some((s) => s.title === letter)
+                      ? { color: textColor }
+                      : { color: mutedColor },
+                  ]}>
                   {letter}
                 </Text>
               ))}
@@ -378,28 +450,39 @@ export const MusicScreen = React.memo(function MusicScreen() {
               ListEmptyComponent={
                 <View className="items-center justify-center py-[100px]">
                   <MusicNote size={64} color={mutedColor} />
-                  <Text className="text-base mt-4" style={{ color: mutedColor }}>No music found</Text>
+                  <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+                    No music found
+                  </Text>
                 </View>
               }
             />
             <View
               ref={scrollTrackRef}
-              className="absolute right-0.5 top-2 bottom-2 w-3 rounded-md justify-start items-center"
-              style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
-              onLayout={(e) => { handleScrollTrackLayout(e); scrollTrackLayoutRef.current = { y: e.nativeEvent.layout.y, height: e.nativeEvent.layout.height }; }}
-              {...scrollThumbPanResponder.panHandlers}
-            >
+              className="absolute bottom-2 right-0.5 top-2 w-3 items-center justify-start rounded-md"
+              style={{
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              }}
+              onLayout={(e) => {
+                handleScrollTrackLayout(e);
+                scrollTrackLayoutRef.current = {
+                  y: e.nativeEvent.layout.y,
+                  height: e.nativeEvent.layout.height,
+                };
+              }}
+              {...scrollThumbPanResponder.panHandlers}>
               <Animated.View
-                className="w-1 h-10 rounded-sm opacity-70"
+                className="h-10 w-1 rounded-sm opacity-70"
                 style={{
                   backgroundColor: primaryColor,
-                  transform: [{
-                    translateY: thumbAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 200],
-                      extrapolate: 'clamp',
-                    })
-                  }]
+                  transform: [
+                    {
+                      translateY: thumbAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 200],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
                 }}
               />
             </View>

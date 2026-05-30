@@ -26,7 +26,10 @@ function saveIndex() {
 }
 
 function tokenize(text: string): string[] {
-  return text.toLowerCase().split(/[\s\-_.]+/).filter(Boolean);
+  return text
+    .toLowerCase()
+    .split(/[\s\-_.]+/)
+    .filter(Boolean);
 }
 
 export const SearchService = {
@@ -98,10 +101,15 @@ export const SearchService = {
     let updated: SavedSearch[];
     if (existing) {
       updated = history
-        .map((h) => (h.query.toLowerCase() === trimmed.toLowerCase() ? { ...h, timestamp: Date.now() } : h))
+        .map((h) =>
+          h.query.toLowerCase() === trimmed.toLowerCase() ? { ...h, timestamp: Date.now() } : h
+        )
         .sort((a, b) => b.timestamp - a.timestamp);
     } else {
-      updated = [{ id: Date.now().toString(), query: trimmed, timestamp: Date.now() }, ...history].slice(0, 30);
+      updated = [
+        { id: Date.now().toString(), query: trimmed, timestamp: Date.now() },
+        ...history,
+      ].slice(0, 30);
     }
     storage.set(HISTORY_KEY, JSON.stringify(updated));
   },

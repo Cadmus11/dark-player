@@ -48,7 +48,10 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
       options?: { priority?: OverlayPriority; dismissable?: boolean; onDismiss?: () => void }
     ) => {
       const priorityMap: Record<OverlayPriority, number> = {
-        low: 0, medium: 1, high: 2, critical: 3,
+        low: 0,
+        medium: 1,
+        high: 2,
+        critical: 3,
       };
       const newOverlay: Overlay = {
         id,
@@ -91,15 +94,13 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
           visible
           transparent
           animationType="fade"
-          onRequestClose={() => overlay.dismissable && dismissOverlay(overlay.id)}
-        >
+          onRequestClose={() => overlay.dismissable && dismissOverlay(overlay.id)}>
           <View
             style={{
               flex: 1,
               zIndex: 1000 + index,
               elevation: 10 + index,
-            }}
-          >
+            }}>
             {overlay.component}
           </View>
         </Modal>
@@ -203,14 +204,11 @@ export function BottomSheet({
         <Animated.View style={{ transform: [{ translateY }] }} {...panHandlers}>
           <TouchableOpacity
             activeOpacity={1}
-            className="max-h-[70%] rounded-t-3xl bg-zinc-900 pb-8 pt-5"
-          >
+            className="max-h-[70%] rounded-t-3xl bg-zinc-900 pb-8 pt-5">
             <View className="mb-4 h-1 w-10 self-center rounded-full bg-zinc-500" />
             {title ? (
               <View className="mb-2 px-5">
-                <Text className="text-center text-lg font-extrabold text-white">
-                  {title}
-                </Text>
+                <Text className="text-center text-lg font-extrabold text-white">{title}</Text>
               </View>
             ) : null}
             {children}

@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { MMKV } from 'react-native-mmkv';
-import type { PlaybackSettings, NotificationSettings, SleepTimerSettings, HiddenFilesSettings, SortField, SortDirection, LayoutMode, LayoutSize } from '../types';
+import type {
+  PlaybackSettings,
+  NotificationSettings,
+  SleepTimerSettings,
+  HiddenFilesSettings,
+  SortField,
+  SortDirection,
+  LayoutMode,
+  LayoutSize,
+} from '../types';
 
 const storage = new MMKV({ id: 'settings' });
 
@@ -35,10 +44,20 @@ const KEYS = {
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({
-  playback: { playWithOtherApps: false, crossFade: false, crossFadeDuration: 3, gaplessPlayback: true },
+  playback: {
+    playWithOtherApps: false,
+    crossFade: false,
+    crossFadeDuration: 3,
+    gaplessPlayback: true,
+  },
   notifications: { newMediaNotification: true, pushNotification: true },
   sleepTimer: { enabled: false, mode: 'off', minutes: 30, playOneToEnd: false },
-  hiddenFiles: { hideShortSongs: true, minDurationSeconds: 15, hideOpus: true, hideExtensions: ['opus'] },
+  hiddenFiles: {
+    hideShortSongs: true,
+    minDurationSeconds: 15,
+    hideOpus: true,
+    hideExtensions: ['opus'],
+  },
   sortField: 'name',
   sortDirection: 'asc',
   layoutMode: 'list',

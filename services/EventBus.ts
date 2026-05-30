@@ -35,7 +35,9 @@ class EventBusService {
       this._listeners.set(event, new Set());
     }
     this._listeners.get(event)!.add(handler);
-    return () => { this._listeners.get(event)?.delete(handler); };
+    return () => {
+      this._listeners.get(event)?.delete(handler);
+    };
   }
 
   once(event: AppEvent, handler: EventHandler): () => void {
@@ -47,16 +49,22 @@ class EventBusService {
       this._onceListeners.get(event)?.delete(wrapped);
     };
     this._onceListeners.get(event)!.add(wrapped);
-    return () => { this._onceListeners.get(event)?.delete(wrapped); };
+    return () => {
+      this._onceListeners.get(event)?.delete(wrapped);
+    };
   }
 
   emit(event: AppEvent, ...args: any[]): void {
     if (!this._enabled) return;
     this._listeners.get(event)?.forEach((handler) => {
-      try { handler(...args); } catch {}
+      try {
+        handler(...args);
+      } catch {}
     });
     this._onceListeners.get(event)?.forEach((handler) => {
-      try { handler(...args); } catch {}
+      try {
+        handler(...args);
+      } catch {}
     });
     this._onceListeners.get(event)?.clear();
   }

@@ -108,20 +108,28 @@ class MemoryManagerClass {
   private _evictionTarget(neededBytes: number): { budget: string; key: string } | null {
     for (const [name, budget] of this._budgets) {
       if (budget.currentBytes > 0) {
-        const oldest = [...budget.items.entries()]
-          .sort(([, a], [, b]) => a.timestamp - b.timestamp)[0];
+        const oldest = [...budget.items.entries()].sort(
+          ([, a], [, b]) => a.timestamp - b.timestamp
+        )[0];
         if (oldest) return { budget: name, key: oldest[0] };
       }
     }
     return null;
   }
 
-  private _evict(target: { budget: string; key: string } | null, _strategy: EvictionStrategy): void {
+  private _evict(
+    target: { budget: string; key: string } | null,
+    _strategy: EvictionStrategy
+  ): void {
     if (!target) return;
     this.release(target.budget, target.key);
   }
 
-  private _evictBudget(budget: MemoryBudget, neededBytes: number, _strategy: EvictionStrategy): void {
+  private _evictBudget(
+    budget: MemoryBudget,
+    neededBytes: number,
+    _strategy: EvictionStrategy
+  ): void {
     const sorted = [...budget.items.entries()].sort(([, a], [, b]) => a.timestamp - b.timestamp);
     for (const [key] of sorted) {
       if (budget.currentBytes <= budget.maxBytes - neededBytes) break;
@@ -140,7 +148,11 @@ class MemoryManagerClass {
     }
   }
 
-  getStats(): { totalBytes: number; maxBytes: number; budgets: { name: string; bytes: number; max: number; items: number }[] } {
+  getStats(): {
+    totalBytes: number;
+    maxBytes: number;
+    budgets: { name: string; bytes: number; max: number; items: number }[];
+  } {
     return {
       totalBytes: this._totalBytes,
       maxBytes: this._maxTotalBytes,

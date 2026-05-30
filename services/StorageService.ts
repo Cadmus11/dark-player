@@ -1,6 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNFS from 'react-native-fs';
-import type { ThemeSettings, FileItem, Playlist, RecentlyPlayed, SavedSearch, RecentlyDeleted, PlaybackSettings, NotificationSettings, SleepTimerSettings, HiddenFilesSettings } from '../types';
+import type {
+  ThemeSettings,
+  FileItem,
+  Playlist,
+  RecentlyPlayed,
+  SavedSearch,
+  RecentlyDeleted,
+  PlaybackSettings,
+  NotificationSettings,
+  SleepTimerSettings,
+  HiddenFilesSettings,
+} from '../types';
 
 const TRASH_DIR = (RNFS.CachesDirectoryPath || '') + 'trash/';
 
@@ -23,7 +34,14 @@ export const StorageService = {
       const stored = await AsyncStorage.getItem(KEYS.THEME);
       if (stored) return JSON.parse(stored);
     } catch {}
-    return { backgroundType: 'solid', backgroundColor: '#06060B', gradientColors: ['#06060B', '#1D1D21'], primaryColor: '#C2FC4A', accentColor: '#C2FC4A', sizeMode: 'medium' };
+    return {
+      backgroundType: 'solid',
+      backgroundColor: '#06060B',
+      gradientColors: ['#06060B', '#1D1D21'],
+      primaryColor: '#C2FC4A',
+      accentColor: '#C2FC4A',
+      sizeMode: 'medium',
+    };
   },
   async saveThemeSettings(settings: ThemeSettings): Promise<void> {
     await AsyncStorage.setItem(KEYS.THEME, JSON.stringify(settings));
@@ -31,7 +49,12 @@ export const StorageService = {
 
   // Recent Files
   async getRecentFiles(): Promise<FileItem[]> {
-    try { const d = await AsyncStorage.getItem(KEYS.RECENT); return d ? JSON.parse(d) : []; } catch { return []; }
+    try {
+      const d = await AsyncStorage.getItem(KEYS.RECENT);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
   },
   async addToRecentFiles(file: FileItem): Promise<void> {
     const recent = await this.getRecentFiles();
@@ -41,16 +64,25 @@ export const StorageService = {
 
   // Recently Played
   async getRecentlyPlayed(): Promise<RecentlyPlayed[]> {
-    try { const d = await AsyncStorage.getItem(KEYS.RECENTLY_PLAYED); return d ? JSON.parse(d) : []; } catch { return []; }
+    try {
+      const d = await AsyncStorage.getItem(KEYS.RECENTLY_PLAYED);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
   },
   async addToRecentlyPlayed(file: FileItem): Promise<void> {
     const recent = await this.getRecentlyPlayed();
     const existing = recent.find((r) => r.file.uri === file.uri);
     let updated: RecentlyPlayed[];
     if (existing) {
-      updated = recent.map((r) =>
-        r.file.uri === file.uri ? { ...r, lastPlayedAt: Date.now(), playCount: r.playCount + 1 } : r
-      ).sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
+      updated = recent
+        .map((r) =>
+          r.file.uri === file.uri
+            ? { ...r, lastPlayedAt: Date.now(), playCount: r.playCount + 1 }
+            : r
+        )
+        .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
     } else {
       updated = [{ file, lastPlayedAt: Date.now(), playCount: 1 }, ...recent].slice(0, 100);
     }
@@ -59,7 +91,12 @@ export const StorageService = {
 
   // Favorites
   async getFavorites(): Promise<string[]> {
-    try { const d = await AsyncStorage.getItem(KEYS.FAVORITES); return d ? JSON.parse(d) : []; } catch { return []; }
+    try {
+      const d = await AsyncStorage.getItem(KEYS.FAVORITES);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
   },
   async toggleFavorite(uri: string): Promise<string[]> {
     const favorites = await this.getFavorites();
@@ -71,7 +108,12 @@ export const StorageService = {
 
   // Search History
   async getSearchHistory(): Promise<SavedSearch[]> {
-    try { const d = await AsyncStorage.getItem(KEYS.SEARCH_HISTORY); return d ? JSON.parse(d) : []; } catch { return []; }
+    try {
+      const d = await AsyncStorage.getItem(KEYS.SEARCH_HISTORY);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
   },
   async saveSearch(query: string): Promise<void> {
     const trimmed = query.trim();
@@ -80,17 +122,25 @@ export const StorageService = {
     const existing = history.find((h) => h.query.toLowerCase() === trimmed.toLowerCase());
     let updated: SavedSearch[];
     if (existing) {
-      updated = history.map((h) =>
-        h.query.toLowerCase() === trimmed.toLowerCase() ? { ...h, timestamp: Date.now() } : h
-      ).sort((a, b) => b.timestamp - a.timestamp);
+      updated = history
+        .map((h) =>
+          h.query.toLowerCase() === trimmed.toLowerCase() ? { ...h, timestamp: Date.now() } : h
+        )
+        .sort((a, b) => b.timestamp - a.timestamp);
     } else {
-      updated = [{ id: Date.now().toString(), query: trimmed, timestamp: Date.now() }, ...history].slice(0, 30);
+      updated = [
+        { id: Date.now().toString(), query: trimmed, timestamp: Date.now() },
+        ...history,
+      ].slice(0, 30);
     }
     await AsyncStorage.setItem(KEYS.SEARCH_HISTORY, JSON.stringify(updated));
   },
   async removeSearch(id: string): Promise<void> {
     const history = await this.getSearchHistory();
-    await AsyncStorage.setItem(KEYS.SEARCH_HISTORY, JSON.stringify(history.filter((h) => h.id !== id)));
+    await AsyncStorage.setItem(
+      KEYS.SEARCH_HISTORY,
+      JSON.stringify(history.filter((h) => h.id !== id))
+    );
   },
   async clearSearchHistory(): Promise<void> {
     await AsyncStorage.setItem(KEYS.SEARCH_HISTORY, JSON.stringify([]));
@@ -98,7 +148,11 @@ export const StorageService = {
 
   // Permissions
   async getPermissionsGranted(): Promise<boolean> {
-    try { return (await AsyncStorage.getItem(KEYS.PERMISSIONS)) === 'true'; } catch { return false; }
+    try {
+      return (await AsyncStorage.getItem(KEYS.PERMISSIONS)) === 'true';
+    } catch {
+      return false;
+    }
   },
   async setPermissionsGranted(value: boolean): Promise<void> {
     await AsyncStorage.setItem(KEYS.PERMISSIONS, value ? 'true' : 'false');
@@ -106,15 +160,26 @@ export const StorageService = {
 
   // Recently Deleted
   async getRecentlyDeleted(): Promise<RecentlyDeleted[]> {
-    try { const d = await AsyncStorage.getItem(KEYS.RECENTLY_DELETED); return d ? JSON.parse(d) : []; } catch { return []; }
+    try {
+      const d = await AsyncStorage.getItem(KEYS.RECENTLY_DELETED);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
   },
   async addToRecentlyDeleted(file: FileItem): Promise<void> {
     const deleted = await this.getRecentlyDeleted();
-    await AsyncStorage.setItem(KEYS.RECENTLY_DELETED, JSON.stringify([{ file, deletedAt: Date.now() }, ...deleted].slice(0, 50)));
+    await AsyncStorage.setItem(
+      KEYS.RECENTLY_DELETED,
+      JSON.stringify([{ file, deletedAt: Date.now() }, ...deleted].slice(0, 50))
+    );
   },
   async removeFromRecentlyDeleted(uri: string): Promise<void> {
     const deleted = await this.getRecentlyDeleted();
-    await AsyncStorage.setItem(KEYS.RECENTLY_DELETED, JSON.stringify(deleted.filter((d) => d.file.uri !== uri)));
+    await AsyncStorage.setItem(
+      KEYS.RECENTLY_DELETED,
+      JSON.stringify(deleted.filter((d) => d.file.uri !== uri))
+    );
   },
   async clearRecentlyDeleted(): Promise<void> {
     await AsyncStorage.setItem(KEYS.RECENTLY_DELETED, JSON.stringify([]));
@@ -139,7 +204,9 @@ export const StorageService = {
       const trashFiles = await this._getTrashFiles();
       trashFiles.push({ originalUri: file.uri, trashUri, fileName: file.name });
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(trashFiles));
-      try { await RNFS.unlink(file.uri); } catch {}
+      try {
+        await RNFS.unlink(file.uri);
+      } catch {}
       return trashUri;
     } catch {
       return null;
@@ -152,7 +219,9 @@ export const StorageService = {
     if (!entry) return false;
     try {
       await RNFS.copyFile(entry.trashUri, originalUri);
-      try { await RNFS.unlink(entry.trashUri); } catch {}
+      try {
+        await RNFS.unlink(entry.trashUri);
+      } catch {}
       const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(updated));
       return true;
@@ -165,7 +234,9 @@ export const StorageService = {
     const trashFiles = await this._getTrashFiles();
     const entry = trashFiles.find((t: any) => t.originalUri === originalUri);
     if (entry) {
-      try { await RNFS.unlink(entry.trashUri); } catch {}
+      try {
+        await RNFS.unlink(entry.trashUri);
+      } catch {}
     }
     const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);
     await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(updated));
@@ -175,25 +246,42 @@ export const StorageService = {
     try {
       const d = await AsyncStorage.getItem(KEYS.TRASH_FILES);
       return d ? JSON.parse(d) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   },
 };
 
 // Legacy playback settings (kept for SettingsScreen compatibility)
 export async function getPlaybackSettings(): Promise<PlaybackSettings> {
-  return { playWithOtherApps: false, crossFade: false, crossFadeDuration: 3, gaplessPlayback: true };
+  return {
+    playWithOtherApps: false,
+    crossFade: false,
+    crossFadeDuration: 3,
+    gaplessPlayback: true,
+  };
 }
-export async function savePlaybackSettings(s: PlaybackSettings): Promise<void> { /* kept for compat */ }
+export async function savePlaybackSettings(s: PlaybackSettings): Promise<void> {
+  /* kept for compat */
+}
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   return { newMediaNotification: true, pushNotification: true };
 }
-export async function saveNotificationSettings(s: NotificationSettings): Promise<void> { /* kept for compat */ }
+export async function saveNotificationSettings(s: NotificationSettings): Promise<void> {
+  /* kept for compat */
+}
 export async function getSleepTimerSettings(): Promise<SleepTimerSettings> {
   return { enabled: false, mode: 'off', minutes: 30, playOneToEnd: false };
 }
-export async function saveSleepTimerSettings(s: SleepTimerSettings): Promise<void> { /* kept for compat */ }
-export async function getRemoveAds(): Promise<boolean> { return false; }
-export async function setRemoveAds(v: boolean): Promise<void> { /* kept for compat */ }
+export async function saveSleepTimerSettings(s: SleepTimerSettings): Promise<void> {
+  /* kept for compat */
+}
+export async function getRemoveAds(): Promise<boolean> {
+  return false;
+}
+export async function setRemoveAds(v: boolean): Promise<void> {
+  /* kept for compat */
+}
 
 // Backward-compatible named exports
 export const getThemeSettings = () => StorageService.getThemeSettings();
@@ -217,4 +305,5 @@ export const restoreFromRecentlyDeleted = (u: string) => StorageService.restoreF
 export const clearRecentlyDeleted = () => StorageService.clearRecentlyDeleted();
 export const moveToTrash = (f: FileItem) => StorageService.moveToTrash(f);
 export const restoreFromTrash = (u: string) => StorageService.restoreFromTrash(u);
-export const permanentlyDeleteTrashFile = (u: string) => StorageService.permanentlyDeleteTrashFile(u);
+export const permanentlyDeleteTrashFile = (u: string) =>
+  StorageService.permanentlyDeleteTrashFile(u);

@@ -153,8 +153,14 @@ audioEngine.subscribe(() => {
   const store = usePlaybackStore.getState();
   if (store.source === 'music') {
     const snapshot = JSON.stringify([
-      s.currentFile?.uri, s.isPlaying, s.position, s.duration,
-      s.currentIndex, s.shuffle, s.repeat, s.playbackSpeed,
+      s.currentFile?.uri,
+      s.isPlaying,
+      s.position,
+      s.duration,
+      s.currentIndex,
+      s.shuffle,
+      s.repeat,
+      s.playbackSpeed,
     ]);
     if (snapshot === _lastEngineState) return;
     _lastEngineState = snapshot;

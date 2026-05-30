@@ -229,7 +229,9 @@ export class QueueEngine {
     try {
       const data = storage.getString(PLAYLISTS_KEY);
       return data ? JSON.parse(data) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   getById(id: string): PlaylistData | undefined {

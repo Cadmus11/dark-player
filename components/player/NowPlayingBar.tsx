@@ -23,26 +23,44 @@ export function NowPlayingBar() {
 
   return (
     <TouchableOpacity
-      className="flex-row items-center px-3.5 py-2.5 border-t gap-3"
-      style={{ backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5', borderTopColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#d4d4d8' }}
+      className="flex-row items-center gap-3 border-t px-3.5 py-2.5"
+      style={{
+        backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5',
+        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#d4d4d8',
+      }}
       onPress={handleOpenPlayer}
-      activeOpacity={0.8}
-    >
+      activeOpacity={0.8}>
       {currentFile.thumbnail ? (
-        <Image source={{ uri: currentFile.thumbnail }} className="w-[42] h-[42] rounded-[10px]" />
+        <Image source={{ uri: currentFile.thumbnail }} className="h-[42] w-[42] rounded-[10px]" />
       ) : (
-        <View className="w-[42] h-[42] rounded-[10px] justify-center items-center" style={{ backgroundColor: (currentFile.artColor || '#C2FC4A') + '30' }}>
+        <View
+          className="h-[42] w-[42] items-center justify-center rounded-[10px]"
+          style={{ backgroundColor: (currentFile.artColor || '#C2FC4A') + '30' }}>
           <MusicNote size={18} color={currentFile.artColor || '#C2FC4A'} weight="bold" />
         </View>
       )}
       <View className="flex-1">
-        <Text className="text-sm font-semibold" style={{ color: textColor }} numberOfLines={1}>{currentFile.name}</Text>
-        <Text className="text-xs" style={{ color: mutedColor }} numberOfLines={1}>{currentFile.artist || 'Lumora'}</Text>
+        <Text className="text-sm font-semibold" style={{ color: textColor }} numberOfLines={1}>
+          {currentFile.name}
+        </Text>
+        <Text className="text-xs" style={{ color: mutedColor }} numberOfLines={1}>
+          {currentFile.artist || 'Lumora'}
+        </Text>
       </View>
-      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume} hitSlop={12}>
-        {isPlaying ? <Pause size={22} color={textColor} weight="fill" /> : <Play size={22} color={textColor} weight="fill" />}
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={isPlaying ? pause : resume}
+        hitSlop={12}>
+        {isPlaying ? (
+          <Pause size={22} color={textColor} weight="fill" />
+        ) : (
+          <Play size={22} color={textColor} weight="fill" />
+        )}
       </TouchableOpacity>
-      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={next} hitSlop={12}>
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={next}
+        hitSlop={12}>
         <SkipForward size={20} color={mutedColor} weight="fill" />
       </TouchableOpacity>
     </TouchableOpacity>

@@ -11,9 +11,11 @@ export function TopBar() {
   const { textColor } = useTheme();
 
   return (
-    <View className="flex-row items-center justify-between pt-[60] px-5 pb-4">
+    <View className="flex-row items-center justify-between px-5 pb-4 pt-[60]">
       <TouchableOpacity onPress={() => navigation.navigate('HomeTab')}>
-        <Text className="text-lg font-semibold tracking-wide" style={{ color: textColor }}>{t('topbar.title')}</Text>
+        <Text className="text-lg font-semibold tracking-wide" style={{ color: textColor }}>
+          {t('topbar.title')}
+        </Text>
       </TouchableOpacity>
       <View className="flex-row items-center gap-4">
         <TouchableOpacity onPress={() => navigation.navigate('SearchTab')}>

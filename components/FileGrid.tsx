@@ -48,25 +48,41 @@ const GridItem = memo(function GridItem({
 }) {
   const maxWidth = columns === 4 ? '23%' : columns === 1 ? '96%' : columns === 2 ? '48%' : '31%';
   return (
-    <TouchableOpacity className="flex-1 m-1.5" style={{ maxWidth } as any} onPress={() => onPress(item)}>
-      <View className="w-full rounded-xl justify-center items-center mb-2" style={{ aspectRatio: itemAspect, backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)' }}>
+    <TouchableOpacity
+      className="m-1.5 flex-1"
+      style={{ maxWidth } as any}
+      onPress={() => onPress(item)}>
+      <View
+        className="mb-2 w-full items-center justify-center rounded-xl"
+        style={{
+          aspectRatio: itemAspect,
+          backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)',
+        }}>
         {item.thumbnail ? (
-          <Image source={{ uri: item.thumbnail }} className="w-full h-full rounded-xl" />
+          <Image source={{ uri: item.thumbnail }} className="h-full w-full rounded-xl" />
         ) : (
           <FileTypeIcon type={item.type} size={32} color={primaryColor} />
         )}
         {item.duration && (
-          <View className="absolute bottom-1.5 right-1.5 flex-row items-center bg-black/70 px-1.5 py-0.5 rounded-md gap-0.5">
+          <View className="absolute bottom-1.5 right-1.5 flex-row items-center gap-0.5 rounded-md bg-black/70 px-1.5 py-0.5">
             <Play size={10} color="#ffffff" weight="fill" />
-            <Text className="text-[10px] text-white font-semibold">{formatDuration(item.duration)}</Text>
+            <Text className="text-[10px] font-semibold text-white">
+              {formatDuration(item.duration)}
+            </Text>
           </View>
         )}
         {renderOverlay?.(item)}
       </View>
-      <Text className="text-xs font-semibold mb-0.5" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
-      {renderSubtitle ? renderSubtitle(item) : item.artist && (
-        <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>{item.artist}</Text>
-      )}
+      <Text className="mb-0.5 text-xs font-semibold" style={{ color: textColor }} numberOfLines={1}>
+        {item.name}
+      </Text>
+      {renderSubtitle
+        ? renderSubtitle(item)
+        : item.artist && (
+            <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>
+              {item.artist}
+            </Text>
+          )}
     </TouchableOpacity>
   );
 });
@@ -102,26 +118,43 @@ function FileGrid({
   }, [sizeMode, fileType]);
   const keyExtractor = useCallback((item: FileItem) => item.uri, []);
 
-  const renderItem = useCallback(({ item }: { item: FileItem }) => (
-    <GridItem
-      item={item}
-      onPress={onPress}
-      primaryColor={primaryColor}
-      textColor={textColor}
-      mutedColor={mutedColor}
-      columns={colCount}
-      itemAspect={itemAspect}
-      renderOverlay={renderOverlay}
-      renderSubtitle={renderSubtitle}
-    />
-  ), [onPress, primaryColor, textColor, mutedColor, colCount, itemAspect, renderOverlay, renderSubtitle]);
+  const renderItem = useCallback(
+    ({ item }: { item: FileItem }) => (
+      <GridItem
+        item={item}
+        onPress={onPress}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        mutedColor={mutedColor}
+        columns={colCount}
+        itemAspect={itemAspect}
+        renderOverlay={renderOverlay}
+        renderSubtitle={renderSubtitle}
+      />
+    ),
+    [
+      onPress,
+      primaryColor,
+      textColor,
+      mutedColor,
+      colCount,
+      itemAspect,
+      renderOverlay,
+      renderSubtitle,
+    ]
+  );
 
-  const renderEmpty = useCallback(() => (
-    <View className="items-center justify-center py-[100]">
-      <MusicNote size={64} color={mutedColor} />
-      <Text className="text-base mt-4" style={{ color: mutedColor }}>{emptyMessage}</Text>
-    </View>
-  ), [mutedColor, emptyMessage]);
+  const renderEmpty = useCallback(
+    () => (
+      <View className="items-center justify-center py-[100]">
+        <MusicNote size={64} color={mutedColor} />
+        <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+          {emptyMessage}
+        </Text>
+      </View>
+    ),
+    [mutedColor, emptyMessage]
+  );
 
   return (
     <FlatList

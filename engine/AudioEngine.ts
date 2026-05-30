@@ -43,7 +43,13 @@ export class AudioEngine {
   private _state: AudioEngineState;
   private _listeners: Set<AudioEngineListener> = new Set();
   private _isLoaded = false;
-  private _sleepTimer: SleepTimerState = { enabled: false, mode: 'off', remainingMillis: 0, stopAfterTrackEnd: false, trackCount: 0 };
+  private _sleepTimer: SleepTimerState = {
+    enabled: false,
+    mode: 'off',
+    remainingMillis: 0,
+    stopAfterTrackEnd: false,
+    trackCount: 0,
+  };
   private _crossfade: CrossfadeState = { enabled: false, duration: 3 };
   private _sleepTimeout: ReturnType<typeof setTimeout> | null = null;
   private _crossfadeTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -96,7 +102,10 @@ export class AudioEngine {
   }
 
   private _saveSettings() {
-    storage.set(SETTINGS_KEY, JSON.stringify({ sleepTimer: this._sleepTimer, crossfade: this._crossfade }));
+    storage.set(
+      SETTINGS_KEY,
+      JSON.stringify({ sleepTimer: this._sleepTimer, crossfade: this._crossfade })
+    );
   }
 
   private _loadPersistedState(): AudioEngineState {
@@ -118,16 +127,19 @@ export class AudioEngine {
   }
 
   private _persistState() {
-    storage.set(STATE_KEY, JSON.stringify({
-      currentFile: this._state.currentFile,
-      currentIndex: this._state.currentIndex,
-      repeat: this._state.repeat,
-      shuffle: this._state.shuffle,
-      position: this._state.position,
-      duration: this._state.duration,
-      isPlaying: this._state.isPlaying,
-      playbackSpeed: this._state.playbackSpeed,
-    }));
+    storage.set(
+      STATE_KEY,
+      JSON.stringify({
+        currentFile: this._state.currentFile,
+        currentIndex: this._state.currentIndex,
+        repeat: this._state.repeat,
+        shuffle: this._state.shuffle,
+        position: this._state.position,
+        duration: this._state.duration,
+        isPlaying: this._state.isPlaying,
+        playbackSpeed: this._state.playbackSpeed,
+      })
+    );
   }
 
   private async _initAudio() {
@@ -175,11 +187,21 @@ export class AudioEngine {
         this._persistState();
         this._notify();
 
-        if (prevPlaying && !this._player.playing && this._player.currentTime > 0 && this._player.duration > 0 && this._player.currentTime >= this._player.duration - 0.5) {
+        if (
+          prevPlaying &&
+          !this._player.playing &&
+          this._player.currentTime > 0 &&
+          this._player.duration > 0 &&
+          this._player.currentTime >= this._player.duration - 0.5
+        ) {
           this._handleTrackEnd();
         }
       }
-      if (this._sleepTimer.enabled && this._state.isPlaying && this._sleepTimer.mode === 'minutes') {
+      if (
+        this._sleepTimer.enabled &&
+        this._state.isPlaying &&
+        this._sleepTimer.mode === 'minutes'
+      ) {
         this._sleepTimer.remainingMillis -= 250;
         if (this._sleepTimer.remainingMillis <= 0) {
           this.pause();
@@ -263,7 +285,10 @@ export class AudioEngine {
         albumTitle: file.album,
         artworkUrl: file.thumbnail,
       };
-      player.setActiveForLockScreen(true, metadata, { showSeekForward: true, showSeekBackward: true });
+      player.setActiveForLockScreen(true, metadata, {
+        showSeekForward: true,
+        showSeekBackward: true,
+      });
       player.play();
       this._state.isPlaying = true;
       HistoryService.record(file, 0, 'music');
@@ -293,9 +318,7 @@ export class AudioEngine {
 
   playIndex(index: number) {
     const qs = queueEngine.getAudioState();
-    const actualIndex = qs.shuffle
-      ? queueEngine.getShuffledOrder('audio')[index]
-      : index;
+    const actualIndex = qs.shuffle ? queueEngine.getShuffledOrder('audio')[index] : index;
     if (actualIndex >= 0 && actualIndex < this._state.queue.length) {
       this._playIndex(actualIndex);
     }
@@ -337,7 +360,9 @@ export class AudioEngine {
 
   stop() {
     if (this._player) {
-      try { this._player.clearLockScreenControls(); } catch {}
+      try {
+        this._player.clearLockScreenControls();
+      } catch {}
     }
     this._unload();
     this._state.currentFile = null;
@@ -423,14 +448,19 @@ export class AudioEngine {
   }
 
   // Sleep Timer
-  enableSleepTimer(mode: 'minutes' | 'endOfTrack' | 'endOfQueue', minutes?: number, trackCount?: number) {
+  enableSleepTimer(
+    mode: 'minutes' | 'endOfTrack' | 'endOfQueue',
+    minutes?: number,
+    trackCount?: number
+  ) {
     this._sleepTimer.enabled = true;
     this._sleepTimer.mode = mode;
     if (mode === 'minutes') {
       this._sleepTimer.remainingMillis = (minutes || 30) * 60 * 1000;
     }
     if (mode === 'endOfQueue') {
-      this._sleepTimer.trackCount = trackCount || this._state.queue.length - this._state.currentIndex;
+      this._sleepTimer.trackCount =
+        trackCount || this._state.queue.length - this._state.currentIndex;
     }
     this._saveSettings();
     this._startPositionCheck();
@@ -467,7 +497,9 @@ export class AudioEngine {
 
   cleanup() {
     if (this._player) {
-      try { this._player.clearLockScreenControls(); } catch {}
+      try {
+        this._player.clearLockScreenControls();
+      } catch {}
     }
     this._unload();
     this._listeners.clear();

@@ -34,13 +34,15 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <View className="flex-1 justify-center items-center bg-[#18181b] p-8">
+        <View className="flex-1 items-center justify-center bg-[#18181b] p-8">
           <WarningCircle size={48} color="#ef4444" weight="bold" />
-          <Text className="text-xl font-bold text-white mt-4 mb-2">Something went wrong</Text>
-          <Text className="text-sm text-[#a1a1aa] text-center mb-6 leading-5" numberOfLines={3}>
+          <Text className="mb-2 mt-4 text-xl font-bold text-white">Something went wrong</Text>
+          <Text className="mb-6 text-center text-sm leading-5 text-[#a1a1aa]" numberOfLines={3}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </Text>
-          <TouchableOpacity className="bg-[#C2FC4A] px-6 py-3 rounded-xl" onPress={this.handleRetry}>
+          <TouchableOpacity
+            className="rounded-xl bg-[#C2FC4A] px-6 py-3"
+            onPress={this.handleRetry}>
             <Text className="text-[15px] font-bold text-[#18181b]">Try Again</Text>
           </TouchableOpacity>
         </View>

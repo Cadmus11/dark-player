@@ -1,9 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Image,
-  StatusBar,
-} from 'react-native';
+import { Animated, Image, StatusBar } from 'react-native';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -33,7 +29,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       <StatusBar hidden />
       <Image
         source={require('../assets/splash.png')}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 h-full w-full"
         resizeMode="cover"
       />
     </Animated.View>

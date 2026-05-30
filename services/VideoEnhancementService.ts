@@ -1,13 +1,12 @@
 import RNFS from 'react-native-fs';
-import type {
-  VideoEnhancementSettings,
-  VideoQualityTarget,
-  EnhancementJob,
-} from '../types';
+import type { VideoEnhancementSettings, VideoQualityTarget, EnhancementJob } from '../types';
 
 const ENHANCED_DIR = `${RNFS.CachesDirectoryPath}enhanced/`;
 
-const QUALITY_DIMENSIONS: Record<VideoQualityTarget, { width: number; height: number; label: string }> = {
+const QUALITY_DIMENSIONS: Record<
+  VideoQualityTarget,
+  { width: number; height: number; label: string }
+> = {
   original: { width: 0, height: 0, label: 'Original' },
   hd: { width: 1280, height: 720, label: 'HD (720p)' },
   fullhd: { width: 1920, height: 1080, label: 'Full HD (1080p)' },
@@ -54,7 +53,7 @@ async function ensureFFmpeg(): Promise<boolean> {
 function buildFFmpegCommand(
   sourceUri: string,
   outputUri: string,
-  settings: VideoEnhancementSettings,
+  settings: VideoEnhancementSettings
 ): string[] {
   const filters: string[] = [];
 
@@ -91,7 +90,20 @@ function buildFFmpegCommand(
 
   const cmd = ['-i', sourceUri];
   if (vf) cmd.push(...vf.split(' '));
-  cmd.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'aac', '-b:a', '192k', '-y', outputUri);
+  cmd.push(
+    '-c:v',
+    'libx264',
+    '-preset',
+    'fast',
+    '-crf',
+    '23',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '192k',
+    '-y',
+    outputUri
+  );
 
   return cmd;
 }
@@ -112,7 +124,7 @@ export const VideoEnhancementService = {
     sourceUri: string,
     settings: VideoEnhancementSettings,
     onProgress?: (progress: number) => void,
-    onLog?: (log: string) => void,
+    onLog?: (log: string) => void
   ): Promise<EnhancementJob> => {
     const jobId = generateJobId();
     const job: EnhancementJob = {
@@ -165,7 +177,7 @@ export const VideoEnhancementService = {
           if (match) {
             onProgress?.(0.5);
           }
-        },
+        }
       );
 
       onProgress?.(0.1);
@@ -177,7 +189,10 @@ export const VideoEnhancementService = {
     return job;
   },
 
-  getEnhancedFileUri: async (sourceUri: string, settings: VideoEnhancementSettings): Promise<string | null> => {
+  getEnhancedFileUri: async (
+    sourceUri: string,
+    settings: VideoEnhancementSettings
+  ): Promise<string | null> => {
     const outputUri = buildOutputUri(sourceUri, settings.qualityTarget);
     const exists = await RNFS.exists(outputUri);
     if (exists) {

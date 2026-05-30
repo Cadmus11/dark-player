@@ -34,7 +34,12 @@ import RNFS from 'react-native-fs';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
-import { useCategories, useRecentFiles, useRecentlyPlayed, useExpandedPlaylists } from '../hooks/useDomainSelectors';
+import {
+  useCategories,
+  useRecentFiles,
+  useRecentlyPlayed,
+  useExpandedPlaylists,
+} from '../hooks/useDomainSelectors';
 import { useFavorites } from '../hooks/useFavorites';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -182,10 +187,12 @@ export const HomeScreen = React.memo(function HomeScreen() {
   }, [showSplash]);
 
   useEffect(() => {
-    RNFS.getFSInfo().then((info) => {
-      setDeviceTotal(info.totalSpace || 1);
-      setDeviceFree(info.freeSpace || 0);
-    }).catch(() => {});
+    RNFS.getFSInfo()
+      .then((info) => {
+        setDeviceTotal(info.totalSpace || 1);
+        setDeviceFree(info.freeSpace || 0);
+      })
+      .catch(() => {});
   }, []);
 
   const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
@@ -588,9 +595,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
                 }}
                 onPress={() => navigation.navigate(folder.screen, folder.params as any)}>
                 <View className="mb-2 flex-row items-center gap-3">
-                  <GlassIcon size={36}>
-                    {folder.icon}
-                  </GlassIcon>
+                  <GlassIcon size={36}>{folder.icon}</GlassIcon>
                   <Text className="text-sm font-bold" style={{ color: textColor }}>
                     {folder.label}
                   </Text>
@@ -630,13 +635,17 @@ export const HomeScreen = React.memo(function HomeScreen() {
                   setShowPlaylistInput(false);
                   setPlaylistInput('');
                 }}>
-                <Text className="text-sm font-semibold" style={{ color: mutedColor }}>Cancel</Text>
+                <Text className="text-sm font-semibold" style={{ color: mutedColor }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 items-center rounded-xl py-3"
                 style={{ backgroundColor: primaryColor }}
                 onPress={handlePlaylistCreateConfirm}>
-                <Text className="text-sm font-bold" style={{ color: '#18181b' }}>Create</Text>
+                <Text className="text-sm font-bold" style={{ color: '#18181b' }}>
+                  Create
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -20,8 +20,7 @@ export function GlassIcon({ children, size = 36 }: GlassIconProps) {
         borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
         alignItems: 'center',
         justifyContent: 'center',
-      }}
-    >
+      }}>
       {children}
     </View>
   );

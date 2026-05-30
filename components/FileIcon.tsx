@@ -16,7 +16,12 @@ interface FileIconProps {
   weight?: 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone';
 }
 
-export function FileIcon({ type, size = 22, color = '#ffffff', weight = 'regular' }: FileIconProps) {
+export function FileIcon({
+  type,
+  size = 22,
+  color = '#ffffff',
+  weight = 'regular',
+}: FileIconProps) {
   if (type && fileTypeMap[type]) {
     const Icon = fileTypeMap[type];
     return <Icon size={size} color={color} weight={weight} />;

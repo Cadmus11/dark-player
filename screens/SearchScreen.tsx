@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
@@ -84,22 +77,38 @@ export const SearchScreen = React.memo(function SearchScreen() {
   };
 
   const renderItem = ({ item }: { item: FileItem }) => (
-    <TouchableOpacity className="flex-row items-center py-2.5 gap-3" onPress={() => navigateToFile(item)}>
-      <View className="w-10 h-10 rounded-[10px] justify-center items-center" style={{ backgroundColor: `${primaryColor}10` }}>
+    <TouchableOpacity
+      className="flex-row items-center gap-3 py-2.5"
+      onPress={() => navigateToFile(item)}>
+      <View
+        className="h-10 w-10 items-center justify-center rounded-[10px]"
+        style={{ backgroundColor: `${primaryColor}10` }}>
         <FileIcon type={item.type} size={20} />
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-semibold mb-0.5" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
-        <Text className="text-xs capitalize" style={{ color: mutedColor }}>{item.type}{item.artist ? ` • ${item.artist}` : ''}</Text>
+        <Text
+          className="mb-0.5 text-sm font-semibold"
+          style={{ color: textColor }}
+          numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text className="text-xs capitalize" style={{ color: mutedColor }}>
+          {item.type}
+          {item.artist ? ` • ${item.artist}` : ''}
+        </Text>
       </View>
-      <Text className="text-xl" style={{ color: mutedColor }}>›</Text>
+      <Text className="text-xl" style={{ color: mutedColor }}>
+        ›
+      </Text>
     </TouchableOpacity>
   );
 
   return (
     <ScreenLayout>
-      <View className="px-4 pt-1 pb-2">
-        <View className="flex-row items-center bg-[#27272a] rounded-xl px-3.5 py-3 gap-2.5 border" style={{ borderColor: isFocused ? primaryColor : '#3f3f46' }}>
+      <View className="px-4 pb-2 pt-1">
+        <View
+          className="flex-row items-center gap-2.5 rounded-xl border bg-[#27272a] px-3.5 py-3"
+          style={{ borderColor: isFocused ? primaryColor : '#3f3f46' }}>
           <MagnifyingGlass size={20} color={isFocused ? primaryColor : mutedColor} weight="bold" />
           <TextInput
             className="flex-1 text-[15px]"
@@ -121,40 +130,64 @@ export const SearchScreen = React.memo(function SearchScreen() {
           ) : null}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="flex-row gap-2 px-4">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="flex-row gap-2 px-4">
           {TYPE_FILTERS.map(({ type, label, Icon }) => (
             <TouchableOpacity
               key={type}
-              className="flex-row items-center gap-1.5 px-3 py-2 rounded-[10px]"
+              className="flex-row items-center gap-1.5 rounded-[10px] px-3 py-2"
               style={{ backgroundColor: activeFilter === type ? primaryColor : '#27272a' }}
-              onPress={() => setActiveFilter(type)}
-            >
-              <Icon size={14} color={activeFilter === type ? textColor : mutedColor} weight={activeFilter === type ? 'bold' : 'regular'} />
-              <Text className="text-xs font-semibold" style={{ color: activeFilter === type ? textColor : mutedColor, fontWeight: activeFilter === type ? '700' : '500' }}>{label}</Text>
+              onPress={() => setActiveFilter(type)}>
+              <Icon
+                size={14}
+                color={activeFilter === type ? textColor : mutedColor}
+                weight={activeFilter === type ? 'bold' : 'regular'}
+              />
+              <Text
+                className="text-xs font-semibold"
+                style={{
+                  color: activeFilter === type ? textColor : mutedColor,
+                  fontWeight: activeFilter === type ? '700' : '500',
+                }}>
+                {label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
       {showHistory && (
-        <View className="px-4 mb-2">
-          <View className="flex-row justify-between items-center mb-3">
+        <View className="mb-2 px-4">
+          <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-1.5">
               <Clock size={16} color={mutedColor} />
-              <Text className="text-sm font-bold" style={{ color: textColor }}>Recent Searches</Text>
+              <Text className="text-sm font-bold" style={{ color: textColor }}>
+                Recent Searches
+              </Text>
             </View>
             {searchHistory.length > 0 && (
               <TouchableOpacity onPress={clearSearchHistory}>
-                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>Clear All</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>
+                  Clear All
+                </Text>
               </TouchableOpacity>
             )}
           </View>
           {searchHistory.length > 0 ? (
             searchHistory.slice(0, 10).map((search) => (
-              <View key={search.id} className="flex-row items-center justify-between py-3 border-b" style={{ borderBottomColor: borderColor }}>
-                <TouchableOpacity className="flex-row items-center gap-3 flex-1" onPress={() => handleHistoryTap(search.query)}>
+              <View
+                key={search.id}
+                className="flex-row items-center justify-between border-b py-3"
+                style={{ borderBottomColor: borderColor }}>
+                <TouchableOpacity
+                  className="flex-1 flex-row items-center gap-3"
+                  onPress={() => handleHistoryTap(search.query)}>
                   <Clock size={16} color={mutedColor} />
-                  <Text className="text-sm flex-1" style={{ color: textColor }} numberOfLines={1}>{search.query}</Text>
+                  <Text className="flex-1 text-sm" style={{ color: textColor }} numberOfLines={1}>
+                    {search.query}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeSearch(search.id)}>
                   <X size={14} color={mutedColor} />
@@ -162,7 +195,9 @@ export const SearchScreen = React.memo(function SearchScreen() {
               </View>
             ))
           ) : (
-            <Text className="text-sm text-center py-5" style={{ color: mutedColor }}>No recent searches</Text>
+            <Text className="py-5 text-center text-sm" style={{ color: mutedColor }}>
+              No recent searches
+            </Text>
           )}
         </View>
       )}
@@ -177,12 +212,16 @@ export const SearchScreen = React.memo(function SearchScreen() {
           query.trim() ? (
             <View className="items-center justify-center py-20">
               <MagnifyingGlass size={56} color={mutedColor} />
-              <Text className="text-base mt-4" style={{ color: mutedColor }}>No results found</Text>
+              <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+                No results found
+              </Text>
             </View>
           ) : (
             <View className="items-center justify-center py-20">
               <MagnifyingGlass size={56} color={mutedColor} />
-              <Text className="text-base mt-4" style={{ color: mutedColor }}>Search your media files</Text>
+              <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+                Search your media files
+              </Text>
             </View>
           )
         }

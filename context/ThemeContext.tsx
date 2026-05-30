@@ -213,7 +213,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   async function clearBackgroundImage() {
-    await updateTheme({ backgroundImageUri: undefined, presetImageKey: undefined, backgroundBlur: 0 });
+    await updateTheme({
+      backgroundImageUri: undefined,
+      presetImageKey: undefined,
+      backgroundBlur: 0,
+    });
   }
 
   async function setPresetImage(key: string | null) {

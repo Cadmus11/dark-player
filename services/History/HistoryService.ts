@@ -44,7 +44,12 @@ export const HistoryService = {
       existing.pausedAt = null;
       return;
     }
-    this._sessions.set(uri, { uri, startedAt: Date.now(), pausedAt: null, accumulatedMs: existing?.accumulatedMs || 0 });
+    this._sessions.set(uri, {
+      uri,
+      startedAt: Date.now(),
+      pausedAt: null,
+      accumulatedMs: existing?.accumulatedMs || 0,
+    });
   },
 
   pausePlaySession(uri: string) {
@@ -79,9 +84,7 @@ export const HistoryService = {
 
   getCumulativePlayTime(uri: string): number {
     const history = this.getAll();
-    return history
-      .filter((h) => h.file.uri === uri)
-      .reduce((sum, h) => sum + h.playDuration, 0);
+    return history.filter((h) => h.file.uri === uri).reduce((sum, h) => sum + h.playDuration, 0);
   },
 
   getRecentlyPlayed(limit = 20): HistoryEntry[] {
@@ -105,11 +108,15 @@ export const HistoryService = {
   },
 
   getContinueListening(): HistoryEntry[] {
-    return this.getAll().filter((h) => h.source === 'music').slice(0, 10);
+    return this.getAll()
+      .filter((h) => h.source === 'music')
+      .slice(0, 10);
   },
 
   getContinueWatching(): HistoryEntry[] {
-    return this.getAll().filter((h) => h.source === 'video').slice(0, 10);
+    return this.getAll()
+      .filter((h) => h.source === 'video')
+      .slice(0, 10);
   },
 
   clearHistory() {

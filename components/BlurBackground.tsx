@@ -61,7 +61,11 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
       {hasBackground && (
         <View
           className="absolute inset-0"
-          style={{ backgroundColor: isDarkMode ? `rgba(9,9,11,${blurIntensity * 0.7})` : `rgba(240,248,255,${blurIntensity * 0.6})` }}
+          style={{
+            backgroundColor: isDarkMode
+              ? `rgba(9,9,11,${blurIntensity * 0.7})`
+              : `rgba(240,248,255,${blurIntensity * 0.6})`,
+          }}
         />
       )}
       {children}

@@ -18,7 +18,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const { t } = useLanguage();
 
   return (
-    <View className="flex-row bg-[#18181b] pt-2.5 pb-6 border-t border-t-white/10">
+    <View className="flex-row border-t border-t-white/10 bg-[#18181b] pb-6 pt-2.5">
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
 
@@ -42,15 +42,14 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           <TouchableOpacity
             key={route.key}
             onPress={onPress}
-            className="flex-1 items-center justify-center"
-          >
+            className="flex-1 items-center justify-center">
             <tab.Icon
               size={22}
               color={isFocused ? primaryColor : 'rgba(255, 255, 255, 0.4)'}
               weight={isFocused ? 'fill' : 'regular'}
             />
             {isFocused && (
-              <Text className="text-[10px] font-medium mt-0.5" style={{ color: primaryColor }}>
+              <Text className="mt-0.5 text-[10px] font-medium" style={{ color: primaryColor }}>
                 {t(tab.labelKey)}
               </Text>
             )}

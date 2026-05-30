@@ -77,13 +77,16 @@ export class VideoEngine {
   }
 
   private _persistState() {
-    storage.set(STATE_KEY, JSON.stringify({
-      currentFile: this._state.currentFile,
-      playbackSpeed: this._state.playbackSpeed,
-      contentFit: this._state.contentFit,
-      subtitlesEnabled: this._state.subtitlesEnabled,
-      isFullscreen: this._state.isFullscreen,
-    }));
+    storage.set(
+      STATE_KEY,
+      JSON.stringify({
+        currentFile: this._state.currentFile,
+        playbackSpeed: this._state.playbackSpeed,
+        contentFit: this._state.contentFit,
+        subtitlesEnabled: this._state.subtitlesEnabled,
+        isFullscreen: this._state.isFullscreen,
+      })
+    );
   }
 
   private _notify() {

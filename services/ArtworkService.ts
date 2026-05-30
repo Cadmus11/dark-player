@@ -98,9 +98,18 @@ class ArtworkServiceClass {
 
   private _generatePlaceholder(name: string): string {
     const COLORS = [
-      '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
-      '#fdcb6e', '#74b9ff', '#ff7675', '#55efc4',
-      '#a29bfe', '#fd79a8', '#f39c12', '#27ae60',
+      '#C2FC4A',
+      '#6c5ce7',
+      '#00cec9',
+      '#e17055',
+      '#fdcb6e',
+      '#74b9ff',
+      '#ff7675',
+      '#55efc4',
+      '#a29bfe',
+      '#fd79a8',
+      '#f39c12',
+      '#27ae60',
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -122,7 +131,10 @@ class ArtworkServiceClass {
   }
 
   private _evictIfNeeded(): void {
-    while (this._memoryCache.size > this._maxCacheSize || this._currentBytes > this._maxMemoryBytes) {
+    while (
+      this._memoryCache.size > this._maxCacheSize ||
+      this._currentBytes > this._maxMemoryBytes
+    ) {
       let oldest: { key: string; time: number } | null = null;
       for (const [key, entry] of this._memoryCache) {
         if (!oldest || entry.cachedAt < oldest.time) {

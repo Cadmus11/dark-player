@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { VideoCamera, FunnelSimple, ArrowUp, ArrowDown } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
@@ -43,86 +36,114 @@ export const VideosScreen = React.memo(function VideosScreen() {
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.field === sortField)?.label || 'Date';
 
-  const navigateToFile = useCallback((file: FileItem) => {
-    navigation.navigate('VideoPlayer', { file });
-  }, [navigation]);
+  const navigateToFile = useCallback(
+    (file: FileItem) => {
+      navigation.navigate('VideoPlayer', { file });
+    },
+    [navigation]
+  );
 
-  const renderListItem = useCallback(({ item }: { item: FileItem }) => {
-    const quality = item.mimeType?.split('/').pop()?.toUpperCase() || 'HD';
-    return (
-      <TouchableOpacity className="px-4 py-2" onPress={() => navigateToFile(item)}>
-        <View className="flex-row items-center gap-3">
-          <View className="w-[100px] h-16 rounded-[10px] overflow-hidden">
-            {item.thumbnail ? (
-              <Image source={{ uri: item.thumbnail }} className="w-full h-full" />
-            ) : (
-              <View className="w-full h-full items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                <VideoCamera size={28} color={primaryColor} weight="fill" />
-              </View>
-            )}
+  const renderListItem = useCallback(
+    ({ item }: { item: FileItem }) => {
+      const quality = item.mimeType?.split('/').pop()?.toUpperCase() || 'HD';
+      return (
+        <TouchableOpacity className="px-4 py-2" onPress={() => navigateToFile(item)}>
+          <View className="flex-row items-center gap-3">
+            <View className="h-16 w-[100px] overflow-hidden rounded-[10px]">
+              {item.thumbnail ? (
+                <Image source={{ uri: item.thumbnail }} className="h-full w-full" />
+              ) : (
+                <View
+                  className="h-full w-full items-center justify-center"
+                  style={{ backgroundColor: `${primaryColor}15` }}>
+                  <VideoCamera size={28} color={primaryColor} weight="fill" />
+                </View>
+              )}
+            </View>
+            <View className="flex-1">
+              <Text
+                className="mb-1 text-[15px] font-semibold"
+                style={{ color: textColor }}
+                numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text className="text-[13px]" style={{ color: mutedColor }}>
+                {quality} | {formatDuration(item.duration)}
+              </Text>
+            </View>
           </View>
-          <View className="flex-1">
-            <Text className="text-[15px] font-semibold mb-1" style={{ color: textColor }} numberOfLines={1}>{item.name}</Text>
-            <Text className="text-[13px]" style={{ color: mutedColor }}>
-              {quality} | {formatDuration(item.duration)}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [navigateToFile, primaryColor, textColor, mutedColor]);
+        </TouchableOpacity>
+      );
+    },
+    [navigateToFile, primaryColor, textColor, mutedColor]
+  );
 
-  const renderSortModal = useMemo(() => (
-    <Modal visible={showSortModal} transparent animationType="fade">
-      <TouchableOpacity className="flex-1 bg-black/70 items-center justify-center" onPress={() => setShowSortModal(false)}>
-        <View className="rounded-3xl p-6 w-[80%] max-w-[320px] bg-[#27272a]">
-          <Text className="text-lg font-extrabold mb-4 text-center text-white">Sort by</Text>
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.field}
-              className="flex-row items-center justify-between py-3.5 px-4 rounded-xl mb-2"
-              style={sortField === opt.field ? { backgroundColor: `${primaryColor}15` } : undefined}
-              onPress={() => {
-                if (sortField === opt.field) {
-                  toggleDirection();
-                } else {
-                  setSortField(opt.field);
-                  setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
+  const renderSortModal = useMemo(
+    () => (
+      <Modal visible={showSortModal} transparent animationType="fade">
+        <TouchableOpacity
+          className="flex-1 items-center justify-center bg-black/70"
+          onPress={() => setShowSortModal(false)}>
+          <View className="w-[80%] max-w-[320px] rounded-3xl bg-[#27272a] p-6">
+            <Text className="mb-4 text-center text-lg font-extrabold text-white">Sort by</Text>
+            {SORT_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.field}
+                className="mb-2 flex-row items-center justify-between rounded-xl px-4 py-3.5"
+                style={
+                  sortField === opt.field ? { backgroundColor: `${primaryColor}15` } : undefined
                 }
-                setShowSortModal(false);
-              }}
-            >
+                onPress={() => {
+                  if (sortField === opt.field) {
+                    toggleDirection();
+                  } else {
+                    setSortField(opt.field);
+                    setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
+                  }
+                  setShowSortModal(false);
+                }}>
                 <Text
                   className="text-base font-medium"
                   style={{
                     color: sortField === opt.field ? primaryColor : textColor,
                     fontWeight: sortField === opt.field ? '700' : '500',
-                  }}
-                >
-                {opt.label}
-              </Text>
-              {sortField === opt.field && (
-                sortDirection === 'asc' ? (
-                  <ArrowUp size={18} color={primaryColor} />
-                ) : (
-                  <ArrowDown size={18} color={primaryColor} />
-                )
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  ), [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]);
+                  }}>
+                  {opt.label}
+                </Text>
+                {sortField === opt.field &&
+                  (sortDirection === 'asc' ? (
+                    <ArrowUp size={18} color={primaryColor} />
+                  ) : (
+                    <ArrowDown size={18} color={primaryColor} />
+                  ))}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    ),
+    [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]
+  );
 
   return (
     <ScreenLayout>
-      <View className="flex-row justify-between items-center px-4 mb-2">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Videos</Text>
+      <View className="mb-2 flex-row items-center justify-between px-4">
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
+          Videos
+        </Text>
         <View className="flex-row items-center gap-2">
-          <TouchableOpacity className="flex-row items-center px-2.5 py-1.5 rounded-lg gap-1" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', borderWidth: 0.5, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} onPress={() => setShowSortModal(true)}>
+          <TouchableOpacity
+            className="flex-row items-center gap-1 rounded-lg px-2.5 py-1.5"
+            style={{
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              borderWidth: 0.5,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            }}
+            onPress={() => setShowSortModal(true)}>
             <FunnelSimple size={16} color={primaryColor} />
-            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>{currentSortLabel}</Text>
+            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>
+              {currentSortLabel}
+            </Text>
             {sortDirection === 'asc' ? (
               <ArrowUp size={14} color={mutedColor} />
             ) : (

@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  type ViewStyle,
-} from 'react-native';
+import { TouchableOpacity, Text, type ViewStyle } from 'react-native';
 
 interface GlassButtonProps {
   title: string;
@@ -63,9 +59,14 @@ export function GlassButton({
           elevation: 6,
         },
         style,
-      ]}
-    >
-      {icon && <Text className="text-lg mr-2" style={variant === 'neon' ? { color: '#06060B' } : undefined}>{icon}</Text>}
+      ]}>
+      {icon && (
+        <Text
+          className="mr-2 text-lg"
+          style={variant === 'neon' ? { color: '#06060B' } : undefined}>
+          {icon}
+        </Text>
+      )}
       <Text
         className="font-semibold"
         style={[
@@ -74,8 +75,7 @@ export function GlassButton({
           variant === 'glass' && { color: '#ffffff' },
           variant === 'neon' && { color: '#06060B', fontWeight: '700' },
           variant === 'ghost' && { color: '#C2FC4A' },
-        ]}
-      >
+        ]}>
         {title}
       </Text>
     </TouchableOpacity>

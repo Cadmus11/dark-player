@@ -19,16 +19,35 @@ const CACHE_KEYS = {
 };
 
 const EXTENSION_MAP: Record<string, FileType> = {
-  mp4: 'video', mov: 'video', avi: 'video', mkv: 'video',
-  webm: 'video', m4v: 'video',
-  mp3: 'audio', wav: 'audio', aac: 'audio', flac: 'audio',
-  m4a: 'audio', ogg: 'audio', wma: 'audio', opus: 'audio',
+  mp4: 'video',
+  mov: 'video',
+  avi: 'video',
+  mkv: 'video',
+  webm: 'video',
+  m4v: 'video',
+  mp3: 'audio',
+  wav: 'audio',
+  aac: 'audio',
+  flac: 'audio',
+  m4a: 'audio',
+  ogg: 'audio',
+  wma: 'audio',
+  opus: 'audio',
 };
 
 const ART_COLORS = [
-  '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
-  '#fdcb6e', '#74b9ff', '#ff7675', '#55efc4',
-  '#a29bfe', '#fd79a8', '#f39c12', '#27ae60',
+  '#C2FC4A',
+  '#6c5ce7',
+  '#00cec9',
+  '#e17055',
+  '#fdcb6e',
+  '#74b9ff',
+  '#ff7675',
+  '#55efc4',
+  '#a29bfe',
+  '#fd79a8',
+  '#f39c12',
+  '#27ae60',
 ];
 
 type ScanCallback = (progress: number, stage: string) => void;
@@ -111,7 +130,7 @@ export class FileEngine {
 
   async scanAll(
     onProgress?: ScanCallback,
-    token?: CancellationToken,
+    token?: CancellationToken
   ): Promise<{ videos: FileItem[]; audio: FileItem[] }> {
     const ct = token || new CancellationToken();
     onProgress?.(0, 'Requesting permissions...');
@@ -133,7 +152,11 @@ export class FileEngine {
     // Incremental: try cached first
     if (this.hasCache() && !this.shouldRescan()) {
       const cached = this.loadFromCache();
-      this._state = { videos: cached.videos, audio: cached.audio, lastModified: this._getLastModified() };
+      this._state = {
+        videos: cached.videos,
+        audio: cached.audio,
+        lastModified: this._getLastModified(),
+      };
       onProgress?.(1, 'Done (cached)');
       return cached;
     }
@@ -154,7 +177,10 @@ export class FileEngine {
     this._setLastModified(Date.now());
 
     onProgress?.(1, 'Done');
-    eventBus.emit(AppEvents.SCAN_COMPLETED, { videos: mediaVideos.length, audio: mediaAudio.length });
+    eventBus.emit(AppEvents.SCAN_COMPLETED, {
+      videos: mediaVideos.length,
+      audio: mediaAudio.length,
+    });
     return { videos: mediaVideos, audio: mediaAudio };
   }
 
@@ -176,12 +202,14 @@ export class FileEngine {
     try {
       const data = storage.getString(key);
       return data ? JSON.parse(data) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   private async _getMediaFiles(
     type: 'video' | 'audio',
-    token: CancellationToken,
+    token: CancellationToken
   ): Promise<FileItem[]> {
     try {
       const mediaType = type === 'audio' ? 'audio' : 'video';

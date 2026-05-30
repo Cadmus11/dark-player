@@ -2,7 +2,13 @@ import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
 import { eventBus, AppEvents } from './EventBus';
 
-export type PermissionStatus = 'UNKNOWN' | 'REQUESTING' | 'GRANTED' | 'PARTIAL' | 'DENIED' | 'BLOCKED';
+export type PermissionStatus =
+  | 'UNKNOWN'
+  | 'REQUESTING'
+  | 'GRANTED'
+  | 'PARTIAL'
+  | 'DENIED'
+  | 'BLOCKED';
 
 interface PermissionState {
   mediaLibrary: PermissionStatus;
@@ -118,7 +124,11 @@ class PermissionServiceClass {
   }
 
   canScan(): boolean {
-    return this._state.mediaLibrary === 'GRANTED' || this._state.mediaLibrary === 'PARTIAL' || this._state.mediaLibrary === 'UNKNOWN';
+    return (
+      this._state.mediaLibrary === 'GRANTED' ||
+      this._state.mediaLibrary === 'PARTIAL' ||
+      this._state.mediaLibrary === 'UNKNOWN'
+    );
   }
 
   reset(): void {

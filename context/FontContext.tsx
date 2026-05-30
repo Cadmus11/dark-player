@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 
@@ -13,7 +20,12 @@ export const FONT_OPTIONS: FontOption[] = [
   { key: 'system', labelKey: 'font.system', fontFamily: undefined },
   { key: 'inter', labelKey: 'Inter', fontFamily: 'Inter', customFont: true },
   { key: 'interBold', labelKey: 'Inter Bold', fontFamily: 'Inter-Bold', customFont: true },
-  { key: 'playfair', labelKey: 'Playfair Display', fontFamily: 'PlayfairDisplay', customFont: true },
+  {
+    key: 'playfair',
+    labelKey: 'Playfair Display',
+    fontFamily: 'PlayfairDisplay',
+    customFont: true,
+  },
   { key: 'jetbrains', labelKey: 'JetBrains Mono', fontFamily: 'JetBrainsMono', customFont: true },
   { key: 'nunito', labelKey: 'Nunito', fontFamily: 'Nunito', customFont: true },
   { key: 'poppins', labelKey: 'Poppins', fontFamily: 'Poppins', customFont: true },
@@ -85,7 +97,14 @@ export function FontProvider({ children }: { children: ReactNode }) {
   const option = FONT_OPTIONS.find((o) => o.key === fontKey) || FONT_OPTIONS[0];
 
   return (
-    <FontContext.Provider value={{ fontKey, fontFamily: option.fontFamily, setFont, fontOptions: FONT_OPTIONS, fontsLoaded }}>
+    <FontContext.Provider
+      value={{
+        fontKey,
+        fontFamily: option.fontFamily,
+        setFont,
+        fontOptions: FONT_OPTIONS,
+        fontsLoaded,
+      }}>
       {children}
     </FontContext.Provider>
   );

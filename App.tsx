@@ -51,10 +51,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 function MainTabs() {
   return (
     <View className="flex-1 bg-bg-primary dark:bg-dark-bg-primary">
-      <Tab.Navigator
-        tabBar={() => null}
-        screenOptions={{ headerShown: false }}
-      >
+      <Tab.Navigator tabBar={() => null} screenOptions={{ headerShown: false }}>
         <Tab.Screen name="HomeTab" component={HomeScreen} />
         <Tab.Screen name="MusicTab" component={MusicScreen} />
         <Tab.Screen name="VideosTab" component={VideosScreen} />
@@ -82,30 +79,30 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-      <LanguageProvider>
-        <FontProvider>
-        <ThemeProvider>
-          <OverlayProvider>
-              <NavigationContainer>
-                <Stack.Navigator screenOptions={screenOptions}>
-                  <Stack.Screen name="MainTabs" component={MainTabs} />
-                  <Stack.Screen name="Category" component={CategoryScreen} />
-                  <Stack.Screen name="FolderList" component={FolderScreen} />
-                  <Stack.Screen name="VideoTop" component={VideoTopScreen} />
-                  <Stack.Screen name="VideoPlayer">
-                    {(props) => (
-                      <PlayerBoundary>
-                        <VideoPlayerScreen {...props} />
-                      </PlayerBoundary>
-                    )}
-                  </Stack.Screen>
-                  <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
-                </Stack.Navigator>
-              </NavigationContainer>
-            </OverlayProvider>
-        </ThemeProvider>
-        </FontProvider>
-      </LanguageProvider>
+        <LanguageProvider>
+          <FontProvider>
+            <ThemeProvider>
+              <OverlayProvider>
+                <NavigationContainer>
+                  <Stack.Navigator screenOptions={screenOptions}>
+                    <Stack.Screen name="MainTabs" component={MainTabs} />
+                    <Stack.Screen name="Category" component={CategoryScreen} />
+                    <Stack.Screen name="FolderList" component={FolderScreen} />
+                    <Stack.Screen name="VideoTop" component={VideoTopScreen} />
+                    <Stack.Screen name="VideoPlayer">
+                      {(props) => (
+                        <PlayerBoundary>
+                          <VideoPlayerScreen {...props} />
+                        </PlayerBoundary>
+                      )}
+                    </Stack.Screen>
+                    <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
+                  </Stack.Navigator>
+                </NavigationContainer>
+              </OverlayProvider>
+            </ThemeProvider>
+          </FontProvider>
+        </LanguageProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

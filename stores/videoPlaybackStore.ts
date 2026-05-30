@@ -137,9 +137,17 @@ videoEngine.subscribe(() => {
   const s = videoEngine.getState();
   PlaybackTicker.updatePosition(s.position, s.duration);
   const snapshot = JSON.stringify([
-    s.currentFile?.uri, s.isPlaying, s.position, s.duration,
-    s.playbackSpeed, s.contentFit, s.subtitlesEnabled,
-    s.currentSubtitle, s.isFullscreen, s.isReady, s.error,
+    s.currentFile?.uri,
+    s.isPlaying,
+    s.position,
+    s.duration,
+    s.playbackSpeed,
+    s.contentFit,
+    s.subtitlesEnabled,
+    s.currentSubtitle,
+    s.isFullscreen,
+    s.isReady,
+    s.error,
   ]);
   if (snapshot === _lastVideoState) return;
   _lastVideoState = snapshot;

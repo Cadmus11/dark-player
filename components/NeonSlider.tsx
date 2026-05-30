@@ -29,9 +29,10 @@ export function NeonSlider({
         const percentage = locationX / (containerWidth || 300);
         onSeek(Math.min(Math.max(percentage, 0), 1));
       }}
-      activeOpacity={1}
-    >
-      <View className="rounded-[3px] overflow-visible" style={{ height, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+      activeOpacity={1}>
+      <View
+        className="overflow-visible rounded-[3px]"
+        style={{ height, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
         <View
           className="rounded-[3px]"
           style={{
@@ -47,7 +48,7 @@ export function NeonSlider({
         />
         {showThumb && (
           <View
-            className="absolute -top-1.5 w-4 h-4 rounded-full -ml-2"
+            className="absolute -top-1.5 -ml-2 h-4 w-4 rounded-full"
             style={{
               left: `${clampedProgress * 100}%` as unknown as number,
               backgroundColor: primaryColor,

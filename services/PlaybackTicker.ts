@@ -15,12 +15,14 @@ function _tick() {
   if (!_enabled) return;
   _rafId = requestAnimationFrame(_tick);
   const now = Date.now();
-  _listeners.forEach((cb) => cb({
-    position: _lastPosition,
-    duration: _lastDuration,
-    progress: _lastDuration > 0 ? _lastPosition / _lastDuration : 0,
-    timestamp: now,
-  }));
+  _listeners.forEach((cb) =>
+    cb({
+      position: _lastPosition,
+      duration: _lastDuration,
+      progress: _lastDuration > 0 ? _lastPosition / _lastDuration : 0,
+      timestamp: now,
+    })
+  );
 }
 
 export const PlaybackTicker = {

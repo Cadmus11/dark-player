@@ -88,7 +88,9 @@ export const MetadataService = {
     const metadata: MediaMetadata = {};
 
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
       const buffer = base64ToUint8Array(base64);
       const mimeType = getMimeType(uri);
       const data = await parseBuffer(buffer, mimeType || 'audio/mpeg');
@@ -113,7 +115,9 @@ export const MetadataService = {
           try {
             await ensureArtworkDir();
             const artworkBase64 = uint8ArrayToBase64(picture.data);
-            await FileSystem.writeAsStringAsync(artworkPath, artworkBase64, { encoding: FileSystem.EncodingType.Base64 });
+            await FileSystem.writeAsStringAsync(artworkPath, artworkBase64, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
             metadata.artwork = artworkPath;
           } catch {}
         }

@@ -1,12 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  Image,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, Play, Star } from 'phosphor-react-native';
@@ -49,40 +42,55 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
 
   return (
     <ScreenLayout noTopBar>
-      <View className="flex-row items-center justify-between pt-[60] px-5 pb-5">
+      <View className="flex-row items-center justify-between px-5 pb-5 pt-[60]">
         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2.5">
           <CaretLeft size={24} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>Top Videos</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          Top Videos
+        </Text>
         <View className="w-10" />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}>
         {hero && (
           <TouchableOpacity
-            className="mx-5 mb-6 rounded-2xl overflow-hidden"
+            className="mx-5 mb-6 overflow-hidden rounded-2xl"
             style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
             onPress={() => navigateToFile(hero)}>
-            <View className="w-full" style={{ aspectRatio: 16 / 9, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+            <View
+              className="w-full"
+              style={{ aspectRatio: 16 / 9, backgroundColor: 'rgba(255,255,255,0.05)' }}>
               {hero.thumbnail ? (
-                <Image source={{ uri: hero.thumbnail }} className="w-full h-full" resizeMode="cover" />
+                <Image
+                  source={{ uri: hero.thumbnail }}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                />
               ) : (
                 <View className="flex-1 items-center justify-center">
                   <Play size={48} color={primaryColor} weight="fill" />
                 </View>
               )}
-              <View className="absolute top-3 left-3 bg-black/60 rounded-full px-3 py-1 flex-row items-center">
+              <View className="absolute left-3 top-3 flex-row items-center rounded-full bg-black/60 px-3 py-1">
                 <Star size={14} color="#fbbf24" weight="fill" />
-                <Text className="text-white text-xs font-bold ml-1">#1 Pick</Text>
+                <Text className="ml-1 text-xs font-bold text-white">#1 Pick</Text>
               </View>
               {hero.duration && (
-                <View className="absolute bottom-3 right-3 bg-black/70 rounded-md px-2 py-0.5">
-                  <Text className="text-white text-xs">{formatDuration(hero.duration)}</Text>
+                <View className="absolute bottom-3 right-3 rounded-md bg-black/70 px-2 py-0.5">
+                  <Text className="text-xs text-white">{formatDuration(hero.duration)}</Text>
                 </View>
               )}
             </View>
             <View className="p-4">
-              <Text className="text-base font-bold mb-1" style={{ color: textColor }} numberOfLines={1}>{hero.name}</Text>
+              <Text
+                className="mb-1 text-base font-bold"
+                style={{ color: textColor }}
+                numberOfLines={1}>
+                {hero.name}
+              </Text>
               <Text className="text-xs" style={{ color: mutedColor }}>
                 {hero.size ? `${(hero.size / 1048576).toFixed(0)} MB` : ''}
                 {hero.duration ? ` • ${formatDuration(hero.duration)}` : ''}
@@ -91,13 +99,15 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
           </TouchableOpacity>
         )}
 
-        <Text className="text-lg font-bold mb-4 px-5" style={{ color: textColor }}>All Top Picks</Text>
+        <Text className="mb-4 px-5 text-lg font-bold" style={{ color: textColor }}>
+          All Top Picks
+        </Text>
 
         <View className="flex-row flex-wrap px-[18]">
           {topVideos.map((video) => (
             <TouchableOpacity
               key={video.uri}
-              className="mb-4 rounded-xl overflow-hidden"
+              className="mb-4 overflow-hidden rounded-xl"
               style={{
                 width: CARD_WIDTH,
                 marginRight: 10,
@@ -106,23 +116,33 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
                 borderWidth: 1,
               }}
               onPress={() => navigateToFile(video)}>
-              <View style={{ height: CARD_HEIGHT * 0.6, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+              <View
+                style={{ height: CARD_HEIGHT * 0.6, backgroundColor: 'rgba(255,255,255,0.05)' }}>
                 {video.thumbnail ? (
-                  <Image source={{ uri: video.thumbnail }} className="w-full h-full" resizeMode="cover" />
+                  <Image
+                    source={{ uri: video.thumbnail }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
                 ) : (
                   <View className="flex-1 items-center justify-center">
                     <Play size={24} color={primaryColor} weight="fill" />
                   </View>
                 )}
                 {video.duration && (
-                  <View className="absolute bottom-2 right-2 bg-black/70 rounded-md px-1.5 py-0.5">
-                    <Text className="text-white text-[10px]">{formatDuration(video.duration)}</Text>
+                  <View className="absolute bottom-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5">
+                    <Text className="text-[10px] text-white">{formatDuration(video.duration)}</Text>
                   </View>
                 )}
               </View>
               <View className="p-2.5">
-                <Text className="text-xs font-semibold" style={{ color: textColor }} numberOfLines={2}>{video.name}</Text>
-                <Text className="text-[10px] mt-1" style={{ color: mutedColor }}>
+                <Text
+                  className="text-xs font-semibold"
+                  style={{ color: textColor }}
+                  numberOfLines={2}>
+                  {video.name}
+                </Text>
+                <Text className="mt-1 text-[10px]" style={{ color: mutedColor }}>
                   {video.size ? `${(video.size / 1048576).toFixed(0)} MB` : ''}
                 </Text>
               </View>

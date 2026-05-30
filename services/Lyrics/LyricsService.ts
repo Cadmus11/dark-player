@@ -72,7 +72,11 @@ export const LyricsService = {
         const songId = 'lrc_' + filePath;
         const lyricsData: LyricsData = {
           songId,
-          title: filePath.split('/').pop()?.replace(/\.[^.]+$/, '') || '',
+          title:
+            filePath
+              .split('/')
+              .pop()
+              ?.replace(/\.[^.]+$/, '') || '',
           artist: '',
           lyrics: plainText,
           syncedLyrics: synced,

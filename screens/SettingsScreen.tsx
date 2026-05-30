@@ -357,21 +357,32 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       {SETTINGS_ITEMS.map((item) => (
         <TouchableOpacity
           key={item.id}
-          className="flex-row items-center border-b px-2 py-[14]" style={{ borderBottomColor: borderColor }}
+          className="flex-row items-center border-b px-2 py-[14]"
+          style={{ borderBottomColor: borderColor }}
           onPress={() => handleSettingPress(item.id)}>
           <GlassIcon size={36}>
             <item.Icon size={18} color={primaryColor} />
           </GlassIcon>
-          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>{item.label}</Text>
+          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>
+            {item.label}
+          </Text>
           {item.id === 'playtime' && totalPlaytime !== '0s' && (
-            <Text className="mr-2 text-[13px]" style={{ color: mutedColor }}>{totalPlaytime}</Text>
+            <Text className="mr-2 text-[13px]" style={{ color: mutedColor }}>
+              {totalPlaytime}
+            </Text>
           )}
           {item.badge && (
-            <View className="mr-2 rounded-[10] px-2 py-0.5" style={{ backgroundColor: primaryColor + '20' }}>
-              <Text className="text-xs font-semibold" style={{ color: primaryColor }}>{item.badge}</Text>
+            <View
+              className="mr-2 rounded-[10] px-2 py-0.5"
+              style={{ backgroundColor: primaryColor + '20' }}>
+              <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
+                {item.badge}
+              </Text>
             </View>
           )}
-          <Text className="text-[22px]" style={{ color: mutedColor }}>›</Text>
+          <Text className="text-[22px]" style={{ color: mutedColor }}>
+            ›
+          </Text>
         </TouchableOpacity>
       ))}
     </>
@@ -385,15 +396,23 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.theme')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.theme')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
       {/* Dark/Light Mode Toggle */}
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row items-center justify-between border-b px-2 py-3" style={{ borderBottomColor: borderColor }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="flex-row items-center justify-between border-b px-2 py-3"
+          style={{ borderBottomColor: borderColor }}>
           <Sun size={22} color={textColor} />
-          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>Dark Mode</Text>
+          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>
+            Dark Mode
+          </Text>
           <Switch
             value={isDarkMode}
             onValueChange={setDarkMode}
@@ -404,8 +423,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       {/* File Size Mode */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>File Size</Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        File Size
+      </Text>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row gap-2 p-1">
           {(['small', 'medium', 'big'] as LayoutSize[]).map((mode) => {
             const labels = { small: 'Small', medium: 'Medium', big: 'Big' };
@@ -418,14 +441,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             return (
               <TouchableOpacity
                 key={mode}
-                className="flex-1 items-center rounded-xl py-3 px-2"
+                className="flex-1 items-center rounded-xl px-2 py-3"
                 style={active ? { backgroundColor: primaryColor + '20' } : undefined}
-                onPress={() => setSizeMode(mode)}
-              >
-                <Text className="text-sm font-bold" style={{ color: active ? primaryColor : textColor }}>
+                onPress={() => setSizeMode(mode)}>
+                <Text
+                  className="text-sm font-bold"
+                  style={{ color: active ? primaryColor : textColor }}>
                   {labels[mode]}
                 </Text>
-                <Text className="text-[10px] mt-1 text-center" style={{ color: mutedColor }}>
+                <Text className="mt-1 text-center text-[10px]" style={{ color: mutedColor }}>
                   {descs[mode]}
                 </Text>
               </TouchableOpacity>
@@ -435,8 +459,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       {/* Gradient Themes */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>Gradients</Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        Gradients
+      </Text>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row flex-wrap gap-2.5 p-2">
           {[
             { name: 'Deep Space', colors: ['#06060B', '#1D1D21', '#0a0a0f'] },
@@ -450,7 +478,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               key={g.name}
               className="w-[100] items-center"
               onPress={() => setGradient(g.colors)}>
-              <View className="h-11 w-[88] flex-row overflow-hidden rounded-[10] border" style={{ borderColor }}>
+              <View
+                className="h-11 w-[88] flex-row overflow-hidden rounded-[10] border"
+                style={{ borderColor }}>
                 {g.colors.map((c, i) => (
                   <View
                     key={i}
@@ -471,13 +501,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         {t('settings.colorThemes')}
       </Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row flex-wrap gap-2.5 p-2">
           {(showAllThemes ? availableColorThemes : availableColorThemes.slice(0, 4)).map((ct) => (
             <TouchableOpacity
               key={ct.name}
               className="w-[70] items-center rounded-xl border-2 py-[10]"
-              style={currentColorThemeName === ct.name ? { borderColor: primaryColor } : { borderColor }}
+              style={
+                currentColorThemeName === ct.name ? { borderColor: primaryColor } : { borderColor }
+              }
               onPress={() => setColorTheme(ct.name)}>
               <View
                 className="h-10 w-10 items-center justify-center rounded-[10] border"
@@ -486,7 +520,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               </View>
               <Text
                 className="mt-1 text-center text-[10px]"
-                style={currentColorThemeName === ct.name ? { color: primaryColor } : { color: mutedColor }}>
+                style={
+                  currentColorThemeName === ct.name
+                    ? { color: primaryColor }
+                    : { color: mutedColor }
+                }>
                 {ct.name}
               </Text>
             </TouchableOpacity>
@@ -505,13 +543,19 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         {t('settings.accentColor')}
       </Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="mb-2 flex-row items-center rounded-xl px-3 py-[10]" style={{ backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="mb-2 flex-row items-center rounded-xl px-3 py-[10]"
+          style={{ backgroundColor: cardBg }}>
           <View
             className="mr-3 h-7 w-7 rounded-full border-2"
             style={{ backgroundColor: primaryColor, borderColor: borderColor }}
           />
-          <Text className="font-mono text-sm " style={{ color: mutedColor }}>{primaryColor}</Text>
+          <Text className="font-mono text-sm " style={{ color: mutedColor }}>
+            {primaryColor}
+          </Text>
         </View>
         <View className="flex-row flex-wrap justify-start gap-2.5 px-1 py-1">
           {ACCENT_COLORS.map((color) => (
@@ -530,8 +574,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       {/* Layout Size */}
-      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>Layout Size</Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>
+        Layout Size
+      </Text>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row gap-2 p-1">
           {(['small', 'medium', 'big'] as const).map((size) => (
             <TouchableOpacity
@@ -565,8 +613,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       {/* Preset Backgrounds */}
-      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>Preset Backgrounds</Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>
+        Preset Backgrounds
+      </Text>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row flex-wrap gap-2 p-2" style={{ justifyContent: 'space-around' }}>
           {(() => {
             const { PRESET_IMAGE_LIST } = require('../constants/ThemeImages');
@@ -580,7 +632,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   style={{
                     borderColor: theme.presetImageKey === img.key ? primaryColor : borderColor,
                   }}>
-                  <Image source={img.source} className="h-full w-full" style={{ resizeMode: 'cover' }} />
+                  <Image
+                    source={img.source}
+                    className="h-full w-full"
+                    style={{ resizeMode: 'cover' }}
+                  />
                 </View>
                 <Text
                   className="mt-1 text-[10px]"
@@ -593,13 +649,19 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           })()}
         </View>
         <TouchableOpacity className="items-center py-2" onPress={() => setPresetImage(null)}>
-          <Text className="text-[12px]" style={{ color: mutedColor }}>Clear preset background</Text>
+          <Text className="text-[12px]" style={{ color: mutedColor }}>
+            Clear preset background
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Background Image */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>Background Image</Text>
-      <View className="mb-5 rounded-2xl border p-4" style={{ borderColor, backgroundColor: cardBg }}>
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        Background Image
+      </Text>
+      <View
+        className="mb-5 rounded-2xl border p-4"
+        style={{ borderColor, backgroundColor: cardBg }}>
         {theme.backgroundImageUri ? (
           <View className="mb-3">
             <Image
@@ -624,7 +686,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                     await setBackgroundImage(result.assets[0].uri);
                   }
                 }}>
-                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>Change</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>
+                  Change
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 items-center rounded-xl bg-red-500/20 py-2.5"
@@ -647,7 +711,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 await setBackgroundImage(result.assets[0].uri);
               }
             }}>
-            <View className="mb-2 h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: cardBg }}>
+            <View
+              className="mb-2 h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: cardBg }}>
               <Text className="text-lg">🖼</Text>
             </View>
             <Text className="text-[13px] font-semibold" style={{ color: mutedColor }}>
@@ -662,12 +728,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         {theme.backgroundImageUri && (
           <View className="mt-4">
             <View className="mb-2 flex-row items-center justify-between">
-              <Text className="text-[13px] " style={{ color: textColor }}>Blur</Text>
-              <Text className="text-[13px] " style={{ color: textColor }}>{theme.backgroundBlur ?? 0}</Text>
+              <Text className="text-[13px] " style={{ color: textColor }}>
+                Blur
+              </Text>
+              <Text className="text-[13px] " style={{ color: textColor }}>
+                {theme.backgroundBlur ?? 0}
+              </Text>
             </View>
             <View className="h-8 justify-center">
               <TouchableOpacity
-                className="h-1.5 justify-center rounded-full" style={{ backgroundColor: mutedColor + '30' }}
+                className="h-1.5 justify-center rounded-full"
+                style={{ backgroundColor: mutedColor + '30' }}
                 onPress={async (e) => {
                   const { locationX } = e.nativeEvent;
                   const pct = locationX / 260;
@@ -739,11 +810,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('about.title')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('about.title')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <Text className="mb-2 text-center text-2xl font-bold " style={{ color: textColor }}>Lumora</Text>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <Text className="mb-2 text-center text-2xl font-bold " style={{ color: textColor }}>
+          Lumora
+        </Text>
         <Text className="mb-4 text-center text-sm " style={{ color: mutedColor }}>
           {t('about.version', { version: appVersion })}
         </Text>
@@ -751,7 +828,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           {t('about.description')}
         </Text>
         <View>
-          <Text className="mb-3 text-base font-semibold " style={{ color: textColor }}>{t('about.features')}:</Text>
+          <Text className="mb-3 text-base font-semibold " style={{ color: textColor }}>
+            {t('about.features')}:
+          </Text>
           {[
             { Icon: MusicNotes, text: t('about.feature.music') },
             { Icon: VideoCamera, text: t('about.feature.video') },
@@ -761,7 +840,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           ].map(({ Icon, text }) => (
             <View key={text} className="flex-row items-center py-1.5">
               <Icon size={16} color="rgba(255, 255, 255, 0.7)" />
-              <Text className="ml-2 text-sm " style={{ color: textColor }}>{text}</Text>
+              <Text className="ml-2 text-sm " style={{ color: textColor }}>
+                {text}
+              </Text>
             </View>
           ))}
         </View>
@@ -771,7 +852,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             className="mb-2 h-10 w-[120]"
             resizeMode="contain"
           />
-          <Text className="mb-3 text-[13px] font-medium tracking-[0.5] " style={{ color: mutedColor }}>
+          <Text
+            className="mb-3 text-[13px] font-medium tracking-[0.5] "
+            style={{ color: mutedColor }}>
             By Cadmus Labs
           </Text>
           <TouchableOpacity
@@ -799,21 +882,28 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectLanguage')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.selectLanguage')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         {languages.map((lang) => (
           <TouchableOpacity
             key={lang.code}
-            className="flex-row items-center border-b px-3 py-[14]" style={{ borderBottomColor: borderColor }}
+            className="flex-row items-center border-b px-3 py-[14]"
+            style={{ borderBottomColor: borderColor }}
             onPress={() => setLanguage(lang.code)}>
             <Text
               className="flex-1 text-base"
               style={language === lang.code ? { color: primaryColor } : { color: textColor }}>
               {lang.nativeName}
             </Text>
-            <Text className="mr-3 text-[13px] " style={{ color: mutedColor }}>{lang.name}</Text>
+            <Text className="mr-3 text-[13px] " style={{ color: mutedColor }}>
+              {lang.name}
+            </Text>
             {language === lang.code && <Check size={20} color={primaryColor} weight="bold" />}
           </TouchableOpacity>
         ))}
@@ -829,14 +919,19 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.selectFont')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.selectFont')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         {FONT_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.key}
-            className="flex-row items-center border-b px-3 py-[14]" style={{ borderBottomColor: borderColor }}
+            className="flex-row items-center border-b px-3 py-[14]"
+            style={{ borderBottomColor: borderColor }}
             onPress={() => setFont(opt.key)}>
             <Text
               className="flex-1 text-base"
@@ -858,10 +953,14 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.hiddenFiles')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.hiddenFiles')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <Text className="p-3 text-sm " style={{ color: mutedColor }}>
           {t('settings.hiddenFilesCount', { count: hiddenFilesCount })}
         </Text>
@@ -871,7 +970,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           data={hiddenFiles}
           keyExtractor={(item) => item.uri}
           renderItem={({ item }) => (
-            <View className="flex-row items-center gap-2.5 border-b px-2 py-[10]" style={{ borderBottomColor: borderColor }}>
+            <View
+              className="flex-row items-center gap-2.5 border-b px-2 py-[10]"
+              style={{ borderBottomColor: borderColor }}>
               <MusicNotes size={18} color="rgba(255,255,255,0.5)" />
               <View className="flex-1">
                 <Text className="text-sm " style={{ color: textColor }} numberOfLines={1}>
@@ -888,7 +989,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           scrollEnabled={false}
         />
       ) : (
-        <Text className="py-5 text-center text-sm " style={{ color: mutedColor }}>No hidden files</Text>
+        <Text className="py-5 text-center text-sm " style={{ color: mutedColor }}>
+          No hidden files
+        </Text>
       )}
     </>
   );
@@ -901,7 +1004,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.recentlyDeleted')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.recentlyDeleted')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
       {recentlyDeleted.length > 0 && (
@@ -909,7 +1014,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <Text className="text-sm font-semibold text-red-500">Clear All</Text>
         </TouchableOpacity>
       )}
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <Text className="p-3 text-sm " style={{ color: mutedColor }}>
           {t('settings.recentlyDeletedCount', { count: recentlyDeleted.length })}
         </Text>
@@ -983,7 +1090,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           scrollEnabled={false}
         />
       ) : (
-        <Text className="py-5 text-center text-sm " style={{ color: mutedColor }}>No recently deleted files</Text>
+        <Text className="py-5 text-center text-sm " style={{ color: mutedColor }}>
+          No recently deleted files
+        </Text>
       )}
     </>
   );
@@ -1013,11 +1122,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>Private Folder</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          Private Folder
+        </Text>
         <View style={{ width: 44 }} />
       </View>
       {!privateFolderExists ? (
-        <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="mb-5 rounded-2xl border p-2"
+          style={{ borderColor, backgroundColor: cardBg }}>
           <Text className="p-4 text-center text-sm leading-[22] " style={{ color: mutedColor }}>
             Create a private folder on your device to hide sensitive files from the main library.
             Files in this folder will only appear when accessed from this screen.
@@ -1045,7 +1158,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
       ) : (
         <>
-          <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+          <View
+            className="mb-5 rounded-2xl border p-2"
+            style={{ borderColor, backgroundColor: cardBg }}>
             <View style={{ padding: 12, gap: 6 }}>
               <Text className="p-3 text-sm" style={{ padding: 0, color: mutedColor }}>
                 {privateFilesList.length} file{privateFilesList.length !== 1 ? 's' : ''} in private
@@ -1085,12 +1200,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             </TouchableOpacity>
           </View>
           {privateFilesList.length > 0 && (
-            <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-              <Text className="p-3 text-sm font-bold " style={{ color: textColor }}>Files</Text>
+            <View
+              className="mb-5 rounded-2xl border p-2"
+              style={{ borderColor, backgroundColor: cardBg }}>
+              <Text className="p-3 text-sm font-bold " style={{ color: textColor }}>
+                Files
+              </Text>
               {privateFilesList.map((pf) => (
                 <View
                   key={pf.uri}
-                  className="flex-row items-center gap-2.5 border-b px-2 py-[10]" style={{ borderBottomColor: borderColor }}>
+                  className="flex-row items-center gap-2.5 border-b px-2 py-[10]"
+                  style={{ borderBottomColor: borderColor }}>
                   <Folder size={18} color="rgba(255,255,255,0.5)" />
                   <View className="flex-1">
                     <Text className="text-sm " style={{ color: textColor }} numberOfLines={1}>
@@ -1129,12 +1249,18 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.playback')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.playback')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row items-center justify-between border-b px-2 py-3" style={{ borderBottomColor: borderColor }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="flex-row items-center justify-between border-b px-2 py-3"
+          style={{ borderBottomColor: borderColor }}>
           <View className="mr-3 flex-1">
             <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>
               {t('settings.playWithOtherApps')}
@@ -1152,10 +1278,16 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row items-center justify-between border-b px-2 py-3" style={{ borderBottomColor: borderColor }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="flex-row items-center justify-between border-b px-2 py-3"
+          style={{ borderBottomColor: borderColor }}>
           <View className="mr-3 flex-1">
-            <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>{t('settings.crossFade')}</Text>
+            <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>
+              {t('settings.crossFade')}
+            </Text>
             <Text className="ml-[14] mt-0.5 text-xs " style={{ color: mutedColor }}>
               {t('settings.crossFadeDesc')}
             </Text>
@@ -1169,23 +1301,30 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
         {playbackSettings.crossFade && (
           <View className="flex-row items-center justify-between px-2 py-[10] pl-[22]">
-            <Text className="text-sm " style={{ color: mutedColor }}>{t('settings.crossFadeDuration')}</Text>
+            <Text className="text-sm " style={{ color: mutedColor }}>
+              {t('settings.crossFadeDuration')}
+            </Text>
             <View className="flex-row items-center gap-1.5">
               <TextInput
-                className="w-[60] rounded-lg px-3 py-1.5 text-center text-sm " style={{ color: textColor, backgroundColor: cardBg }}
+                className="w-[60] rounded-lg px-3 py-1.5 text-center text-sm "
+                style={{ color: textColor, backgroundColor: cardBg }}
                 value={crossFadeInput}
                 onChangeText={setCrossFadeInput}
                 onBlur={handleCrossFadeBlur}
                 keyboardType="numeric"
                 selectTextOnFocus
               />
-              <Text className="text-[13px] " style={{ color: mutedColor }}>{t('settings.seconds')}</Text>
+              <Text className="text-[13px] " style={{ color: mutedColor }}>
+                {t('settings.seconds')}
+              </Text>
             </View>
           </View>
         )}
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row items-center justify-between px-2 py-3">
           <View className="mr-3 flex-1">
             <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>
@@ -1211,15 +1350,21 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.notifications')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.notifications')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
       <Text className="mb-3 mt-2 text-lg font-semibold " style={{ color: textColor }}>
         {t('settings.notification')}
       </Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row items-center justify-between border-b px-2 py-3" style={{ borderBottomColor: borderColor }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <View
+          className="flex-row items-center justify-between border-b px-2 py-3"
+          style={{ borderBottomColor: borderColor }}>
           <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>
             {t('settings.newMediaNotification')}
           </Text>
@@ -1253,11 +1398,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.sleepTimer')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.sleepTimer')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <TouchableOpacity
           className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
           style={sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }}
@@ -1268,7 +1417,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           />
           <Text
             className="flex-1 text-[15px]"
-            style={sleepTimerSettings.mode === 'off' ? { color: primaryColor } : { color: textColor }}>
+            style={
+              sleepTimerSettings.mode === 'off' ? { color: primaryColor } : { color: textColor }
+            }>
             {t('settings.sleepTimerOff')}
           </Text>
           {sleepTimerSettings.mode === 'off' && <Check size={18} color={primaryColor} />}
@@ -1284,7 +1435,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           />
           <Text
             className="flex-1 text-[15px]"
-            style={sleepTimerSettings.mode === 'minutes' ? { color: primaryColor } : { color: textColor }}>
+            style={
+              sleepTimerSettings.mode === 'minutes' ? { color: primaryColor } : { color: textColor }
+            }>
             {t('settings.sleepTimerMinutes')}
           </Text>
           {sleepTimerSettings.mode === 'minutes' && <Check size={18} color={primaryColor} />}
@@ -1292,17 +1445,22 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
 
         {sleepTimerSettings.mode === 'minutes' && (
           <View className="flex-row items-center justify-between px-2 py-[10] pl-[22]">
-            <Text className="text-sm " style={{ color: mutedColor }}>{t('settings.sleepTimerCustom')}</Text>
+            <Text className="text-sm " style={{ color: mutedColor }}>
+              {t('settings.sleepTimerCustom')}
+            </Text>
             <View className="flex-row items-center gap-1.5">
               <TextInput
-                className="w-[60] rounded-lg px-3 py-1.5 text-center text-sm " style={{ color: textColor, backgroundColor: cardBg }}
+                className="w-[60] rounded-lg px-3 py-1.5 text-center text-sm "
+                style={{ color: textColor, backgroundColor: cardBg }}
                 value={sleepMinutesInput}
                 onChangeText={setSleepMinutesInput}
                 onBlur={handleSleepMinutesBlur}
                 keyboardType="numeric"
                 selectTextOnFocus
               />
-              <Text className="text-[13px] " style={{ color: mutedColor }}>{t('settings.sleepTimerMinutes')}</Text>
+              <Text className="text-[13px] " style={{ color: mutedColor }}>
+                {t('settings.sleepTimerMinutes')}
+              </Text>
             </View>
           </View>
         )}
@@ -1321,7 +1479,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           />
           <Text
             className="flex-1 text-[15px]"
-            style={sleepTimerSettings.mode === 'endOfTrack' ? { color: primaryColor } : { color: textColor }}>
+            style={
+              sleepTimerSettings.mode === 'endOfTrack'
+                ? { color: primaryColor }
+                : { color: textColor }
+            }>
             {t('settings.sleepTimerEndOfTrack')}
           </Text>
           {sleepTimerSettings.mode === 'endOfTrack' && <Check size={18} color={primaryColor} />}
@@ -1341,14 +1503,20 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           />
           <Text
             className="flex-1 text-[15px]"
-            style={sleepTimerSettings.mode === 'endOfQueue' ? { color: primaryColor } : { color: textColor }}>
+            style={
+              sleepTimerSettings.mode === 'endOfQueue'
+                ? { color: primaryColor }
+                : { color: textColor }
+            }>
             {t('settings.sleepTimerEndOfQueue')}
           </Text>
           {sleepTimerSettings.mode === 'endOfQueue' && <Check size={18} color={primaryColor} />}
         </TouchableOpacity>
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row items-center justify-between px-2 py-3">
           <View className="mr-3 flex-1">
             <Text className="ml-[14] flex-1 text-[15px] " style={{ color: textColor }}>
@@ -1377,11 +1545,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>{t('settings.removeAds')}</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.removeAds')}
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         <View className="items-center gap-3 py-8">
           <ShieldCheck
             size={64}
@@ -1516,21 +1688,30 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="h-11 w-11 items-center justify-center">
           <CaretLeft size={28} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-semibold" style={{ color: textColor }}>Future Updates</Text>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          Future Updates
+        </Text>
         <View style={{ width: 44 }} />
       </View>
       <Text className="mb-4 px-1 text-[13px] " style={{ color: mutedColor }}>
         Features planned for upcoming releases. Vote and suggest on our GitHub.
       </Text>
-      <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+      <View
+        className="mb-5 rounded-2xl border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
         {FUTURE_UPDATES.map((item, idx) => (
           <View
             key={idx}
-          className="flex-row items-center border-b px-2 py-[14]"
-            style={[{ borderBottomColor: borderColor }, idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 }]}>
+            className="flex-row items-center border-b px-2 py-[14]"
+            style={[
+              { borderBottomColor: borderColor },
+              idx === FUTURE_UPDATES.length - 1 && { borderBottomWidth: 0 },
+            ]}>
             <item.Icon size={22} color={primaryColor} />
             <View className="ml-[14] flex-1">
-              <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor, marginLeft: 0 }}>
+              <Text
+                className="ml-[14] flex-1 text-[15px]"
+                style={{ color: textColor, marginLeft: 0 }}>
                 {item.title}
               </Text>
               <Text className="mt-0.5 text-xs" style={{ color: mutedColor, marginLeft: 0 }}>
@@ -1588,8 +1769,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   return (
     <ScreenLayout>
       <ScrollView contentContainerClassName="px-5">
-        <Text className="mb-4 text-xl font-semibold" style={{ color: textColor }}>{t('settings.title')}</Text>
-        <View className="mb-5 rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
+        <Text className="mb-4 text-xl font-semibold" style={{ color: textColor }}>
+          {t('settings.title')}
+        </Text>
+        <View
+          className="mb-5 rounded-2xl border p-2"
+          style={{ borderColor, backgroundColor: cardBg }}>
           {renderMainList()}
         </View>
         <View style={{ height: 100 }} />

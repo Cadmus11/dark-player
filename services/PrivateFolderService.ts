@@ -17,7 +17,9 @@ export const PrivateFolderService = {
   async isSetup(): Promise<boolean> {
     try {
       return await RNFS.exists(PRIVATE_DIR);
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
 
   async setupFolder(): Promise<boolean> {
@@ -25,7 +27,9 @@ export const PrivateFolderService = {
       await RNFS.mkdir(PRIVATE_DIR);
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({ createdAt: Date.now() }));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
 
   async deleteFolder(): Promise<boolean> {
@@ -34,14 +38,18 @@ export const PrivateFolderService = {
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify([]));
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({}));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
 
   async getPrivateFiles(): Promise<PrivateFileEntry[]> {
     try {
       const d = await AsyncStorage.getItem(PRIVATE_FILES_KEY);
       return d ? JSON.parse(d) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   },
 
   async addFile(file: FileItem): Promise<boolean> {
@@ -53,7 +61,9 @@ export const PrivateFolderService = {
       files.push({ uri: destUri, name: file.name, addedAt: Date.now() });
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify(files));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
 
   async removeFile(uri: string): Promise<boolean> {
@@ -63,7 +73,9 @@ export const PrivateFolderService = {
       const updated = files.filter((f) => f.uri !== uri);
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify(updated));
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   },
 
   async restoreToOriginal(uri: string, originalName: string): Promise<string | null> {
@@ -72,7 +84,9 @@ export const PrivateFolderService = {
       await RNFS.copyFile(uri, restoreUri);
       await this.removeFile(uri);
       return restoreUri;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   },
 
   async getFolderInfo(): Promise<{ fileCount: number; totalSize: number }> {

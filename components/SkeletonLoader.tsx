@@ -8,7 +8,12 @@ interface SkeletonLoaderProps {
   style?: ViewStyle;
 }
 
-export function SkeletonLoader({ width = 300, height = 20, borderRadius = 8, style }: SkeletonLoaderProps) {
+export function SkeletonLoader({
+  width = 300,
+  height = 20,
+  borderRadius = 8,
+  style,
+}: SkeletonLoaderProps) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -16,7 +21,7 @@ export function SkeletonLoader({ width = 300, height = 20, borderRadius = 8, sty
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-      ]),
+      ])
     );
     animation.start();
     return () => animation.stop();
@@ -31,7 +36,7 @@ export function SkeletonLoader({ width = 300, height = 20, borderRadius = 8, sty
 
 export function SkeletonCard({ style }: { style?: ViewStyle }) {
   return (
-    <View className="w-[120] p-3.5 items-center" style={style}>
+    <View className="w-[120] items-center p-3.5" style={style}>
       <SkeletonLoader width={44} height={44} borderRadius={14} />
       <SkeletonLoader width={84} height={14} style={{ marginTop: 10 }} />
       <SkeletonLoader width={48} height={10} style={{ marginTop: 4 }} />

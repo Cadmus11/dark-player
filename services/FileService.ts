@@ -6,9 +6,18 @@ import type { FileItem, FileType } from '../types';
 const isWeb = Platform.OS === 'web';
 
 const ART_COLORS = [
-  '#C2FC4A', '#6c5ce7', '#00cec9', '#e17055',
-  '#fdcb6e', '#74b9ff', '#ff7675', '#55efc4',
-  '#a29bfe', '#fd79a8', '#f39c12', '#27ae60',
+  '#C2FC4A',
+  '#6c5ce7',
+  '#00cec9',
+  '#e17055',
+  '#fdcb6e',
+  '#74b9ff',
+  '#ff7675',
+  '#55efc4',
+  '#a29bfe',
+  '#fd79a8',
+  '#f39c12',
+  '#27ae60',
 ];
 
 export function getArtColor(name: string): string {
@@ -20,10 +29,20 @@ export function getArtColor(name: string): string {
 }
 
 const EXTENSION_MAP: Record<string, FileType> = {
-  mp4: 'video', mov: 'video', avi: 'video', mkv: 'video',
-  webm: 'video', m4v: 'video',
-  mp3: 'audio', wav: 'audio', aac: 'audio', flac: 'audio',
-  m4a: 'audio', ogg: 'audio', wma: 'audio', opus: 'audio',
+  mp4: 'video',
+  mov: 'video',
+  avi: 'video',
+  mkv: 'video',
+  webm: 'video',
+  m4v: 'video',
+  mp3: 'audio',
+  wav: 'audio',
+  aac: 'audio',
+  flac: 'audio',
+  m4a: 'audio',
+  ogg: 'audio',
+  wma: 'audio',
+  opus: 'audio',
 };
 
 export function getFileType(fileName: string): FileType {
@@ -138,7 +157,9 @@ export function parseSRT(srtContent: string): Array<{ start: number; end: number
   for (const block of blocks) {
     const lines = block.trim().split('\n');
     if (lines.length >= 3) {
-      const timeMatch = lines[1].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
+      const timeMatch = lines[1].match(
+        /(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/
+      );
       if (timeMatch) {
         const start = parseTime(timeMatch[1]);
         const end = parseTime(timeMatch[2]);

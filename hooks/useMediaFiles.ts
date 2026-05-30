@@ -48,8 +48,7 @@ export function useMediaFiles() {
   return {
     videos: store.videos,
     audio: store.audio,
-    allFiles: useMemo(() => [...store.videos, ...store.audio],
-      [store.videos, store.audio]),
+    allFiles: useMemo(() => [...store.videos, ...store.audio], [store.videos, store.audio]),
     loading: store.loading,
     scanProgress: store.scanProgress,
     scanStage: store.scanStage,

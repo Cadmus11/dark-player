@@ -26,23 +26,42 @@ export function MiniPlayer() {
   };
 
   return (
-    <View className="flex-row items-center px-3 py-2 border-t gap-2.5" style={{ backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5', borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#d4d4d8' }}>
+    <View
+      className="flex-row items-center gap-2.5 border-t px-3 py-2"
+      style={{
+        backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5',
+        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#d4d4d8',
+      }}>
       {currentFile.thumbnail ? (
-        <Image source={{ uri: currentFile.thumbnail }} className="w-10 h-10 rounded-lg" />
+        <Image source={{ uri: currentFile.thumbnail }} className="h-10 w-10 rounded-lg" />
       ) : (
-        <View className="w-10 h-10 rounded-lg" style={{ backgroundColor: primaryColor + '25' }} />
+        <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: primaryColor + '25' }} />
       )}
       <View className="flex-1">
-        <Text className="text-[13px] font-semibold" style={{ color: textColor }} numberOfLines={1}>{currentFile.name}</Text>
-        <Text className="text-[11px]" style={{ color: mutedColor }}>Video Mini Player</Text>
+        <Text className="text-[13px] font-semibold" style={{ color: textColor }} numberOfLines={1}>
+          {currentFile.name}
+        </Text>
+        <Text className="text-[11px]" style={{ color: mutedColor }}>
+          Video Mini Player
+        </Text>
       </View>
-      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={isPlaying ? pause : resume}>
-        {isPlaying ? <Pause size={20} color={textColor} weight="fill" /> : <Play size={20} color={textColor} weight="fill" />}
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={isPlaying ? pause : resume}>
+        {isPlaying ? (
+          <Pause size={20} color={textColor} weight="fill" />
+        ) : (
+          <Play size={20} color={textColor} weight="fill" />
+        )}
       </TouchableOpacity>
-      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleExpand}>
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={handleExpand}>
         <ArrowsOut size={18} color={textColor} />
       </TouchableOpacity>
-      <TouchableOpacity className="w-9 h-9 rounded-[10px] justify-center items-center" onPress={handleClose}>
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={handleClose}>
         <X size={18} color={textColor} />
       </TouchableOpacity>
     </View>
