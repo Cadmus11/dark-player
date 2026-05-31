@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { Play, Pause, SkipForward, MusicNote } from 'phosphor-react-native';
+import { Play, Pause, SkipForward, MusicNote, X } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,6 +14,7 @@ export function NowPlayingBar() {
   const pause = usePlaybackStore((s) => s.pause);
   const resume = usePlaybackStore((s) => s.resume);
   const next = usePlaybackStore((s) => s.next);
+  const stop = usePlaybackStore((s) => s.stop);
 
   if (!currentFile || source !== 'music') return null;
 
@@ -63,6 +64,12 @@ export function NowPlayingBar() {
         onPress={next}
         hitSlop={12}>
         <SkipForward size={20} color={mutedColor} weight="fill" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        className="h-9 w-9 items-center justify-center rounded-[10px]"
+        onPress={stop}
+        hitSlop={12}>
+        <X size={18} color={mutedColor} />
       </TouchableOpacity>
     </TouchableOpacity>
   );

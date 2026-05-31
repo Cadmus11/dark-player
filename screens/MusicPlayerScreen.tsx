@@ -332,7 +332,6 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   }, [showLyrics, lyricsData, lyricsLoading, currentItem, extractedMeta]);
 
   const handleStopAndClose = useCallback(() => {
-    AudioEngine.getInstance().stop();
     navigation.goBack();
   }, [navigation]);
 

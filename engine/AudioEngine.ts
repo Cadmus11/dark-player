@@ -3,6 +3,7 @@ import { MMKV } from 'react-native-mmkv';
 import type { FileItem, RepeatMode } from '../types';
 import type { AudioMetadata } from 'expo-audio';
 import { queueEngine } from './QueueEngine';
+import { videoEngine } from './VideoEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { NowPlayingNotification } from '../services/NowPlayingNotification';
 
@@ -51,9 +52,10 @@ export class AudioEngine {
     trackCount: 0,
   };
   private _crossfade: CrossfadeState = { enabled: false, duration: 3 };
-  private _sleepTimeout: ReturnType<typeof setTimeout> | null = null;
   private _crossfadeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private _sleepTimeout: ReturnType<typeof setTimeout> | null = null;
   private _positionCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private _busy = false;
 
   static getInstance(): AudioEngine {
     if (!AudioEngine.instance) {
@@ -265,44 +267,51 @@ export class AudioEngine {
   }
 
   private async _playFile(file: FileItem) {
-    if (!this._isLoaded) await this._initAudio();
-    this._state.position = 0;
-    this._state.duration = 0;
-    this._persistState();
-    this._notify();
-
-    this._unload();
+    if (this._busy) return;
+    this._busy = true;
     try {
-      const player = createAudioPlayer({ uri: file.uri });
-      this._player = player;
-      if (this._state.playbackSpeed !== 1) {
-        player.playbackRate = this._state.playbackSpeed;
-        player.shouldCorrectPitch = true;
+      videoEngine.stop();
+      if (!this._isLoaded) await this._initAudio();
+      this._state.position = 0;
+      this._state.duration = 0;
+      this._persistState();
+      this._notify();
+
+      this._unload();
+      try {
+        const player = createAudioPlayer({ uri: file.uri });
+        this._player = player;
+        if (this._state.playbackSpeed !== 1) {
+          player.playbackRate = this._state.playbackSpeed;
+          player.shouldCorrectPitch = true;
+        }
+        const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
+        const metadata: AudioMetadata = {
+          title: cleanTitle,
+          artist: file.artist,
+          albumTitle: file.album,
+          artworkUrl: file.thumbnail,
+        };
+        player.setActiveForLockScreen(true, metadata, {
+          showSeekForward: true,
+          showSeekBackward: true,
+        });
+        player.play();
+        this._state.isPlaying = true;
+        HistoryService.record(file, 0, 'music');
+        NowPlayingNotification.show(file, true);
+      } catch {
+        this._state.isPlaying = false;
+        this._state.currentFile = null;
+        this._state.currentIndex = -1;
+        NowPlayingNotification.dismiss();
       }
-      const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
-      const metadata: AudioMetadata = {
-        title: cleanTitle,
-        artist: file.artist,
-        albumTitle: file.album,
-        artworkUrl: file.thumbnail,
-      };
-      player.setActiveForLockScreen(true, metadata, {
-        showSeekForward: true,
-        showSeekBackward: true,
-      });
-      player.play();
-      this._state.isPlaying = true;
-      HistoryService.record(file, 0, 'music');
-      NowPlayingNotification.show(file, true);
-    } catch {
-      this._state.isPlaying = false;
-      this._state.currentFile = null;
-      this._state.currentIndex = -1;
-      NowPlayingNotification.dismiss();
+      this._persistState();
+      this._notify();
+      this._startPositionCheck();
+    } finally {
+      this._busy = false;
     }
-    this._persistState();
-    this._notify();
-    this._startPositionCheck();
   }
 
   async play(file?: FileItem, queue?: FileItem[], startIndex?: number) {

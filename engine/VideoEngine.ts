@@ -197,6 +197,15 @@ export class VideoEngine {
     }
   }
 
+  stop() {
+    if (!this._player) return;
+    try {
+      this._player.pause();
+      this._state.isPlaying = false;
+      this._notify();
+    } catch {}
+  }
+
   togglePlayback() {
     if (!this._player) return;
     try {
