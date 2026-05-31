@@ -1,8 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
-import type { FileItem, LayoutSize } from '../types';
+import type { FileItem, LayoutSize, FileType } from '../types';
 import { MusicNote, VideoCamera, Play } from 'phosphor-react-native';
-import type { FileType } from '../types';
 import { formatDuration } from '../services/FileService';
 import { useTheme } from '../context/ThemeContext';
 

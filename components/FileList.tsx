@@ -8,9 +8,8 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import type { FileItem } from '../types';
+import type { FileItem, FileType } from '../types';
 import { MusicNote, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
-import type { FileType } from '../types';
 import { formatFileSize, formatDuration } from '../services/FileService';
 
 interface FileListProps {

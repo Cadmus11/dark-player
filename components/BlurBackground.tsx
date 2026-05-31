@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { View, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+import { getPresetImageSource } from '../constants/ThemeImages';
 
 interface BlurBackgroundProps {
   children: ReactNode;
@@ -16,7 +17,6 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
 
   const renderBg = () => {
     if (theme.presetImageKey) {
-      const { getPresetImageSource } = require('../constants/ThemeImages');
       const source = getPresetImageSource(theme.presetImageKey);
       if (source) {
         return (

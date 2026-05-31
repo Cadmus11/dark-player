@@ -22,7 +22,7 @@ export function ScreenLayout({
   style,
   contentStyle,
 }: ScreenLayoutProps) {
-  const { isDarkMode, theme } = useTheme();
+  const { isDarkMode } = useTheme();
   const content = (
     <View className="flex-1" style={contentStyle}>
       {!noTopBar && <TopBar />}

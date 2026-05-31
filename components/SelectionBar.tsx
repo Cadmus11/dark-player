@@ -19,7 +19,7 @@ export function SelectionBar({
   onAction,
   primaryColor,
 }: SelectionBarProps) {
-  const { textColor, mutedColor, isDarkMode } = useTheme();
+  const { textColor, isDarkMode } = useTheme();
   if (selectedUris.size === 0) return null;
 
   const count = selectedUris.size;

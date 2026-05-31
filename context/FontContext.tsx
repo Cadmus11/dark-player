@@ -3,7 +3,6 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useCallback,
   type ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,13 +36,13 @@ export const FONT_OPTIONS: FontOption[] = [
 ];
 
 const CUSTOM_FONT_MAP: Record<string, any> = {
-  Inter: null,
-  'Inter-Bold': null,
-  PlayfairDisplay: null,
-  JetBrainsMono: null,
-  Nunito: null,
-  Poppins: null,
-  'Poppins-Bold': null,
+  Inter: require('../assets/fonts/Inter-Regular.ttf'),
+  'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
+  PlayfairDisplay: require('../assets/fonts/PlayfairDisplay-Regular.ttf'),
+  JetBrainsMono: require('../assets/fonts/JetBrainsMono-Regular.ttf'),
+  Nunito: require('../assets/fonts/Nunito-Regular.ttf'),
+  Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
+  'Poppins-Bold': require('../assets/fonts/Poppins-Bold.ttf'),
 };
 
 interface FontContextType {
@@ -60,7 +59,7 @@ const STORAGE_KEY = '@lumora_font';
 
 export function FontProvider({ children }: { children: ReactNode }) {
   const [fontKey, setFontKey] = useState('system');
-  const [fontsLoaded, setFontsLoaded] = useState(true);
+  const [fontsLoaded] = useState(true);
 
   useEffect(() => {
     loadFont();
@@ -69,12 +68,7 @@ export function FontProvider({ children }: { children: ReactNode }) {
 
   async function loadCustomFonts() {
     try {
-      const fontAssets = Object.entries(CUSTOM_FONT_MAP)
-        .filter(([, v]) => v !== null)
-        .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
-      if (Object.keys(fontAssets).length > 0) {
-        await Font.loadAsync(fontAssets);
-      }
+      await Font.loadAsync(CUSTOM_FONT_MAP);
     } catch {}
   }
 
