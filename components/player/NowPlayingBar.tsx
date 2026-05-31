@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 export function NowPlayingBar() {
   const navigation = useNavigation<any>();
-  const { textColor, mutedColor, isDarkMode } = useTheme();
+  const { textColor, mutedColor, isDarkMode, cardBg, borderColor, primaryColor } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const source = usePlaybackStore((s) => s.source);
@@ -23,10 +23,11 @@ export function NowPlayingBar() {
 
   return (
     <TouchableOpacity
-      className="flex-row items-center gap-3 border-t px-3.5 py-2.5"
+      className="flex-row items-center gap-3 px-3.5 py-2.5"
       style={{
-        backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5',
-        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#d4d4d8',
+        backgroundColor: cardBg,
+        borderTopWidth: 1,
+        borderTopColor: borderColor,
       }}
       onPress={handleOpenPlayer}
       activeOpacity={0.8}>
@@ -35,8 +36,8 @@ export function NowPlayingBar() {
       ) : (
         <View
           className="h-[42] w-[42] items-center justify-center rounded-[10px]"
-          style={{ backgroundColor: (currentFile.artColor || '#C2FC4A') + '30' }}>
-          <MusicNote size={18} color={currentFile.artColor || '#C2FC4A'} weight="bold" />
+          style={{ backgroundColor: (currentFile.artColor || primaryColor) + '30' }}>
+          <MusicNote size={18} color={currentFile.artColor || primaryColor} weight="bold" />
         </View>
       )}
       <View className="flex-1">

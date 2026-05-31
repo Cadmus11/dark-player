@@ -279,8 +279,9 @@ export class AudioEngine {
         player.playbackRate = this._state.playbackSpeed;
         player.shouldCorrectPitch = true;
       }
+      const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
       const metadata: AudioMetadata = {
-        title: file.name,
+        title: cleanTitle,
         artist: file.artist,
         albumTitle: file.album,
         artworkUrl: file.thumbnail,

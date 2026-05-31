@@ -3,7 +3,18 @@ import { parseBuffer } from 'music-metadata-browser';
 import { DatabaseService } from '../DatabaseService';
 import type { MediaMetadata } from '../../types';
 
-const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
+export const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
+
+function computeArtworkHash(uri: string): string {
+  return uri
+    .split('')
+    .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+    .toString(36);
+}
+
+export function getExpectedArtworkPath(uri: string): string {
+  return ARTWORK_DIR + computeArtworkHash(uri) + '.jpg';
+}
 
 async function ensureArtworkDir() {
   try {
@@ -27,14 +38,6 @@ function parseArtistTitle(filename: string): { artist?: string; title: string } 
     }
   }
   return { title: name };
-}
-
-function formatArtworkPath(uri: string): string {
-  const hash = uri
-    .split('')
-    .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-    .toString(36);
-  return ARTWORK_DIR + hash + '.jpg';
 }
 
 function getMimeType(uri: string): string | undefined {
@@ -109,9 +112,22 @@ export const MetadataService = {
         metadata.sampleRate = format.sampleRate || undefined;
         metadata.genre = common.genre?.[0] || undefined;
 
+        if (common.lyrics?.length) {
+          metadata.lyrics = common.lyrics.join('\n');
+        }
+        const syncedLyrics = (common as any).synchronizedLyrics as
+          | { time: number; text: string }[]
+          | undefined;
+        if (syncedLyrics?.length) {
+          metadata.syncedLyrics = syncedLyrics.map((l) => ({
+            time: l.time,
+            text: l.text,
+          }));
+        }
+
         const picture = common.picture?.[0];
         if (picture?.data) {
-          const artworkPath = formatArtworkPath(uri);
+          const artworkPath = getExpectedArtworkPath(uri);
           try {
             await ensureArtworkDir();
             const artworkBase64 = uint8ArrayToBase64(picture.data);

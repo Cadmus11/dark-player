@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'nativewind';
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
-import type { ThemeSettings, ColorTheme, LayoutSize } from '../types';
+import type { ThemeSettings, ColorTheme, ColorThemeGroup, LayoutSize } from '../types';
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -32,6 +32,7 @@ interface ThemeContextType {
   setSizeMode: (mode: LayoutSize) => Promise<void>;
   getAccentWithOpacity: (alpha: number) => string;
   availableColorThemes: ColorTheme[];
+  availableThemeGroups: ColorThemeGroup[];
   currentColorThemeName: string;
 }
 
@@ -59,89 +60,49 @@ const LIGHT_THEME: ThemeSettings = {
   sizeMode: 'medium',
 };
 
-const AVAILABLE_THEMES = [
+const AVAILABLE_THEME_GROUPS: ColorThemeGroup[] = [
   {
-    name: 'Midnight',
-    primary: '#8b5cf6',
-    background: '#0a0a0a',
-    card: '#18181b',
-    border: '#27272a',
-    text: '#ffffff',
-    muted: '#71717a',
+    name: 'Dark',
+    themes: [
+      { name: 'Midnight', group: 'Dark', primary: '#8b5cf6', background: '#0a0a0a', card: '#18181b', border: '#27272a', text: '#ffffff', muted: '#71717a' },
+      { name: 'Slate', group: 'Dark', primary: '#64748b', background: '#0a0a0c', card: '#14141a', border: '#1f1f2a', text: '#ffffff', muted: '#6b6b7b' },
+      { name: 'Obsidian', group: 'Dark', primary: '#14b8a6', background: '#080c0c', card: '#121a1a', border: '#1f2a2a', text: '#ffffff', muted: '#6b8b85' },
+    ],
   },
   {
-    name: 'Forest',
-    primary: '#22c55e',
-    background: '#0a0f0a',
-    card: '#141a14',
-    border: '#1f2a1f',
-    text: '#ffffff',
-    muted: '#6b7b6b',
+    name: 'Vibrant',
+    themes: [
+      { name: 'Rose', group: 'Vibrant', primary: '#e11d48', background: '#120a0a', card: '#1e1414', border: '#2e1f1f', text: '#ffffff', muted: '#8b6b6b' },
+      { name: 'Sunset', group: 'Vibrant', primary: '#f472b6', background: '#120a0e', card: '#1e141a', border: '#2e1f26', text: '#ffffff', muted: '#8b6b7b' },
+      { name: 'Amber', group: 'Vibrant', primary: '#f59e0b', background: '#0f0d08', card: '#1a1610', border: '#2a2218', text: '#ffffff', muted: '#8b7b5b' },
+      { name: 'Gold', group: 'Vibrant', primary: '#eab308', background: '#100d06', card: '#1a1608', border: '#2a2208', text: '#ffffff', muted: '#8b7b4b' },
+    ],
   },
   {
-    name: 'Ocean',
-    primary: '#06b6d4',
-    background: '#0a0e12',
-    card: '#141a22',
-    border: '#1f2a36',
-    text: '#ffffff',
-    muted: '#6b7b8b',
+    name: 'Nature',
+    themes: [
+      { name: 'Forest', group: 'Nature', primary: '#22c55e', background: '#0a0f0a', card: '#141a14', border: '#1f2a1f', text: '#ffffff', muted: '#6b7b6b' },
+      { name: 'Ocean', group: 'Nature', primary: '#06b6d4', background: '#0a0e12', card: '#141a22', border: '#1f2a36', text: '#ffffff', muted: '#6b7b8b' },
+      { name: 'Emerald', group: 'Nature', primary: '#10b981', background: '#080e0a', card: '#121a14', border: '#1f2a22', text: '#ffffff', muted: '#6b8b75' },
+    ],
   },
   {
-    name: 'Sunset',
-    primary: '#f472b6',
-    background: '#120a0e',
-    card: '#1e141a',
-    border: '#2e1f26',
-    text: '#ffffff',
-    muted: '#8b6b7b',
-  },
-  {
-    name: 'Lavender',
-    primary: '#a78bfa',
-    background: '#0e0a14',
-    card: '#18142a',
-    border: '#221f36',
-    text: '#ffffff',
-    muted: '#7b6b9b',
-  },
-  {
-    name: 'Amber',
-    primary: '#f59e0b',
-    background: '#0f0d08',
-    card: '#1a1610',
-    border: '#2a2218',
-    text: '#ffffff',
-    muted: '#8b7b5b',
-  },
-  {
-    name: 'Rose',
-    primary: '#e11d48',
-    background: '#120a0a',
-    card: '#1e1414',
-    border: '#2e1f1f',
-    text: '#ffffff',
-    muted: '#8b6b6b',
-  },
-  {
-    name: 'Slate',
-    primary: '#64748b',
-    background: '#0a0a0c',
-    card: '#14141a',
-    border: '#1f1f2a',
-    text: '#ffffff',
-    muted: '#6b6b7b',
+    name: 'Soft',
+    themes: [
+      { name: 'Lavender', group: 'Soft', primary: '#a78bfa', background: '#0e0a14', card: '#18142a', border: '#221f36', text: '#ffffff', muted: '#7b6b9b' },
+      { name: 'Coral', group: 'Soft', primary: '#fb7185', background: '#120a0c', card: '#1a1416', border: '#2a1f22', text: '#ffffff', muted: '#8b6b73' },
+    ],
   },
   {
     name: 'Light',
-    primary: '#F97316',
-    background: '#F0F8FF',
-    card: '#F4F4F5',
-    border: '#D4D4D8',
-    text: '#18181B',
-    muted: '#71717A',
+    themes: [
+      { name: 'Light', group: 'Light', primary: '#F97316', background: '#F0F8FF', card: '#F4F4F5', border: '#D4D4D8', text: '#18181B', muted: '#71717A' },
+      { name: 'Pearl', group: 'Light', primary: '#6366f1', background: '#f8fafc', card: '#f1f5f9', border: '#e2e8f0', text: '#0f172a', muted: '#64748b' },
+    ],
   },
 ];
+
+const AVAILABLE_THEMES: ColorTheme[] = AVAILABLE_THEME_GROUPS.flatMap((g) => g.themes);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { setColorScheme } = useColorScheme();
@@ -178,51 +139,57 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   async function setGradient(colors: string[]) {
-    await updateTheme({ backgroundType: 'gradient', gradientColors: colors });
+    await updateTheme({
+      backgroundType: 'gradient',
+      gradientColors: colors,
+      backgroundImageUri: undefined,
+      presetImageKey: undefined,
+    });
   }
 
   async function setColorTheme(name: string) {
     const ct = AVAILABLE_THEMES.find((t) => t.name === name);
     if (!ct) return;
     setCurrentColorThemeName(ct.name);
-    if (name === 'Light') {
-      setIsDarkMode(false);
-      setColorScheme('light');
-      await applyThemeSettings({
-        ...LIGHT_THEME,
-        primaryColor: ct.primary,
-        accentColor: ct.primary,
-        backgroundColor: ct.background,
-      });
-    } else {
-      setIsDarkMode(true);
-      setColorScheme('dark');
-      await applyThemeSettings({
-        ...DARK_THEME,
-        primaryColor: ct.primary,
-        accentColor: ct.primary,
-        backgroundColor: ct.background,
-      });
-    }
+    const isLight = ct.group === 'Light';
+    setIsDarkMode(!isLight);
+    setColorScheme(isLight ? 'light' : 'dark');
+    await applyThemeSettings({
+      ...(isLight ? LIGHT_THEME : DARK_THEME),
+      primaryColor: ct.primary,
+      accentColor: ct.primary,
+      backgroundColor: ct.background,
+    });
   }
 
   async function setBackgroundImage(uri: string) {
-    await updateTheme({ backgroundImageUri: uri, backgroundType: 'solid' });
+    await updateTheme({
+      backgroundImageUri: uri,
+      backgroundType: 'solid',
+      gradientColors: undefined,
+      presetImageKey: undefined,
+    });
   }
 
   async function clearBackgroundImage() {
     await updateTheme({
       backgroundImageUri: undefined,
       presetImageKey: undefined,
+      gradientColors: undefined,
       backgroundBlur: 0,
     });
   }
 
   async function setPresetImage(key: string | null) {
     if (key) {
-      await updateTheme({ presetImageKey: key, backgroundImageUri: undefined, backgroundBlur: 20 });
+      await updateTheme({
+        presetImageKey: key,
+        backgroundImageUri: undefined,
+        gradientColors: undefined,
+        backgroundBlur: 20,
+      });
     } else {
-      await updateTheme({ presetImageKey: undefined });
+      await updateTheme({ presetImageKey: undefined, gradientColors: undefined });
     }
   }
 
@@ -283,6 +250,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         backgroundOverlayColor,
         getAccentWithOpacity,
         availableColorThemes: AVAILABLE_THEMES,
+        availableThemeGroups: AVAILABLE_THEME_GROUPS,
         currentColorThemeName,
       }}>
       {children}

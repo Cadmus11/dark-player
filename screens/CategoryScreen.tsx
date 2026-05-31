@@ -23,7 +23,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon } = route.params;
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
-  const { textColor, mutedColor } = useTheme();
+  const { textColor, mutedColor, isDarkMode } = useTheme();
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || MusicNote;
 
@@ -36,10 +36,13 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
 
   const renderListItem = ({ item }: { item: FileItem }) => (
     <TouchableOpacity
-      className="flex-row items-center justify-between border-b border-b-white/10 py-3"
+      className="flex-row items-center justify-between py-3"
+      style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
       onPress={() => navigateToFile(item)}>
       <View className="flex-1 flex-row items-center">
-        <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+        <View
+          className="mr-3 h-11 w-11 items-center justify-center rounded-xl"
+          style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
           <FileIcon type={item.type} size={22} />
         </View>
         <View className="flex-1">

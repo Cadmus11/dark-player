@@ -8,9 +8,14 @@ export function useHiddenAudio(): { hiddenFiles: FileItem[]; fullAudio: FileItem
   const hiddenFiles = useSettingsStore((s) => s.hiddenFiles);
 
   return useMemo(() => {
-    if (!hiddenFiles.hideShortSongs) return { hiddenFiles: [], fullAudio: audio };
-    const minMs = (hiddenFiles.minDurationSeconds || 15) * 1000;
-    const filtered = audio.filter((f) => f.duration !== undefined && f.duration < minMs);
-    return { hiddenFiles: filtered, fullAudio: audio };
-  }, [audio, hiddenFiles.hideShortSongs, hiddenFiles.minDurationSeconds]);
+    const isHidden = (f: FileItem) => {
+      const minMs = (hiddenFiles.minDurationSeconds || 15) * 1000;
+      if (hiddenFiles.hideShortSongs && f.duration !== undefined && f.duration < minMs) return true;
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      if (hiddenFiles.hideExtensions.includes(ext)) return true;
+      if (hiddenFiles.hideOpus && ext === 'opus') return true;
+      return false;
+    };
+    return { hiddenFiles: audio.filter(isHidden), fullAudio: audio };
+  }, [audio, hiddenFiles]);
 }

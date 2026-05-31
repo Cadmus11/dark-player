@@ -7,7 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 export function MiniPlayer() {
   const navigation = useNavigation<any>();
-  const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
+  const { textColor, mutedColor, isDarkMode, primaryColor, cardBg, borderColor } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const source = usePlaybackStore((s) => s.source);
@@ -27,10 +27,11 @@ export function MiniPlayer() {
 
   return (
     <View
-      className="flex-row items-center gap-2.5 border-t px-3 py-2"
+      className="flex-row items-center gap-2.5 px-3 py-2"
       style={{
-        backgroundColor: isDarkMode ? '#1a1a2e' : '#f4f4f5',
-        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#d4d4d8',
+        backgroundColor: cardBg,
+        borderTopWidth: 1,
+        borderTopColor: borderColor,
       }}>
       {currentFile.thumbnail ? (
         <Image source={{ uri: currentFile.thumbnail }} className="h-10 w-10 rounded-lg" />

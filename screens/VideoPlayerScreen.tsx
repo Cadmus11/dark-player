@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Dimensions,
   StatusBar,
-  Modal,
   Platform,
   Animated,
   Alert,
@@ -32,10 +31,8 @@ import {
   SkipForward,
   Info,
   Trash,
-  PictureInPicture,
   Repeat,
   Shuffle,
-  Globe,
   Check,
   DotsThreeVertical,
   Headphones,
@@ -43,24 +40,20 @@ import {
   LockOpen,
   ArrowsClockwise,
   ShareNetwork,
-  Queue,
-  FolderLock,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { fileEngine } from '../engine/FileEngine';
 import { videoEngine } from '../engine/VideoEngine';
-import { useVideoPlaybackStore } from '../stores/videoPlaybackStore';
 import { queueEngine } from '../engine/QueueEngine';
 import type { SubtitleEntry } from '../types';
 import { VideoEnhancementModal } from '../components/player/VideoEnhancementModal';
 import { HistoryService } from '../services/History/HistoryService';
 import { StorageService } from '../services/StorageService';
-import { Sorting } from '../services/Sorting';
 import { BottomSheet } from '../services/OverlaySystem';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type ContentFit = 'contain' | 'cover' | 'fill';
 
@@ -76,22 +69,9 @@ type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
-  const { primaryColor, textColor, mutedColor } = useTheme();
-  const videos = useVideoPlaybackStore((s) => []);
-  const sortedVideos = useMemo(
-    () =>
-      Sorting.sort(
-        useVideoPlaybackStore.getState().currentFile
-          ? [useVideoPlaybackStore.getState().currentFile!]
-          : [],
-        'date',
-        'desc'
-      ),
-    []
-  );
+  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
 
-  const store = useVideoPlaybackStore();
-  const player = useVideoPlayer({ uri: file.uri });
+  const player = useVideoPlayer(file.uri);
 
   const [showControls, setShowControls] = useState(true);
   const [contentFit, setContentFit] = useState<ContentFit>('contain');
@@ -281,28 +261,61 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   };
 
   // Swipe gestures
+  const swipeTranslateY = useRef(new Animated.Value(0)).current;
   const videoSwipePan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 15 && Math.abs(gs.dx) < 30,
+      onPanResponderGrant: () => {
+        swipeTranslateY.setOffset(0);
+        swipeTranslateY.setValue(0);
+      },
+      onPanResponderMove: (_, gs) => {
+        swipeTranslateY.setValue(gs.dy * 0.3);
+      },
       onPanResponderRelease: (_, gs) => {
         if (gs.dy < -60) {
           const next = videoEngine.nextInQueue();
-          if (next) navigation.replace('VideoPlayer', { file: next });
+          if (next) {
+            Animated.timing(swipeTranslateY, {
+              toValue: -SCREEN_HEIGHT,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => navigation.replace('VideoPlayer', { file: next }));
+            return;
+          }
         } else if (gs.dy > 60) {
           const prev = videoEngine.prevInQueue();
-          if (prev) navigation.replace('VideoPlayer', { file: prev });
+          if (prev) {
+            Animated.timing(swipeTranslateY, {
+              toValue: SCREEN_HEIGHT,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => navigation.replace('VideoPlayer', { file: prev }));
+            return;
+          }
         }
+        Animated.spring(swipeTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(swipeTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
 
-  const goToVideo = useCallback((index: number) => {}, []);
-
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <View className="flex-1" style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#f4f4f5' }}>
       <StatusBar hidden />
-      <View className="flex-1" {...videoSwipePan.panHandlers}>
+      <Animated.View
+        className="flex-1"
+        style={{ transform: [{ translateY: swipeTranslateY }] }}
+        {...videoSwipePan.panHandlers}>
         {!isAudioOnly && (
           <VideoView
             player={player}
@@ -454,7 +467,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                       setIsAudioOnly(true);
                     }}>
                     <Headphones size={14} color="#e4e4e7" />
-                    <Text className="text-xs font-semibold text-zinc-200">Audio</Text>
+                    <Text className="text-xs font-semibold" style={{ color: textColor }}>Audio</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -463,7 +476,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     e.stopPropagation();
                     setShowSpeedModal(true);
                   }}>
-                  <Text className="text-xs font-bold text-zinc-200">{playbackSpeed}x</Text>
+                  <Text className="text-xs font-bold" style={{ color: textColor }}>{playbackSpeed}x</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
@@ -491,7 +504,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             </View>
           </TouchableOpacity>
         </Animated.View>
-      </View>
+      </Animated.View>
 
       {/* Bottom Sheets */}
       <BottomSheet visible={showMenu} onClose={() => setShowMenu(false)}>
@@ -503,8 +516,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               setShowPlayModeModal(true);
             }}>
             <Repeat size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px] text-white">Play Mode</Text>
-            <Text className="ml-auto text-xs text-zinc-400">
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Play Mode</Text>
+            <Text className="ml-auto text-xs" style={{ color: mutedColor }}>
               {playMode === 'loop'
                 ? 'Loop One'
                 : playMode === 'loopAll'
@@ -525,8 +538,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               color={subtitlesEnabled ? primaryColor : '#e4e4e7'}
               weight={subtitlesEnabled ? 'fill' : 'regular'}
             />
-            <Text className="ml-3 text-[15px] text-white">Subtitles</Text>
-            <Text className="ml-auto text-xs text-zinc-400">{subtitlesEnabled ? 'On' : 'Off'}</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Subtitles</Text>
+            <Text className="ml-auto text-xs" style={{ color: mutedColor }}>{subtitlesEnabled ? 'On' : 'Off'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -537,14 +550,14 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             <Text className="text-lg" style={{ color: primaryColor }}>
               ✨
             </Text>
-            <Text className="ml-3 text-[15px] text-white">Enhance Video</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Enhance Video</Text>
           </TouchableOpacity>
-          <View className="my-3 h-px bg-white/10" />
+          <View className="my-3 h-px" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
             onPress={handleShare}>
             <ShareNetwork size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px] text-white">Share</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Share</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -553,7 +566,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               setShowInfo(true);
             }}>
             <Info size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px] text-white">Information</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Information</Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -575,12 +588,12 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               className="rounded-xl border px-4 py-3"
               style={[
                 playbackSpeed === speed && { backgroundColor: primaryColor },
-                { borderColor: playbackSpeed === speed ? primaryColor : '#3f3f46' },
+                { borderColor: playbackSpeed === speed ? primaryColor : (isDarkMode ? '#3f3f46' : '#d4d4d8') },
               ]}
               onPress={() => changeSpeed(speed)}>
               <Text
                 className={`text-center text-sm ${playbackSpeed === speed ? 'font-bold' : ''}`}
-                style={{ color: playbackSpeed === speed ? '#0a0a0a' : '#e4e4e7' }}>
+                style={{ color: playbackSpeed === speed ? (isDarkMode ? '#0a0a0a' : '#ffffff') : textColor }}>
                 {speed}x
               </Text>
             </TouchableOpacity>
@@ -615,7 +628,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 weight={playMode === mode ? 'fill' : 'regular'}
               />
               <Text
-                className={`text-base ${playMode === mode ? 'font-bold' : 'font-medium'} text-zinc-200`}>
+                className={`text-base ${playMode === mode ? 'font-bold' : 'font-medium'}`}
+                style={{ color: textColor }}>
                 {label}
               </Text>
               {playMode === mode && (
@@ -634,22 +648,22 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       <BottomSheet visible={showInfo} onClose={() => setShowInfo(false)} title="Video Info">
         <View className="px-5">
           <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-            <Text className="flex-1 text-sm text-white/60">Name</Text>
-            <Text className="flex-[2] text-right text-sm text-white" numberOfLines={2}>
+            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Name</Text>
+            <Text className="flex-[2] text-right text-sm" style={{ color: textColor }} numberOfLines={2}>
               {file.name}
             </Text>
           </View>
           {file.size && (
             <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-              <Text className="flex-1 text-sm text-white/60">Size</Text>
-              <Text className="flex-[2] text-right text-sm text-white">
+              <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Size</Text>
+              <Text className="flex-[2] text-right text-sm" style={{ color: textColor }}>
                 {(file.size / 1024 / 1024).toFixed(1)} MB
               </Text>
             </View>
           )}
           <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-            <Text className="flex-1 text-sm text-white/60">Duration</Text>
-            <Text className="flex-[2] text-right text-sm text-white">
+            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Duration</Text>
+            <Text className="flex-[2] text-right text-sm" style={{ color: textColor }}>
               {fileEngine.formatDuration(duration)}
             </Text>
           </View>

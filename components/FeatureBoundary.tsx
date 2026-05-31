@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode, type ErrorInfo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Appearance } from 'react-native';
 import { WarningCircle } from 'phosphor-react-native';
 
 interface FeatureBoundaryProps {
@@ -35,17 +35,19 @@ export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoun
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+      const isDark = Appearance.getColorScheme() === 'dark';
       return (
-        <View className="flex-1 items-center justify-center rounded-2xl bg-[#18181b] p-6">
+        <View className="flex-1 items-center justify-center rounded-2xl p-6" style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}>
           <WarningCircle size={32} color="#ef4444" weight="bold" />
-          <Text className="mb-1 mt-3 text-base font-bold text-white">{this.props.name} Error</Text>
-          <Text className="mb-4 text-center text-xs text-[#a1a1aa]">
+          <Text className="mb-1 mt-3 text-base font-bold" style={{ color: isDark ? '#ffffff' : '#18181b' }}>{this.props.name} Error</Text>
+          <Text className="mb-4 text-center text-xs" style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
             {this.state.error?.message || 'Something went wrong'}
           </Text>
           <TouchableOpacity
-            className="rounded-xl bg-[#C2FC4A] px-4 py-2"
+            className="rounded-xl px-4 py-2"
+            style={{ backgroundColor: isDark ? '#C2FC4A' : '#F97316' }}
             onPress={this.handleRetry}>
-            <Text className="text-xs font-bold text-[#18181b]">Retry</Text>
+            <Text className="text-xs font-bold" style={{ color: isDark ? '#18181b' : '#ffffff' }}>Retry</Text>
           </TouchableOpacity>
         </View>
       );

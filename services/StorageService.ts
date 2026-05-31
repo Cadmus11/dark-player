@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MMKV } from 'react-native-mmkv';
 import {
   cacheDirectory,
   getInfoAsync,
@@ -19,6 +20,7 @@ import type {
   HiddenFilesSettings,
 } from '../types';
 
+const settingsStorage = new MMKV({ id: 'settings' });
 const TRASH_DIR = (cacheDirectory || '') + 'trash/';
 
 const KEYS = {
@@ -271,10 +273,14 @@ export async function savePlaybackSettings(s: PlaybackSettings): Promise<void> {
   /* kept for compat */
 }
 export async function getNotificationSettings(): Promise<NotificationSettings> {
+  try {
+    const raw = settingsStorage.getString('@settings_notifications');
+    if (raw) return JSON.parse(raw);
+  } catch {}
   return { newMediaNotification: true, pushNotification: true };
 }
 export async function saveNotificationSettings(s: NotificationSettings): Promise<void> {
-  /* kept for compat */
+  settingsStorage.set('@settings_notifications', JSON.stringify(s));
 }
 export async function getSleepTimerSettings(): Promise<SleepTimerSettings> {
   return { enabled: false, mode: 'off', minutes: 30, playOneToEnd: false };

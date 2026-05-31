@@ -14,11 +14,13 @@ const TABS = [
 ];
 
 export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { primaryColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { t } = useLanguage();
 
   return (
-    <View className="flex-row border-t border-t-white/10 bg-[#18181b] pb-6 pt-2.5">
+    <View
+      className="flex-row pb-6 pt-2.5"
+      style={{ backgroundColor: cardBg, borderTopWidth: 1, borderTopColor: borderColor }}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
 
@@ -45,7 +47,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             className="flex-1 items-center justify-center">
             <tab.Icon
               size={22}
-              color={isFocused ? primaryColor : 'rgba(255, 255, 255, 0.4)'}
+              color={isFocused ? primaryColor : mutedColor}
               weight={isFocused ? 'fill' : 'regular'}
             />
             {isFocused && (

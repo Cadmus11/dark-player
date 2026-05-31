@@ -6,6 +6,7 @@ import { permissionService } from '../services/PermissionService';
 import { CancellationToken, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
 import { getInfoAsync } from 'expo-file-system/legacy';
+import { getExpectedArtworkPath } from '../services/Metadata/MetadataService';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -231,6 +232,9 @@ export class FileEngine {
             if (info.exists) size = info.size;
           } catch {}
         }
+        const thumbnail = type === 'video'
+          ? asset.uri
+          : await this._getAudioThumbnail(asset.uri);
         items.push({
           uri: asset.uri,
           name: asset.filename,
@@ -238,7 +242,7 @@ export class FileEngine {
           assetId: asset.id,
           modifiedAt: asset.modificationTime * 1000,
           createdAt: asset.creationTime * 1000,
-          thumbnail: type !== 'audio' ? asset.uri : undefined,
+          thumbnail,
           duration: asset.duration ? asset.duration * 1000 : undefined,
           artColor: this.getArtColor(asset.filename),
           size,
@@ -249,6 +253,17 @@ export class FileEngine {
       if (isCancelled(e)) throw e;
       return [];
     }
+  }
+
+  private async _getAudioThumbnail(uri: string): Promise<string | undefined> {
+    try {
+      const artworkPath = getExpectedArtworkPath(uri);
+      const info = await getInfoAsync(artworkPath);
+      if (info.exists) {
+        return artworkPath;
+      }
+    } catch {}
+    return undefined;
   }
 
   async requestPermissions(): Promise<boolean> {

@@ -78,7 +78,7 @@ const ListItem = memo(function ListItem({
         <View
           className="h-11 w-11 items-center justify-center rounded-xl"
           style={{
-            backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)',
+            backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(255, 255, 255, 0.06)',
           }}>
           {item.thumbnail ? (
             <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />

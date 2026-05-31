@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Share, Alert } from 'react-native';
-import { Playlist, Queue, ShareNetwork, EyeSlash, Trash, X } from 'phosphor-react-native';
+import { Playlist, Queue, ShareNetwork, EyeSlash, Lock, Trash, X } from 'phosphor-react-native';
 import type { FileItem, FileAction } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
@@ -19,7 +19,7 @@ export function SelectionBar({
   onAction,
   primaryColor,
 }: SelectionBarProps) {
-  const { textColor, isDarkMode } = useTheme();
+  const { textColor, isDarkMode, cardBg, borderColor } = useTheme();
   if (selectedUris.size === 0) return null;
 
   const count = selectedUris.size;
@@ -41,10 +41,11 @@ export function SelectionBar({
 
   return (
     <View
-      className="absolute bottom-0 left-0 right-0 z-50 border-t px-4 pb-[30] pt-3"
+      className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-[30] pt-3"
       style={{
-        backgroundColor: isDarkMode ? '#18181b' : '#f4f4f5',
-        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#d4d4d8',
+        backgroundColor: cardBg,
+        borderTopWidth: 1,
+        borderTopColor: borderColor,
       }}>
       <View className="mb-3 flex-row items-center justify-between">
         <TouchableOpacity
@@ -84,6 +85,11 @@ export function SelectionBar({
           icon={<EyeSlash size={20} color={textColor} />}
           label="Hide"
           onPress={() => onAction('hide', selectedFiles)}
+        />
+        <ActionBtn
+          icon={<Lock size={20} color={textColor} />}
+          label="Private"
+          onPress={() => onAction('moveToPrivate', selectedFiles)}
         />
         <ActionBtn
           icon={<Trash size={20} color="#ef4444" />}

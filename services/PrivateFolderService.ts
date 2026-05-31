@@ -7,17 +7,20 @@ import {
   deleteAsync,
   copyAsync,
 } from 'expo-file-system/legacy';
-import type { FileItem } from '../types';
+import type { FileItem, PrivateFileEntry } from '../types';
 
 const PRIVATE_FOLDER_KEY = '@lumora_private_folder';
 const PRIVATE_FILES_KEY = '@lumora_private_files';
+const PASSCODE_KEY = '@lumora_private_passcode';
 
 const PRIVATE_DIR = (documentDirectory || '') + 'private/';
 
-interface PrivateFileEntry {
-  uri: string;
-  name: string;
-  addedAt: number;
+function simpleHash(pin: string): string {
+  let hash = 0;
+  for (let i = 0; i < pin.length; i++) {
+    hash = ((hash << 5) - hash + pin.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
 }
 
 export const PrivateFolderService = {
@@ -29,21 +32,52 @@ export const PrivateFolderService = {
     }
   },
 
-  async setupFolder(): Promise<boolean> {
+  async setupFolder(passcode: string): Promise<boolean> {
     try {
       await makeDirectoryAsync(PRIVATE_DIR);
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({ createdAt: Date.now() }));
+      await AsyncStorage.setItem(PASSCODE_KEY, simpleHash(passcode));
       return true;
     } catch {
       return false;
     }
   },
 
-  async deleteFolder(): Promise<boolean> {
+  async deleteFolder(passcode: string): Promise<boolean> {
     try {
+      if (!(await this.verifyPasscode(passcode))) return false;
       await deleteAsync(PRIVATE_DIR, { idempotent: true });
       await AsyncStorage.setItem(PRIVATE_FILES_KEY, JSON.stringify([]));
       await AsyncStorage.setItem(PRIVATE_FOLDER_KEY, JSON.stringify({}));
+      await AsyncStorage.setItem(PASSCODE_KEY, '');
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async hasPasscode(): Promise<boolean> {
+    try {
+      const hash = await AsyncStorage.getItem(PASSCODE_KEY);
+      return !!hash;
+    } catch {
+      return false;
+    }
+  },
+
+  async verifyPasscode(passcode: string): Promise<boolean> {
+    try {
+      const hash = await AsyncStorage.getItem(PASSCODE_KEY);
+      return hash === simpleHash(passcode);
+    } catch {
+      return false;
+    }
+  },
+
+  async changePasscode(oldPasscode: string, newPasscode: string): Promise<boolean> {
+    try {
+      if (!(await this.verifyPasscode(oldPasscode))) return false;
+      await AsyncStorage.setItem(PASSCODE_KEY, simpleHash(newPasscode));
       return true;
     } catch {
       return false;
@@ -73,6 +107,14 @@ export const PrivateFolderService = {
     }
   },
 
+  async addFiles(files: FileItem[]): Promise<number> {
+    let count = 0;
+    for (const f of files) {
+      if (await this.addFile(f)) count++;
+    }
+    return count;
+  },
+
   async removeFile(uri: string): Promise<boolean> {
     try {
       await deleteAsync(uri, { idempotent: true });
@@ -96,6 +138,17 @@ export const PrivateFolderService = {
     }
   },
 
+  async getFileItem(entry: PrivateFileEntry): Promise<FileItem> {
+    const info = await getInfoAsync(entry.uri);
+    return {
+      uri: entry.uri,
+      name: entry.name,
+      type: this._inferType(entry.name),
+      size: info.exists ? info.size : undefined,
+      modifiedAt: entry.addedAt,
+    };
+  },
+
   async getFolderInfo(): Promise<{ fileCount: number; totalSize: number }> {
     const files = await this.getPrivateFiles();
     let totalSize = 0;
@@ -106,5 +159,11 @@ export const PrivateFolderService = {
       } catch {}
     }
     return { fileCount: files.length, totalSize };
+  },
+
+  _inferType(name: string): 'audio' | 'video' {
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const videoExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'];
+    return videoExts.includes(ext) ? 'video' : 'audio';
   },
 };

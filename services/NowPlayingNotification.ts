@@ -9,6 +9,7 @@ const NOTIFICATION_ID = 'lumora-now-playing';
 
 let currentFile: FileItem | null = null;
 let isPlaying = false;
+let responseSubscription: Notifications.EventSubscription | null = null;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -19,6 +20,10 @@ Notifications.setNotificationHandler({
     shouldShowList: false,
   }),
 });
+
+function cleanTitle(name: string): string {
+  return name.replace(/\.[^.]+$/, '').trim();
+}
 
 export const NowPlayingNotification = {
   async setupChannel(): Promise<void> {
@@ -33,9 +38,46 @@ export const NowPlayingNotification = {
         vibrationPattern: null,
       });
     }
+
+    await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY, [
+      { identifier: 'previous', buttonTitle: 'Previous' },
+      { identifier: 'playpause', buttonTitle: isPlaying ? 'Pause' : 'Play' },
+      { identifier: 'next', buttonTitle: 'Next' },
+    ]);
+
     const perm = await Notifications.getPermissionsAsync();
     if ((perm as any).status !== 'granted') {
       await Notifications.requestPermissionsAsync();
+    }
+
+    if (!responseSubscription) {
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(
+        this.handleResponse
+      );
+    }
+  },
+
+  handleResponse(response: Notifications.NotificationResponse) {
+    const { actionIdentifier, notification } = response;
+    const data = notification.request.content.data as { uri?: string; action?: string };
+
+    if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+      return;
+    }
+
+    const { AudioEngine } = require('../engine/AudioEngine');
+    const engine = AudioEngine.getInstance();
+
+    switch (actionIdentifier) {
+      case 'previous':
+        engine.skipToPrevious();
+        break;
+      case 'next':
+        engine.skipToNext();
+        break;
+      case 'playpause':
+        engine.togglePlay();
+        break;
     }
   },
 
@@ -46,10 +88,10 @@ export const NowPlayingNotification = {
     await Notifications.scheduleNotificationAsync({
       identifier: NOTIFICATION_ID,
       content: {
-        title: file.name,
+        title: cleanTitle(file.name),
         body: file.artist || file.album || 'Now Playing',
         data: { uri: file.uri, type: 'now-playing' },
-        categoryIdentifier: 'media-playback',
+        categoryIdentifier: NOTIFICATION_CATEGORY,
         ...(Platform.OS === 'android'
           ? {
               channelId: CHANNEL_ID,
@@ -66,6 +108,11 @@ export const NowPlayingNotification = {
   async updatePlayState(playing: boolean): Promise<void> {
     isPlaying = playing;
     if (!currentFile) return;
+    await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY, [
+      { identifier: 'previous', buttonTitle: 'Previous' },
+      { identifier: 'playpause', buttonTitle: playing ? 'Pause' : 'Play' },
+      { identifier: 'next', buttonTitle: 'Next' },
+    ]);
     await this.show(currentFile, playing);
   },
 
@@ -81,6 +128,13 @@ export const NowPlayingNotification = {
     try {
       await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_ID);
     } catch {}
+  },
+
+  cleanup() {
+    if (responseSubscription) {
+      responseSubscription.remove();
+      responseSubscription = null;
+    }
   },
 
   getCurrentFile(): FileItem | null {

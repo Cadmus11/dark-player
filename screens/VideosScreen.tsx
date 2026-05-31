@@ -21,7 +21,7 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
 export const VideosScreen = React.memo(function VideosScreen() {
   const videos = useMediaStore((s) => s.videos);
   const navigation = useNavigation<any>();
-  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -84,8 +84,9 @@ export const VideosScreen = React.memo(function VideosScreen() {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSortModal(false)}>
-          <View className="w-[80%] max-w-[320px] rounded-3xl bg-[#27272a] p-6">
-            <Text className="mb-4 text-center text-lg font-extrabold text-white">Sort by</Text>
+          <View className="w-[80%] max-w-[320px] rounded-3xl p-6"
+            style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>Sort by</Text>
             {SORT_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.field}
@@ -160,6 +161,7 @@ export const VideosScreen = React.memo(function VideosScreen() {
           textColor={textColor}
           mutedColor={mutedColor}
           emptyMessage="No videos found"
+          hideName
         />
       </View>
       {renderSortModal}

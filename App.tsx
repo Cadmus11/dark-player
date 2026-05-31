@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -10,6 +10,8 @@ import { FontProvider } from './context/FontContext';
 import { OverlayProvider } from './services/OverlaySystem';
 import { startHydration } from './services/HydrationService';
 import { lifecycleManager } from './services/LifecycleManager';
+import { notificationService } from './services/NotificationService';
+import { SplashScreen } from './screens/SplashScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
@@ -18,6 +20,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { CategoryScreen } from './screens/CategoryScreen';
 import { FolderScreen } from './screens/FolderScreen';
 import { VideoTopScreen } from './screens/VideoTopScreen';
+import { PrivateFolderScreen } from './screens/PrivateFolderScreen';
 import { VideoPlayerScreen } from './screens/VideoPlayerScreen';
 import { MusicPlayerScreen } from './screens/MusicPlayerScreen';
 import { MiniPlayer } from './components/player/MiniPlayer';
@@ -43,12 +46,19 @@ export type RootStackParamList = {
   VideoTop: undefined;
   VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
   MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
+  PrivateFolder: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
 function MainTabs() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
   return (
     <View className="flex-1 bg-bg-primary dark:bg-dark-bg-primary">
       <Tab.Navigator tabBar={() => null} screenOptions={{ headerShown: false }}>
@@ -73,7 +83,11 @@ export default function App() {
   useEffect(() => {
     lifecycleManager.initialize();
     startHydration();
-    return () => lifecycleManager.cleanup();
+    notificationService.setup();
+    return () => {
+      lifecycleManager.cleanup();
+      notificationService.cleanup();
+    };
   }, []);
 
   return (
@@ -89,6 +103,7 @@ export default function App() {
                     <Stack.Screen name="Category" component={CategoryScreen} />
                     <Stack.Screen name="FolderList" component={FolderScreen} />
                     <Stack.Screen name="VideoTop" component={VideoTopScreen} />
+                    <Stack.Screen name="PrivateFolder" component={PrivateFolderScreen} />
                     <Stack.Screen name="VideoPlayer">
                       {(props) => (
                         <PlayerBoundary>

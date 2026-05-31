@@ -8,11 +8,15 @@ export function useVisibleAudio(): FileItem[] {
   const hiddenFiles = useSettingsStore((s) => s.hiddenFiles);
 
   return useMemo(() => {
-    if (!hiddenFiles.hideShortSongs) return audio;
     const minMs = (hiddenFiles.minDurationSeconds || 15) * 1000;
     return audio.filter((f) => {
-      if (f.duration === undefined) return true;
-      return f.duration >= minMs;
+      if (hiddenFiles.hideShortSongs && f.duration !== undefined && f.duration < minMs) {
+        return false;
+      }
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      if (hiddenFiles.hideExtensions.includes(ext)) return false;
+      if (hiddenFiles.hideOpus && ext === 'opus') return false;
+      return true;
     });
-  }, [audio, hiddenFiles.hideShortSongs, hiddenFiles.minDurationSeconds]);
+  }, [audio, hiddenFiles]);
 }

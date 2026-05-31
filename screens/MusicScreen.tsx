@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   Modal,
+  Alert,
   SectionList,
   GestureResponderEvent,
   PanResponder,
@@ -26,16 +27,16 @@ import {
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useTheme } from '../context/ThemeContext';
+import type { FileItem, SortField, SortDirection, FileAction } from '../types';
+import { ScreenLayout } from '../components/ScreenLayout';
+import { Sorting } from '../services/Sorting';
+import { SelectionBar } from '../components/SelectionBar';
+import { StorageService } from '../services/StorageService';
+
 interface MusicSection {
   title: string;
   data: FileItem[];
 }
-import type { FileItem, SortField, SortDirection, FileAction } from '../types';
-import { ScreenLayout } from '../components/ScreenLayout';
-import { Sorting } from '../services/Sorting';
-import FileGrid from '../components/FileGrid';
-import { SelectionBar } from '../components/SelectionBar';
-import { StorageService } from '../services/StorageService';
 
 const SORT_OPTIONS: { field: SortField; label: string }[] = [
   { field: 'name', label: 'Name' },
@@ -58,7 +59,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const audio = useVisibleAudio();
   const playlists = usePlaylistStore((s) => s.playlists);
   const navigation = useNavigation<any>();
-  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -222,6 +223,18 @@ export const MusicScreen = React.memo(function MusicScreen() {
         setSelectedUris(new Set());
         break;
       }
+      case 'moveToPrivate': {
+        const { PrivateFolderService } = await import('../services/PrivateFolderService');
+        const exists = await PrivateFolderService.isSetup();
+        if (!exists) {
+          Alert.alert('Private Folder', 'Create a Private Folder in Settings first.');
+          break;
+        }
+        const moved = await PrivateFolderService.addFiles(files);
+        Alert.alert('Private Folder', `${moved} of ${files.length} file${files.length !== 1 ? 's' : ''} moved.`);
+        setSelectedUris(new Set());
+        break;
+      }
       case 'delete':
         for (const f of files) {
           await StorageService.addToRecentlyDeleted(f);
@@ -317,8 +330,9 @@ export const MusicScreen = React.memo(function MusicScreen() {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSortModal(false)}>
-          <View className="w-4/5 max-w-[320px] rounded-3xl bg-[#27272a] p-6">
-            <Text className="mb-4 text-center text-lg font-extrabold text-white">Sort by</Text>
+          <View className="w-4/5 max-w-[320px] rounded-3xl p-6"
+            style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>Sort by</Text>
             {SORT_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.field}
@@ -336,7 +350,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
                 <Text
                   className="text-base font-medium"
                   style={{
-                    color: sortField === opt.field ? primaryColor : mutedColor,
+                    color: sortField === opt.field ? primaryColor : textColor,
                     fontWeight: sortField === opt.field ? '700' : '500',
                   }}>
                   {opt.label}

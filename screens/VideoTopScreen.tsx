@@ -24,7 +24,7 @@ function scoreVideoQuality(v: FileItem): number {
 
 export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
   const videos = useMediaStore((s) => s.videos);
-  const { textColor, mutedColor, primaryColor, borderColor } = useTheme();
+  const { textColor, mutedColor, primaryColor, borderColor, isDarkMode } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
   const topVideos = useMemo(() => {
@@ -58,11 +58,11 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
         {hero && (
           <TouchableOpacity
             className="mx-5 mb-6 overflow-hidden rounded-2xl"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+            style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
             onPress={() => navigateToFile(hero)}>
             <View
               className="w-full"
-              style={{ aspectRatio: 16 / 9, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+              style={{ aspectRatio: 16 / 9, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}>
               {hero.thumbnail ? (
                 <Image
                   source={{ uri: hero.thumbnail }}

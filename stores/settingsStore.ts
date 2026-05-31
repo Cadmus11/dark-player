@@ -56,7 +56,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     hideShortSongs: true,
     minDurationSeconds: 15,
     hideOpus: true,
-    hideExtensions: ['opus'],
+    hideExtensions: ['opus', 'aac', 'amr', '3gp', 'ogg', 'gif', 'webp'],
   },
   sortField: 'name',
   sortDirection: 'asc',

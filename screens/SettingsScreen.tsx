@@ -12,6 +12,7 @@ import {
   FlatList,
   Share,
   Platform,
+  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -35,11 +36,11 @@ import {
   Timer,
   ShieldCheck,
   Folder,
+  LockSimple,
   Star,
   ShareNetwork,
   Sun,
   Palette,
-  Gradient,
   Globe,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -48,6 +49,7 @@ import { useFont, FONT_OPTIONS } from '../context/FontContext';
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ScreenLayout } from '../components/ScreenLayout';
+import * as ImagePicker from 'expo-image-picker';
 import { GlassIcon } from '../components/GlassIcon';
 import {
   getPlaybackSettings,
@@ -74,6 +76,7 @@ import type {
   FileItem,
 } from '../types';
 import { COLOR_THEMES, LayoutSize } from '../types';
+import { PRESET_IMAGE_LIST } from '../constants/ThemeImages';
 import { PrivateFolderService } from '../services/PrivateFolderService';
 
 const APP_VERSION = '1.0.0';
@@ -133,6 +136,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     setSizeMode,
     setPresetImage,
     availableColorThemes,
+    availableThemeGroups,
     currentColorThemeName,
   } = useTheme();
   const { t, language, setLanguage, languages } = useLanguage();
@@ -179,7 +183,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const [crossFadeInput, setCrossFadeInput] = useState('3');
   const [sleepMinutesInput, setSleepMinutesInput] = useState('30');
   const [adsRemoved, setAdsRemoved] = useState(false);
-  const [showAllThemes, setShowAllThemes] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -294,7 +297,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         setActiveView('sleepTimer');
         break;
       case 'privateFolder':
-        setActiveView('privateFolder');
+        navigation.navigate('PrivateFolder');
         break;
       case 'feedback':
         Linking.openURL('mailto:support@lumora.app?subject=Lumora%20Feedback');
@@ -501,43 +504,53 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         {t('settings.colorThemes')}
       </Text>
-      <View
-        className="mb-5 rounded-2xl border p-2"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row flex-wrap gap-2.5 p-2">
-          {(showAllThemes ? availableColorThemes : availableColorThemes.slice(0, 4)).map((ct) => (
-            <TouchableOpacity
-              key={ct.name}
-              className="w-[70] items-center rounded-xl border-2 py-[10]"
-              style={
-                currentColorThemeName === ct.name ? { borderColor: primaryColor } : { borderColor }
-              }
-              onPress={() => setColorTheme(ct.name)}>
-              <View
-                className="h-10 w-10 items-center justify-center rounded-[10] border"
-                style={{ borderColor, backgroundColor: ct.background }}>
-                <View className="h-3 w-3 rounded-full" style={{ backgroundColor: ct.primary }} />
-              </View>
-              <Text
-                className="mt-1 text-center text-[10px]"
-                style={
-                  currentColorThemeName === ct.name
-                    ? { color: primaryColor }
-                    : { color: mutedColor }
-                }>
-                {ct.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity
-          className="items-center py-3"
-          onPress={() => setShowAllThemes(!showAllThemes)}>
-          <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>
-            {showAllThemes ? 'Show Less' : `Show All (${availableColorThemes.length})`}
+      {availableThemeGroups.map((group) => (
+        <View key={group.name} className="mb-3">
+          <Text
+            className="mb-1.5 ml-1 text-[11px] font-bold uppercase tracking-widest"
+            style={{ color: mutedColor }}>
+            {group.name}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <View
+            className="rounded-2xl border p-2"
+            style={{ borderColor, backgroundColor: cardBg }}>
+            <View className="flex-row flex-wrap gap-2 p-1.5">
+              {group.themes.map((ct) => (
+                <TouchableOpacity
+                  key={ct.name}
+                  className="w-[76] items-center rounded-xl border-2 py-[10]"
+                  style={
+                    currentColorThemeName === ct.name
+                      ? { borderColor: primaryColor }
+                      : { borderColor: 'transparent' }
+                  }
+                  onPress={() => setColorTheme(ct.name)}>
+                  <View
+                    className="h-[42] w-[52] items-center justify-center rounded-[10] overflow-hidden"
+                    style={{ backgroundColor: ct.background }}>
+                    <View className="absolute top-1 left-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ct.primary }} />
+                    <Text className="text-[13px] font-bold leading-tight" style={{ color: ct.text, marginTop: 4 }}>
+                      Aa
+                    </Text>
+                    <Text className="text-[9px] leading-tight" style={{ color: ct.muted }}>
+                      aa
+                    </Text>
+                  </View>
+                  <Text
+                    className="mt-1 text-center text-[10px] font-semibold"
+                    style={
+                      currentColorThemeName === ct.name
+                        ? { color: primaryColor }
+                        : { color: mutedColor }
+                    }>
+                    {ct.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      ))}
 
       {/* Accent Colors */}
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
@@ -573,45 +586,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
       </View>
 
-      {/* Layout Size */}
-      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>
-        Layout Size
-      </Text>
-      <View
-        className="mb-5 rounded-2xl border p-2"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row gap-2 p-1">
-          {(['small', 'medium', 'big'] as const).map((size) => (
-            <TouchableOpacity
-              key={size}
-              className="flex-1 items-center rounded-xl py-3"
-              style={
-                settingsStore.layoutSize === size
-                  ? { backgroundColor: primaryColor }
-                  : { backgroundColor: 'rgba(255,255,255,0.05)' }
-              }
-              onPress={() => settingsStore.setLayoutSize(size)}>
-              <SquaresFour
-                size={18}
-                color={settingsStore.layoutSize === size ? '#18181b' : '#e4e4e7'}
-                weight={settingsStore.layoutSize === size ? 'fill' : 'regular'}
-              />
-              <Text
-                className="mt-1 text-[11px] font-semibold"
-                style={{
-                  color: settingsStore.layoutSize === size ? '#18181b' : '#e4e4e7',
-                  textTransform: 'capitalize',
-                }}>
-                {size}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Text className="mt-1 text-center text-[11px] " style={{ color: mutedColor }}>
-          Small (4 cols) / Medium (3 cols) / Big (2 cols)
-        </Text>
-      </View>
-
       {/* Preset Backgrounds */}
       <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>
         Preset Backgrounds
@@ -619,34 +593,31 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       <View
         className="mb-5 rounded-2xl border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row flex-wrap gap-2 p-2" style={{ justifyContent: 'space-around' }}>
-          {(() => {
-            const { PRESET_IMAGE_LIST } = require('../constants/ThemeImages');
-            return PRESET_IMAGE_LIST.map((img: { key: string; name: string; source: any }) => (
-              <TouchableOpacity
-                key={img.key}
-                className="items-center"
-                onPress={() => setPresetImage(theme.presetImageKey === img.key ? null : img.key)}>
-                <View
-                  className="h-[54] w-[72] overflow-hidden rounded-xl border-2"
-                  style={{
-                    borderColor: theme.presetImageKey === img.key ? primaryColor : borderColor,
-                  }}>
-                  <Image
-                    source={img.source}
-                    className="h-full w-full"
-                    style={{ resizeMode: 'cover' }}
-                  />
-                </View>
-                <Text
-                  className="mt-1 text-[10px]"
-                  style={{ color: theme.presetImageKey === img.key ? primaryColor : mutedColor }}
-                  numberOfLines={1}>
-                  {img.name}
-                </Text>
-              </TouchableOpacity>
-            ));
-          })()}
+        <View className="flex-row flex-wrap gap-2 p-2">
+          {PRESET_IMAGE_LIST.map((img) => (
+            <TouchableOpacity
+              key={img.key}
+              className="items-center"
+              onPress={() => setPresetImage(theme.presetImageKey === img.key ? null : img.key)}>
+              <View
+                className="h-[54] w-[72] overflow-hidden rounded-xl border-2"
+                style={{
+                  borderColor: theme.presetImageKey === img.key ? primaryColor : borderColor,
+                }}>
+                <Image
+                  source={img.source}
+                  className="h-full w-full"
+                  style={{ resizeMode: 'cover' }}
+                />
+              </View>
+              <Text
+                className="mt-1 text-[10px]"
+                style={{ color: theme.presetImageKey === img.key ? primaryColor : mutedColor }}
+                numberOfLines={1}>
+                {img.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
         <TouchableOpacity className="items-center py-2" onPress={() => setPresetImage(null)}>
           <Text className="text-[12px]" style={{ color: mutedColor }}>
@@ -674,12 +645,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 className="flex-1 items-center rounded-xl py-2.5"
                 style={{ backgroundColor: primaryColor + '20' }}
                 onPress={async () => {
-                  const {
-                    launchImageLibraryAsync,
-                    MediaTypeOptions,
-                  } = require('expo-image-picker');
-                  const result = await launchImageLibraryAsync({
-                    mediaTypes: MediaTypeOptions.Images,
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
                     quality: 1,
                   });
                   if (!result.canceled && result.assets?.[0]) {
@@ -693,7 +660,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               <TouchableOpacity
                 className="flex-1 items-center rounded-xl bg-red-500/20 py-2.5"
                 onPress={clearBackgroundImage}>
-                <Text className="text-[13px] font-semibold text-red-400">Remove</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: '#ef4444' }}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -702,9 +669,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             className="items-center rounded-xl border-2 border-dashed py-4"
             style={{ borderColor: mutedColor + '40' }}
             onPress={async () => {
-              const { launchImageLibraryAsync, MediaTypeOptions } = require('expo-image-picker');
-              const result = await launchImageLibraryAsync({
-                mediaTypes: MediaTypeOptions.Images,
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
                 quality: 1,
               });
               if (!result.canceled && result.assets?.[0]) {
@@ -858,7 +824,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             By Cadmus Labs
           </Text>
           <TouchableOpacity
-            className="flex-row items-center gap-2 rounded-xl bg-[#C2FC4A]/10 px-5 py-[10]"
+            className="flex-row items-center gap-2 rounded-xl px-5 py-[10]"
+            style={{ backgroundColor: primaryColor + '15' }}
             onPress={() =>
               Linking.openURL(
                 Platform.OS === 'ios'
@@ -866,8 +833,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   : 'https://play.google.com/store/apps/details?id=com.lumora.app'
               )
             }>
-            <Star size={16} color="#C2FC4A" weight="fill" />
-            <Text className="text-sm font-semibold text-[#C2FC4A]">Rate Lumora</Text>
+            <Star size={16} color={primaryColor} weight="fill" />
+            <Text className="text-sm font-semibold" style={{ color: primaryColor }}>Rate Lumora</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1011,7 +978,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
       {recentlyDeleted.length > 0 && (
         <TouchableOpacity className="mb-2 self-end px-4 py-2" onPress={handleClearRecentlyDeleted}>
-          <Text className="text-sm font-semibold text-red-500">Clear All</Text>
+          <Text className="text-sm font-semibold" style={{ color: '#ef4444' }}>Clear All</Text>
         </TouchableOpacity>
       )}
       <View
@@ -1082,7 +1049,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                       ]
                     );
                   }}>
-                  <Text className="text-xs font-semibold text-red-500">Delete</Text>
+                  <Text className="text-xs font-semibold" style={{ color: '#ef4444' }}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1100,11 +1067,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const [privateFolderInfo, setPrivateFolderInfo] = useState({ fileCount: 0, totalSize: 0 });
   const [privateFolderExists, setPrivateFolderExists] = useState(false);
   const [privateFilesList, setPrivateFilesList] = useState<any[]>([]);
+  const [privateFolderUnlocked, setPrivateFolderUnlocked] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [setupPasscode, setSetupPasscode] = useState('');
+  const [showPasscodePrompt, setShowPasscodePrompt] = useState(false);
+  const [passcodeMode, setPasscodeMode] = useState<'create' | 'unlock' | 'delete'>('unlock');
 
   useEffect(() => {
     (async () => {
       const exists = await PrivateFolderService.isSetup();
       setPrivateFolderExists(exists);
+      setPrivateFolderUnlocked(!exists);
       if (exists) {
         const info = await PrivateFolderService.getFolderInfo();
         setPrivateFolderInfo(info);
@@ -1113,6 +1086,47 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       }
     })();
   }, [activeView]);
+
+  const handlePasscodeSubmit = async () => {
+    if (passcodeMode === 'create') {
+      if (passcodeInput.length < 4) {
+        Alert.alert('Error', 'Passcode must be at least 4 digits.');
+        return;
+      }
+      const ok = await PrivateFolderService.setupFolder(passcodeInput);
+      if (ok) {
+        setPrivateFolderExists(true);
+        setPrivateFolderUnlocked(true);
+        const info = await PrivateFolderService.getFolderInfo();
+        setPrivateFolderInfo(info);
+        setShowPasscodePrompt(false);
+        setPasscodeInput('');
+        Alert.alert('Created', 'Private folder has been created successfully.');
+      } else {
+        Alert.alert('Error', 'Failed to create private folder. Please check storage permissions.');
+      }
+    } else if (passcodeMode === 'unlock') {
+      const valid = await PrivateFolderService.verifyPasscode(passcodeInput);
+      if (valid) {
+        setPrivateFolderUnlocked(true);
+        setShowPasscodePrompt(false);
+        setPasscodeInput('');
+      } else {
+        Alert.alert('Error', 'Incorrect passcode.');
+      }
+    } else if (passcodeMode === 'delete') {
+      const ok = await PrivateFolderService.deleteFolder(passcodeInput);
+      if (ok) {
+        setPrivateFolderExists(false);
+        setPrivateFolderUnlocked(false);
+        setPrivateFilesList([]);
+        setShowPasscodePrompt(false);
+        setPasscodeInput('');
+      } else {
+        Alert.alert('Error', 'Incorrect passcode. Folder was not deleted.');
+      }
+    }
+  };
 
   const renderPrivateFolderView = () => (
     <>
@@ -1138,22 +1152,32 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <TouchableOpacity
             className="mx-4 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
             style={{ backgroundColor: primaryColor }}
-            onPress={async () => {
-              const ok = await PrivateFolderService.setupFolder();
-              if (ok) {
-                setPrivateFolderExists(true);
-                const info = await PrivateFolderService.getFolderInfo();
-                setPrivateFolderInfo(info);
-                Alert.alert('Created', 'Private folder has been created successfully.');
-              } else {
-                Alert.alert(
-                  'Error',
-                  'Failed to create private folder. Please check storage permissions.'
-                );
-              }
+            onPress={() => {
+              setPasscodeMode('create');
+              setPasscodeInput('');
+              setShowPasscodePrompt(true);
             }}>
             <Folder size={20} color="#06060B" weight="bold" />
-            <Text className="text-[15px] font-bold text-[#06060B]">Create Private Folder</Text>
+            <Text className="text-[15px] font-bold" style={{ color: isDarkMode ? '#06060B' : '#ffffff' }}>Create Private Folder</Text>
+          </TouchableOpacity>
+        </View>
+      ) : !privateFolderUnlocked ? (
+        <View
+          className="mb-5 rounded-2xl border p-2"
+          style={{ borderColor, backgroundColor: cardBg }}>
+          <Text className="p-4 text-center text-sm leading-[22] " style={{ color: mutedColor }}>
+            Enter your passcode to access the private folder.
+          </Text>
+          <TouchableOpacity
+            className="mx-4 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+            style={{ backgroundColor: primaryColor }}
+            onPress={() => {
+              setPasscodeMode('unlock');
+              setPasscodeInput('');
+              setShowPasscodePrompt(true);
+            }}>
+            <LockSimple size={20} color="#06060B" weight="bold" />
+            <Text className="text-[15px] font-bold" style={{ color: isDarkMode ? '#06060B' : '#ffffff' }}>Unlock</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -1186,17 +1210,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                     {
                       text: 'Delete',
                       style: 'destructive',
-                      onPress: async () => {
-                        await PrivateFolderService.deleteFolder();
-                        setPrivateFolderExists(false);
-                        setPrivateFilesList([]);
+                      onPress: () => {
+                        setPasscodeMode('delete');
+                        setPasscodeInput('');
+                        setShowPasscodePrompt(true);
                       },
                     },
                   ]
                 );
               }}>
               <Trash size={16} color="#ef4444" />
-              <Text className="text-sm font-semibold text-red-500">Delete Private Folder</Text>
+              <Text className="text-sm font-semibold" style={{ color: '#ef4444' }}>Delete Private Folder</Text>
             </TouchableOpacity>
           </View>
           {privateFilesList.length > 0 && (
@@ -1230,7 +1254,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                       const info = await PrivateFolderService.getFolderInfo();
                       setPrivateFolderInfo(info);
                     }}>
-                    <Text className="text-xs font-semibold text-red-500">Remove</Text>
+                    <Text className="text-xs font-semibold" style={{ color: '#ef4444' }}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -1238,6 +1262,50 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           )}
         </>
       )}
+
+      <Modal
+        visible={showPasscodePrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPasscodePrompt(false)}>
+        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <View
+            className="w-[280] rounded-2xl p-6"
+            style={{ backgroundColor: cardBg, borderWidth: 1, borderColor }}>
+            <Text className="mb-4 text-center text-lg font-bold" style={{ color: textColor }}>
+              {passcodeMode === 'create' ? 'Set Passcode' : passcodeMode === 'delete' ? 'Confirm Passcode' : 'Enter Passcode'}
+            </Text>
+            <TextInput
+              className="mb-4 rounded-xl px-4 py-3 text-center text-lg tracking-[8]"
+              style={{ backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5', color: textColor }}
+              placeholder="· · · ·"
+              placeholderTextColor={mutedColor}
+              secureTextEntry
+              keyboardType="number-pad"
+              maxLength={6}
+              value={passcodeInput}
+              onChangeText={setPasscodeInput}
+            />
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: isDarkMode ? '#3f3f46' : '#e4e4e7' }}
+                onPress={() => {
+                  setShowPasscodePrompt(false);
+                  setPasscodeInput('');
+                }}>
+                <Text className="text-sm font-semibold" style={{ color: mutedColor }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: primaryColor }}
+                onPress={handlePasscodeSubmit}>
+                <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#06060B' : '#ffffff' }}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 
@@ -1578,14 +1646,14 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               await setRemoveAds(true);
               setAdsRemoved(true);
             }}>
-            <Text className="text-base font-bold text-[#06060B]">
+            <Text className="text-base font-bold" style={{ color: isDarkMode ? '#06060B' : '#ffffff' }}>
               {t('settings.removeAdsPurchase')}
             </Text>
           </TouchableOpacity>
         )}
 
         {adsRemoved && (
-          <View className="mx-4 mb-3 flex-row items-center justify-center gap-2 rounded-xl bg-[#C2FC4A]/10 py-4">
+          <View className="mx-4 mb-3 flex-row items-center justify-center gap-2 rounded-xl py-4" style={{ backgroundColor: primaryColor + '15' }}>
             <Check size={20} color={primaryColor} weight="bold" />
             <Text className="text-base font-bold" style={{ color: primaryColor }}>
               {t('settings.removeAdsPurchased')}

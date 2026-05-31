@@ -90,7 +90,7 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
   const recentlyPlayed = useRecentlyPlayed();
-  const { textColor, mutedColor, primaryColor } = useTheme();
+  const { textColor, mutedColor, primaryColor, isDarkMode } = useTheme();
   const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
   const { favoriteUris } = useFavorites(allFiles);
 
@@ -128,8 +128,8 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
 
   const renderListItem = ({ item }: { item: FileItem }) => (
     <TouchableOpacity
-      className="flex-row items-center justify-between border-b py-3"
-      style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+      className="flex-row items-center justify-between py-3"
+      style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
       onPress={() => navigateToFile(item)}>
       <View className="flex-1 flex-row items-center">
         <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-white/10">

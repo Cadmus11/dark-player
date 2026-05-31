@@ -28,6 +28,7 @@ import {
   HardDrive,
   Star,
   Plus,
+  LockSimple,
 } from 'phosphor-react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import { getFreeDiskStorageAsync, getTotalDiskCapacityAsync } from 'expo-file-system/legacy';
@@ -35,7 +36,6 @@ import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import {
-  useCategories,
   useRecentFiles,
   useRecentlyPlayed,
   useExpandedPlaylists,
@@ -44,7 +44,7 @@ import { useFavorites } from '../hooks/useFavorites';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { GlassIcon } from '../components/GlassIcon';
-import { SplashScreen } from './SplashScreen';
+
 import { HistoryService } from '../services/History/HistoryService';
 import type { FileItem, Playlist } from '../types';
 
@@ -149,8 +149,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
   const recentFiles = useRecentFiles();
   const recentlyPlayed = useRecentlyPlayed();
   const playlists = useExpandedPlaylists();
-  const { textColor, mutedColor, primaryColor, isDarkMode, borderColor } = useTheme();
-  const [showSplash, setShowSplash] = useState(true);
+  const { textColor, mutedColor, primaryColor, isDarkMode, borderColor, cardBg } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showPermissionRationale, setShowPermissionRationale] = useState(false);
   const [deviceTotal, setDeviceTotal] = useState(1);
@@ -180,10 +179,10 @@ export const HomeScreen = React.memo(function HomeScreen() {
   }, [recentlyPlayed, recentFiles]);
 
   useEffect(() => {
-    if (!permissionsGranted && !showSplash) {
+    if (!permissionsGranted) {
       setShowPermissionRationale(true);
     }
-  }, [showSplash, permissionsGranted]);
+  }, [permissionsGranted]);
 
   useEffect(() => {
     Promise.all([getTotalDiskCapacityAsync(), getFreeDiskStorageAsync()])
@@ -334,28 +333,31 @@ export const HomeScreen = React.memo(function HomeScreen() {
     }
   };
 
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
-
   if (!permissionsGranted || showPermissionRationale) {
     return (
-      <View className="flex-1 bg-dark-bg-primary">
+      <View className="flex-1" style={{ backgroundColor: isDarkMode ? '#09090b' : '#F0F8FF' }}>
         <View className="flex-1 items-center justify-center p-[30]">
           <View className="items-center">
-            <MusicNote size={56} color="#C2FC4A" weight="bold" />
-            <Text className="mb-2 mt-5 text-[28px] font-bold tracking-[3] text-white">Lumora</Text>
-            <Text className="text-center text-[15px] tracking-[2] text-white/50">
+            <MusicNote size={56} color={primaryColor} weight="bold" />
+            <Text className="mb-2 mt-5 text-[28px] font-bold tracking-[3]" style={{ color: textColor }}>
+              Lumora
+            </Text>
+            <Text className="text-center text-[15px] tracking-[2]" style={{ color: mutedColor }}>
               Your Media, Immersive
             </Text>
-            <Text className="mt-4 px-2.5 text-center text-sm leading-[22px] text-white/60">
+            <Text className="mt-4 px-2.5 text-center text-sm leading-[22px]" style={{ color: mutedColor }}>
               Lumora needs access to your media files to play music, videos, and view documents.
               Your files stay on your device and are never uploaded.
             </Text>
             <TouchableOpacity
-              className="mt-8 rounded-xl bg-[#C2FC4A] px-7 py-3.5"
+              className="mt-8 rounded-xl px-7 py-3.5"
+              style={{ backgroundColor: primaryColor }}
               onPress={handleRequestPermissions}>
-              <Text className="text-[15px] font-bold text-[#18181b]">Grant Permissions</Text>
+              <Text
+                className="text-[15px] font-bold"
+                style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
+                Grant Permissions
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -365,8 +367,8 @@ export const HomeScreen = React.memo(function HomeScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-dark-bg-primary">
-        <ActivityIndicator size="large" color="#C2FC4A" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: isDarkMode ? '#09090b' : '#F0F8FF' }}>
+        <ActivityIndicator size="large" color={primaryColor} />
         <Text className="mt-4 text-[15px] tracking-[1]" style={{ color: mutedColor }}>
           Scanning media...
         </Text>
@@ -389,7 +391,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
           <Text className="mb-4 text-lg font-bold tracking-[0.5]" style={{ color: textColor }}>
             Storage Overview
           </Text>
-          <View className="rounded-[20px] border border-white/10 bg-white/5 p-5 shadow-lg">
+          <View
+            className="rounded-[20px] p-5 shadow-lg"
+            style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderWidth: 1, borderColor: borderColor }}>
             <View className="flex-row items-center">
               <DoughnutChart
                 segments={storageChartSegments}
@@ -433,7 +437,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
           <View className="flex-row gap-3">
             <TouchableOpacity
               className="flex-1 rounded-[20px] border p-5"
-              style={{ backgroundColor: '#C2FC4A15', borderColor: '#C2FC4A25' }}
+              style={{ backgroundColor: primaryColor + '15', borderColor: primaryColor + '25' }}
               onPress={() => navigation.navigate('MusicTab')}>
               <GlassIcon size={44}>
                 <MusicNote size={22} color={primaryColor} weight="bold" />
@@ -479,7 +483,8 @@ export const HomeScreen = React.memo(function HomeScreen() {
               {playlists.map((playlist) => (
                 <TouchableOpacity
                   key={playlist.id}
-                  className="mr-3 w-[140px] items-center rounded-2xl border border-white/10 bg-white/5 p-3 shadow-lg"
+                  className="mr-3 w-[140px] items-center rounded-2xl p-3 shadow-lg"
+                  style={{ borderWidth: 1, borderColor: borderColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
                   onPress={() => navigation.navigate('MusicTab')}
                   onLongPress={() => handlePlaylistLongPress(playlist)}>
                   {playlist.coverUri ? (
@@ -508,7 +513,8 @@ export const HomeScreen = React.memo(function HomeScreen() {
             </ScrollView>
           ) : (
             <TouchableOpacity
-              className="items-center rounded-2xl border border-dashed border-white/10 bg-white/5 p-5"
+              className="items-center rounded-2xl p-5"
+              style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: borderColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
               onPress={handleCreatePlaylist}>
               <GlassIcon size={48}>
                 <Plus size={24} color={primaryColor} weight="bold" />
@@ -583,6 +589,13 @@ export const HomeScreen = React.memo(function HomeScreen() {
                 screen: 'VideoTop',
                 params: undefined,
               },
+              {
+                icon: <LockSimple size={20} color={primaryColor} weight="bold" />,
+                label: 'Private',
+                count: 0,
+                screen: 'PrivateFolder',
+                params: undefined,
+              },
             ].map((folder) => (
               <TouchableOpacity
                 key={folder.label}
@@ -613,13 +626,14 @@ export const HomeScreen = React.memo(function HomeScreen() {
       {/* Playlist Name Input Modal */}
       <Modal visible={showPlaylistInput} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/70">
-          <View className="w-[85%] max-w-[360px] rounded-2xl border border-white/10 bg-[#1a1a2e] p-6">
+          <View className="w-[85%] max-w-[360px] rounded-2xl p-6"
+            style={{ backgroundColor: cardBg, borderWidth: 1, borderColor: borderColor }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               New Playlist
             </Text>
             <TextInput
-              className="mb-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
-              style={{ color: textColor }}
+              className="mb-5 rounded-xl px-4 py-3"
+              style={{ color: textColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderWidth: 1, borderColor: borderColor }}
               placeholder="Playlist name"
               placeholderTextColor={mutedColor}
               value={playlistInput}
@@ -629,7 +643,8 @@ export const HomeScreen = React.memo(function HomeScreen() {
             />
             <View className="flex-row gap-3">
               <TouchableOpacity
-                className="flex-1 items-center rounded-xl bg-white/10 py-3"
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}
                 onPress={() => {
                   setShowPlaylistInput(false);
                   setPlaylistInput('');

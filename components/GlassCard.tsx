@@ -9,6 +9,8 @@ interface GlassCardProps {
   onPress?: () => void;
 }
 
+import { useTheme } from '../context/ThemeContext';
+
 export function GlassCard({
   children,
   style,
@@ -16,13 +18,15 @@ export function GlassCard({
   glowColor,
   onPress,
 }: GlassCardProps) {
+  const { isDarkMode, borderColor } = useTheme();
   return (
     <View
-      className="overflow-hidden rounded-[28px] border"
+      className="overflow-hidden rounded-[28px]"
       style={[
         {
-          backgroundColor: `rgba(255, 255, 255, ${intensity})`,
-          borderColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: isDarkMode ? `rgba(255, 255, 255, ${intensity})` : `rgba(0, 0, 0, 0.03)`,
+          borderWidth: 1,
+          borderColor: borderColor,
           ...(glowColor
             ? {
                 shadowColor: glowColor,

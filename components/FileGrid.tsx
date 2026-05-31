@@ -15,6 +15,7 @@ interface FileGridProps {
   columns?: number;
   layoutSize?: LayoutSize;
   fileType?: FileType;
+  hideName?: boolean;
   renderOverlay?: (item: FileItem) => React.ReactNode;
   renderSubtitle?: (item: FileItem) => React.ReactNode;
 }
@@ -32,6 +33,7 @@ const GridItem = memo(function GridItem({
   mutedColor,
   columns,
   itemAspect,
+  hideName,
   renderOverlay,
   renderSubtitle,
 }: {
@@ -42,20 +44,20 @@ const GridItem = memo(function GridItem({
   mutedColor: string;
   columns: number;
   itemAspect: number;
+  hideName?: boolean;
   renderOverlay?: (item: FileItem) => React.ReactNode;
   renderSubtitle?: (item: FileItem) => React.ReactNode;
 }) {
-  const maxWidth = columns === 4 ? '23%' : columns === 1 ? '96%' : columns === 2 ? '48%' : '31%';
   return (
     <TouchableOpacity
-      className="m-1.5 flex-1"
-      style={{ maxWidth } as any}
+      className="flex-1 px-1"
+      style={{ maxWidth: `${100 / columns}%` } as any}
       onPress={() => onPress(item)}>
       <View
         className="mb-2 w-full items-center justify-center rounded-xl"
         style={{
           aspectRatio: itemAspect,
-          backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(194, 252, 74, 0.08)',
+          backgroundColor: item.artColor ? `${item.artColor}20` : (isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
         }}>
         {item.thumbnail ? (
           <Image source={{ uri: item.thumbnail }} className="h-full w-full rounded-xl" />
@@ -72,16 +74,18 @@ const GridItem = memo(function GridItem({
         )}
         {renderOverlay?.(item)}
       </View>
-      <Text className="mb-0.5 text-xs font-semibold" style={{ color: textColor }} numberOfLines={1}>
-        {item.name}
-      </Text>
-      {renderSubtitle
+      {!hideName && (
+        <Text className="mb-0.5 text-xs font-semibold" style={{ color: textColor }} numberOfLines={1}>
+          {item.name}
+        </Text>
+      )}
+      {!hideName && (renderSubtitle
         ? renderSubtitle(item)
         : item.artist && (
             <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>
               {item.artist}
             </Text>
-          )}
+          ))}
     </TouchableOpacity>
   );
 });
@@ -96,10 +100,11 @@ function FileGrid({
   columns,
   layoutSize: sizeProp,
   fileType,
+  hideName,
   renderOverlay,
   renderSubtitle,
 }: FileGridProps) {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const sizeMode: LayoutSize = sizeProp || theme.sizeMode;
 
   const colCount = useMemo(() => {
@@ -127,6 +132,7 @@ function FileGrid({
         mutedColor={mutedColor}
         columns={colCount}
         itemAspect={itemAspect}
+        hideName={hideName}
         renderOverlay={renderOverlay}
         renderSubtitle={renderSubtitle}
       />
@@ -138,6 +144,7 @@ function FileGrid({
       mutedColor,
       colCount,
       itemAspect,
+      hideName,
       renderOverlay,
       renderSubtitle,
     ]
@@ -161,7 +168,7 @@ function FileGrid({
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       numColumns={colCount}
-      columnWrapperStyle={{ justifyContent: 'flex-start', gap: 4 }}
+      columnWrapperStyle={{ justifyContent: 'flex-start' }}
       contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmpty}

@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { View, Image } from 'react-native';
+import { View, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { getPresetImageSource } from '../constants/ThemeImages';
@@ -15,27 +15,41 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
 
   const hasBackground = !!(theme.backgroundImageUri || theme.presetImageKey);
 
+  const overlayColor = isDarkMode
+    ? `rgba(9,9,11,0.5)`
+    : `rgba(240,248,255,0.5)`;
+
   const renderBg = () => {
     if (theme.presetImageKey) {
       const source = getPresetImageSource(theme.presetImageKey);
       if (source) {
         return (
-          <Image
-            source={source}
-            className="absolute inset-0"
-            style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
-          />
+          <View className="absolute inset-0">
+            <Image
+              source={source}
+              className="absolute inset-0"
+              resizeMethod={Platform.OS === 'android' ? 'resize' : undefined}
+              fadeDuration={0}
+              style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
+            />
+            <View className="absolute inset-0" style={{ backgroundColor: overlayColor }} />
+          </View>
         );
       }
     }
 
     if (theme.backgroundImageUri) {
       return (
-        <Image
-          source={{ uri: theme.backgroundImageUri }}
-          className="absolute inset-0"
-          style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
-        />
+        <View className="absolute inset-0">
+          <Image
+            source={{ uri: theme.backgroundImageUri }}
+            className="absolute inset-0"
+            resizeMethod={Platform.OS === 'android' ? 'resize' : undefined}
+            fadeDuration={0}
+            style={{ resizeMode: theme.backgroundImageFit || 'cover' }}
+          />
+          <View className="absolute inset-0" style={{ backgroundColor: overlayColor }} />
+        </View>
       );
     }
 
