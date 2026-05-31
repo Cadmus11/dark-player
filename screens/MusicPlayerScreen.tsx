@@ -680,85 +680,89 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
             }}>
-          <View
-            className="flex-row items-center justify-between px-5 pb-4 pt-5"
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-            }}>
-            <Text className="text-xl font-extrabold" style={{ color: textColor }}>
-              Queue ({queue.length})
-            </Text>
-            <TouchableOpacity onPress={() => setShowQueue(false)}>
-              <X size={24} color={textColor} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Shuffle + Repeat Controls */}
-          <View
-            className="flex-row items-center justify-center gap-6 px-5 py-3"
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-            }}>
-            <TouchableOpacity
-              className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+            <View
+              className="flex-row items-center justify-between px-5 pb-4 pt-5"
               style={{
-                backgroundColor: shuffle ? `${primaryColor}20` : isDarkMode ? '#27272a' : '#e4e4e7',
-              }}
-              onPress={toggleShuffle}>
-              <ShuffleAngular
-                size={18}
-                color={shuffle ? primaryColor : '#a1a1aa'}
-                weight={shuffle ? 'bold' : 'regular'}
-              />
-              <Text
-                className="text-sm font-semibold"
-                style={{ color: shuffle ? primaryColor : '#a1a1aa' }}>
-                Shuffle
+                borderBottomWidth: 1,
+                borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+              }}>
+              <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                Queue ({queue.length})
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+              <TouchableOpacity onPress={() => setShowQueue(false)}>
+                <X size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Shuffle + Repeat Controls */}
+            <View
+              className="flex-row items-center justify-center gap-6 px-5 py-3"
               style={{
-                backgroundColor:
-                  repeat !== 'none' ? `${primaryColor}20` : isDarkMode ? '#27272a' : '#e4e4e7',
-              }}
-              onPress={cycleRepeat}>
-              {repeat === 'one' ? (
-                <RepeatOnce size={18} color={primaryColor} weight="bold" />
-              ) : (
-                <Repeat
+                borderBottomWidth: 1,
+                borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+              }}>
+              <TouchableOpacity
+                className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+                style={{
+                  backgroundColor: shuffle
+                    ? `${primaryColor}20`
+                    : isDarkMode
+                      ? '#27272a'
+                      : '#e4e4e7',
+                }}
+                onPress={toggleShuffle}>
+                <ShuffleAngular
                   size={18}
-                  color={repeat !== 'none' ? primaryColor : '#a1a1aa'}
-                  weight={repeat !== 'none' ? 'bold' : 'regular'}
+                  color={shuffle ? primaryColor : '#a1a1aa'}
+                  weight={shuffle ? 'bold' : 'regular'}
                 />
-              )}
-              <Text
-                className="text-sm font-semibold"
-                style={{ color: repeat !== 'none' ? primaryColor : '#a1a1aa' }}>
-                {repeat === 'one' ? 'Repeat One' : repeat === 'all' ? 'Repeat All' : 'Repeat'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: shuffle ? primaryColor : '#a1a1aa' }}>
+                  Shuffle
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+                style={{
+                  backgroundColor:
+                    repeat !== 'none' ? `${primaryColor}20` : isDarkMode ? '#27272a' : '#e4e4e7',
+                }}
+                onPress={cycleRepeat}>
+                {repeat === 'one' ? (
+                  <RepeatOnce size={18} color={primaryColor} weight="bold" />
+                ) : (
+                  <Repeat
+                    size={18}
+                    color={repeat !== 'none' ? primaryColor : '#a1a1aa'}
+                    weight={repeat !== 'none' ? 'bold' : 'regular'}
+                  />
+                )}
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: repeat !== 'none' ? primaryColor : '#a1a1aa' }}>
+                  {repeat === 'one' ? 'Repeat One' : repeat === 'all' ? 'Repeat All' : 'Repeat'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Draggable Queue List */}
-          <QueueList
-            items={queue}
-            currentIndex={currentIndex}
-            isPlaying={isPlaying}
-            primaryColor={primaryColor}
-            currentFile={currentFile}
-            onPlayIndex={(index) => {
-              const s = usePlaybackStore.getState();
-              s.playIndex(index);
-            }}
-            onRemove={(index) => {
-              queueEngine.removeFromQueue(index, 'audio');
-            }}
-            onMove={moveInQueue}
-          />
-        </View>
+            {/* Draggable Queue List */}
+            <QueueList
+              items={queue}
+              currentIndex={currentIndex}
+              isPlaying={isPlaying}
+              primaryColor={primaryColor}
+              currentFile={currentFile}
+              onPlayIndex={(index) => {
+                const s = usePlaybackStore.getState();
+                s.playIndex(index);
+              }}
+              onRemove={(index) => {
+                queueEngine.removeFromQueue(index, 'audio');
+              }}
+              onMove={moveInQueue}
+            />
+          </View>
         </View>
       </Modal>
 

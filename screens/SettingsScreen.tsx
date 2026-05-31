@@ -1083,7 +1083,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const [passcodeInput, setPasscodeInput] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [showPasscodePrompt, setShowPasscodePrompt] = useState(false);
-  const [passcodeMode, setPasscodeMode] = useState<'create' | 'unlock' | 'delete' | 'change'>('unlock');
+  const [passcodeMode, setPasscodeMode] = useState<'create' | 'unlock' | 'delete' | 'change'>(
+    'unlock'
+  );
   const [confirmStep, setConfirmStep] = useState(false);
   const [canUseBio, setCanUseBio] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
@@ -1265,7 +1267,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 Size: {(privateFolderInfo.totalSize / 1024 / 1024).toFixed(1)} MB
               </Text>
             </View>
-              <TouchableOpacity
+            <TouchableOpacity
               className="mx-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
               style={{
                 backgroundColor: `${primaryColor}20`,
@@ -1304,7 +1306,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              className="mx-4 mt-2 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+              className="mx-4 mb-4 mt-2 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
               style={{
                 backgroundColor: 'rgba(239,68,68,0.15)',
                 marginHorizontal: 16,
