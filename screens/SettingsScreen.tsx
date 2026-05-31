@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Folder,
   LockSimple,
+  Fingerprint,
   Star,
   ShareNetwork,
   Sun,
@@ -1080,8 +1081,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const [privateFilesList, setPrivateFilesList] = useState<any[]>([]);
   const [privateFolderUnlocked, setPrivateFolderUnlocked] = useState(false);
   const [passcodeInput, setPasscodeInput] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
   const [showPasscodePrompt, setShowPasscodePrompt] = useState(false);
-  const [passcodeMode, setPasscodeMode] = useState<'create' | 'unlock' | 'delete'>('unlock');
+  const [passcodeMode, setPasscodeMode] = useState<'create' | 'unlock' | 'delete' | 'change'>('unlock');
+  const [confirmStep, setConfirmStep] = useState(false);
+  const [canUseBio, setCanUseBio] = useState(false);
+  const [bioEnabled, setBioEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -1093,14 +1098,31 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         setPrivateFolderInfo(info);
         const files = await PrivateFolderService.getPrivateFiles();
         setPrivateFilesList(files);
+        const bioAvail = await PrivateFolderService.canUseBiometrics();
+        setCanUseBio(bioAvail);
+        const bioEn = await PrivateFolderService.isBiometricsEnabled();
+        setBioEnabled(bioEn);
       }
     })();
   }, [activeView]);
 
   const handlePasscodeSubmit = async () => {
     if (passcodeMode === 'create') {
-      if (passcodeInput.length < 4) {
-        Alert.alert('Error', 'Passcode must be at least 4 digits.');
+      if (!confirmStep) {
+        if (passcodeInput.length < 4) {
+          Alert.alert('Error', 'Passcode must be at least 4 digits.');
+          return;
+        }
+        setConfirmStep(true);
+        setConfirmPasscode(passcodeInput);
+        setPasscodeInput('');
+        return;
+      }
+      if (passcodeInput !== confirmPasscode) {
+        Alert.alert('Error', 'Passcodes do not match. Try again.');
+        setPasscodeInput('');
+        setConfirmStep(false);
+        setConfirmPasscode('');
         return;
       }
       const ok = await PrivateFolderService.setupFolder(passcodeInput);
@@ -1110,7 +1132,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         const info = await PrivateFolderService.getFolderInfo();
         setPrivateFolderInfo(info);
         setShowPasscodePrompt(false);
+        setConfirmStep(false);
         setPasscodeInput('');
+        setConfirmPasscode('');
         Alert.alert('Created', 'Private folder has been created successfully.');
       } else {
         Alert.alert('Error', 'Failed to create private folder. Please check storage permissions.');
@@ -1122,6 +1146,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         setShowPasscodePrompt(false);
         setPasscodeInput('');
       } else {
+        setPasscodeInput('');
         Alert.alert('Error', 'Incorrect passcode.');
       }
     } else if (passcodeMode === 'delete') {
@@ -1133,7 +1158,35 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         setShowPasscodePrompt(false);
         setPasscodeInput('');
       } else {
+        setPasscodeInput('');
         Alert.alert('Error', 'Incorrect passcode. Folder was not deleted.');
+      }
+    } else if (passcodeMode === 'change') {
+      if (!confirmStep) {
+        const valid = await PrivateFolderService.verifyPasscode(passcodeInput);
+        if (valid) {
+          setConfirmStep(true);
+          setConfirmPasscode(passcodeInput);
+          setPasscodeInput('');
+        } else {
+          setPasscodeInput('');
+          Alert.alert('Error', 'Incorrect current passcode.');
+        }
+        return;
+      }
+      if (passcodeInput.length < 4) {
+        Alert.alert('Error', 'New passcode must be at least 4 digits.');
+        return;
+      }
+      const ok = await PrivateFolderService.changePasscode(confirmPasscode, passcodeInput);
+      if (ok) {
+        setShowPasscodePrompt(false);
+        setConfirmStep(false);
+        setPasscodeInput('');
+        setConfirmPasscode('');
+        Alert.alert('Changed', 'Passcode has been updated successfully.');
+      } else {
+        Alert.alert('Error', 'Failed to change passcode.');
       }
     }
   };
@@ -1212,8 +1265,46 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 Size: {(privateFolderInfo.totalSize / 1024 / 1024).toFixed(1)} MB
               </Text>
             </View>
+              <TouchableOpacity
+              className="mx-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+              style={{
+                backgroundColor: `${primaryColor}20`,
+                marginHorizontal: 16,
+              }}
+              onPress={() => {
+                setPasscodeMode('change');
+                setConfirmStep(false);
+                setPasscodeInput('');
+                setConfirmPasscode('');
+                setShowPasscodePrompt(true);
+              }}>
+              <LockSimple size={16} color={primaryColor} />
+              <Text className="text-sm font-semibold" style={{ color: primaryColor }}>
+                Change Passcode
+              </Text>
+            </TouchableOpacity>
+            {canUseBio && (
+              <TouchableOpacity
+                className="mx-4 mt-2 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+                style={{
+                  backgroundColor: bioEnabled ? `${primaryColor}20` : 'rgba(255,255,255,0.05)',
+                  marginHorizontal: 16,
+                }}
+                onPress={async () => {
+                  const next = !bioEnabled;
+                  await PrivateFolderService.setBiometricsEnabled(next);
+                  setBioEnabled(next);
+                }}>
+                <Fingerprint size={16} color={bioEnabled ? primaryColor : mutedColor} />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: bioEnabled ? primaryColor : mutedColor }}>
+                  {bioEnabled ? 'Biometrics On' : 'Biometrics Off'}
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              className="mx-4 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
+              className="mx-4 mt-2 mb-4 flex-row items-center justify-center gap-2 rounded-xl py-[14]"
               style={{
                 backgroundColor: 'rgba(239,68,68,0.15)',
                 marginHorizontal: 16,
@@ -1289,7 +1380,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         visible={showPasscodePrompt}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowPasscodePrompt(false)}>
+        onRequestClose={() => {
+          setShowPasscodePrompt(false);
+          setPasscodeInput('');
+          setConfirmStep(false);
+          setConfirmPasscode('');
+        }}>
         <View
           className="flex-1 items-center justify-center"
           style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -1297,11 +1393,17 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             className="w-[280] rounded-2xl p-6"
             style={{ backgroundColor: cardBg, borderWidth: 1, borderColor }}>
             <Text className="mb-4 text-center text-lg font-bold" style={{ color: textColor }}>
-              {passcodeMode === 'create'
+              {passcodeMode === 'create' && !confirmStep
                 ? 'Set Passcode'
-                : passcodeMode === 'delete'
+                : passcodeMode === 'create' && confirmStep
                   ? 'Confirm Passcode'
-                  : 'Enter Passcode'}
+                  : passcodeMode === 'change' && !confirmStep
+                    ? 'Enter Current Passcode'
+                    : passcodeMode === 'change' && confirmStep
+                      ? 'Enter New Passcode'
+                      : passcodeMode === 'delete'
+                        ? 'Confirm Passcode'
+                        : 'Enter Passcode'}
             </Text>
             <TextInput
               className="mb-4 rounded-xl px-4 py-3 text-center text-lg tracking-[8]"
@@ -1312,7 +1414,36 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               keyboardType="number-pad"
               maxLength={6}
               value={passcodeInput}
-              onChangeText={setPasscodeInput}
+              onChangeText={(t) => {
+                setPasscodeInput(t);
+                if (t.length === 6 && (passcodeMode === 'unlock' || passcodeMode === 'delete')) {
+                  PrivateFolderService.verifyPasscode(t).then((valid) => {
+                    if (valid) {
+                      if (passcodeMode === 'unlock') {
+                        setPrivateFolderUnlocked(true);
+                        setShowPasscodePrompt(false);
+                        setPasscodeInput('');
+                      } else {
+                        PrivateFolderService.deleteFolder(t).then((ok) => {
+                          if (ok) {
+                            setPrivateFolderExists(false);
+                            setPrivateFolderUnlocked(false);
+                            setPrivateFilesList([]);
+                            setShowPasscodePrompt(false);
+                            setPasscodeInput('');
+                          } else {
+                            setPasscodeInput('');
+                            Alert.alert('Error', 'Incorrect passcode. Folder was not deleted.');
+                          }
+                        });
+                      }
+                    } else {
+                      setPasscodeInput('');
+                      Alert.alert('Error', 'Incorrect passcode.');
+                    }
+                  });
+                }
+              }}
             />
             <View className="flex-row gap-3">
               <TouchableOpacity
@@ -1321,6 +1452,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 onPress={() => {
                   setShowPasscodePrompt(false);
                   setPasscodeInput('');
+                  setConfirmStep(false);
+                  setConfirmPasscode('');
                 }}>
                 <Text className="text-sm font-semibold" style={{ color: mutedColor }}>
                   Cancel
@@ -1333,7 +1466,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 <Text
                   className="text-sm font-bold"
                   style={{ color: isDarkMode ? '#06060B' : '#ffffff' }}>
-                  Confirm
+                  {passcodeMode === 'create' && confirmStep ? 'Create' : 'Confirm'}
                 </Text>
               </TouchableOpacity>
             </View>

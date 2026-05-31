@@ -38,9 +38,11 @@ Dark Player uses a **layered architecture** with clear separation of concerns:
 ### 1. **Platform Layer**
 
 Direct interfaces to device capabilities:
-- `expo-av` - Audio/Video playback engine
+
+- `expo-audio` - Audio playback
+- `expo-video` - Video playback
 - `expo-media-library` - Media library access
-- `expo-file-system` - File system operations
+- `expo-file-system/legacy` - File system operations
 - `react-native-mmkv` - High-performance key-value storage
 - `expo-notifications` - Push notifications
 
@@ -49,6 +51,7 @@ Direct interfaces to device capabilities:
 Engines own all platform API access and emit state changes via observer pattern.
 
 #### FileEngine
+
 Responsible for discovering and caching media files.
 
 ```typescript
@@ -60,43 +63,62 @@ FileEngine.getInstance()
 ```
 
 **Cache Strategy**:
+
 - Stores scan results in MMKV as JSON
 - Cache key: `@MEDIA_CACHE_v1`
 - Invalidates if > 24 hours old or version mismatch
 - Falls back to FileSystem API for missing data
 
 #### AudioEngine
-Manages audio playback using `expo-av`.
+
+Manages audio playback using `expo-audio`.
 
 ```typescript
 AudioEngine.getInstance()
-  ├── play(file)             // Start or resume
+  ├── playFile(file)         // Start or resume
   ├── pause()                // Pause playback
-  ├── seek(position)         // Seek to time
-  ├── next() / prev()        // Queue navigation
+  ├── resume()               // Resume playback
+  ├── togglePlay()           // Play/pause toggle
+  ├── seekTo(position)       // Seek to time
+  ├── skipToNext() / skipToPrevious()  // Queue navigation
   ├── setRepeat(mode)        // Repeat/shuffle
   ├── setSpeed(rate)         // Playback speed
+  ├── stop()                 // Stop and release player
   └── subscribe(listener)    // State updates on every tick
 ```
 
 **State Persistence**:
+
 - Current position, repeat mode, shuffle state saved to MMKV
 - Restored on app restart
 - Fires `_onPlaybackStatusUpdate` callback for fine-grained state changes
 
 #### VideoEngine
+
 Manages video playback (ephemeral, no persistence).
 
 ```typescript
 VideoEngine.getInstance()
-  ├── play(file)             // Initialize player
-  ├── setSubtitles(srtUrl)   // Load SRT subtitles
-  └── notifyStateChange()    // Emit to subscribers
+  ├── loadFile(file)         // Initialize player
+  ├── play()                 // Start/resume
+  ├── pause()                // Pause
+  ├── togglePlayback()       // Play/pause toggle
+  ├── seekTo(percentage)     // Seek to percentage
+  ├── skip(seconds)          // Skip forward/backward
+  ├── stop()                 // Release player (mutual exclusion with AudioEngine)
+  ├── setRate(rate)          // Playback speed
+  ├── setContentFit(mode)    // contain/cover/fill
+  ├── setSubtitlesEnabled(enabled)
+  ├── toggleSubtitles()
+  ├── setFullscreen(bool)
+  ├── getState()             // Snapshot of current state
+  └── subscribe(listener)
 ```
 
 **Note**: Video state is ephemeral and doesn't persist across app restarts.
 
 #### QueueEngine
+
 Manages the playback queue and shuffle/repeat logic.
 
 ```typescript
@@ -112,62 +134,123 @@ QueueEngine.getInstance()
 Thin wrappers around engines that subscribe to their state updates.
 
 #### mediaStore
+
 ```typescript
 interface MediaStore {
   // State
   loading: boolean;
-  progress: number;
+  scanProgress: number;
+  scanStage: string;
+  permissionsGranted: boolean;
+  error: string | null;
+  hydrationStage: number;
   audio: FileItem[];
   videos: FileItem[];
-  folders: FolderItem[];
-  
+
   // Actions
   scanMedia(): Promise<void>;
-  loadCache(): Promise<void>;
-  getFilteredAudio(): FileItem[];
+  loadCache(): void;
+  getFilteredAudio(settings: HiddenFilesSettings): FileItem[];
+  getHiddenAudio(settings: HiddenFilesSettings): FileItem[];
 }
 
 // Usage
-const files = useMediaStore((s) => s.audio);
+const audio = useMediaStore((s) => s.audio);
 ```
 
-**Subscription**: Subscribes to FileEngine updates  
+**Subscription**: Subscribes to FileEngine updates + ARTWORK_LOADED event  
 **Persistence**: Via FileEngine's MMKV cache
 
 #### playbackStore
+
 ```typescript
 interface PlaybackStore {
   // State
   currentFile: FileItem | null;
-  queue: FileItem[];
+  isPlaying: boolean;
+  source: 'none' | 'music' | 'video';
   position: number;
   duration: number;
-  isPlaying: boolean;
-  repeat: RepeatMode;
+  progress: number;
+  queue: FileItem[];
+  currentIndex: number;
   shuffle: boolean;
-  
+  repeat: 'none' | 'all' | 'one';
+  playbackSpeed: number;
+
   // Actions
-  play(file: FileItem): void;
+  play(file?: FileItem, queue?: FileItem[], startIndex?: number): void;
+  playIndex(index: number): void;
   pause(): void;
-  seek(position: number): void;
+  resume(): void;
+  togglePlay(): void;
+  stop(): void;
+  seekTo(millis: number): void;
+  next(): void;
+  previous(): void;
+  setRate(rate: number): void;
+  setRepeat(mode: RepeatMode): void;
+  cycleRepeat(): void;
+  toggleShuffle(): void;
+  setQueue(queue: FileItem[], startIndex?: number): void;
+  moveInQueue(fromIndex: number, toIndex: number): void;
 }
 
 // Usage - Selector pattern prevents unnecessary re-renders
-const { isPlaying, currentFile } = usePlaybackStore(
-  (s) => ({ isPlaying: s.isPlaying, currentFile: s.currentFile })
-);
+const { isPlaying, currentFile } = usePlaybackStore((s) => ({
+  isPlaying: s.isPlaying,
+  currentFile: s.currentFile,
+}));
 ```
 
 **Subscription**: Subscribes to AudioEngine updates  
 **Persistence**: Via AudioEngine's MMKV cache
 
 #### playlistStore
+
 Manages playlists and favorites.
 
 **Persistence**: Saved to AsyncStorage or MMKV
 
+#### videoPlaybackStore
+
+Thin wrapper around VideoEngine, mirrors all video playback state into React.
+
+```typescript
+interface VideoPlaybackStore {
+  currentFile: FileItem | null;
+  isPlaying: boolean;
+  position: number;
+  duration: number;
+  playbackSpeed: number;
+  contentFit: 'contain' | 'cover' | 'fill';
+  subtitlesEnabled: boolean;
+  subtitles: SubtitleEntry[];
+  currentSubtitle: string;
+  isFullscreen: boolean;
+  isReady: boolean;
+  error: string | null;
+
+  loadFile(file: FileItem): Promise<void>;
+  togglePlayback(): void;
+  seekTo(percentage: number): void;
+  skip(seconds: number): void;
+  setRate(rate: number): void;
+  setContentFit(mode: 'contain' | 'cover' | 'fill'): void;
+  toggleSubtitles(): void;
+  setFullscreen(fullscreen: boolean): void;
+  next(): void;
+  previous(): void;
+  reset(): void;
+}
+```
+
+**Subscription**: Subscribes to VideoEngine updates  
+**Persistence**: Ephemeral (no MMKV) — state resets on app restart
+
 #### settingsStore
-Manages user preferences (theme, language, font).
+
+Manages user preferences (theme, language, font, background blur, notification toggles).
 
 **Persistence**: Persists to MMKV on every change
 
@@ -175,33 +258,34 @@ Manages user preferences (theme, language, font).
 
 React Context providers for derived state and cross-cutting concerns.
 
-#### FileContext
-Aggregates data from multiple stores into derived collections.
-
-```typescript
-interface FileContextType {
-  allFiles: FileItem[];
-  visibleAudio: FileItem[];
-  categories: Category[];
-  search(query: string): void;
-  toggleFavorite(fileId: string): void;
-}
-```
-
-**Performance**: All computed values wrapped in `useMemo` to prevent re-computation
-
 #### ThemeContext
-Provides theming system with light/dark mode.
 
-**Key Rule**: Never hardcode colors like `text-white`. Always use context-based colors.
+Provides theming system with light/dark mode, accent colors, gradient backgrounds, size modes (small/medium/big), and 15 bundled preset images.
+
+**Key Rule**: Never hardcode colors like `text-white`. Always use context-based colors (`textColor`, `mutedColor`, `borderColor`, `cardBg`).
 
 #### LanguageContext
+
 Internationalization provider.
 
 #### FontContext
+
 Font family management.
 
-### 5. **Presentation Layer (Components & Screens)**
+### 5. **Domain Hooks Layer**
+
+Custom hooks that aggregate data from multiple Zustand stores into derived collections, replacing the former FileContext.
+
+```
+├── useDomainSelectors      - useCategories, useAllFiles, useFileCounts, useExpandedPlaylists
+├── useFavorites            - Favorite files management
+├── useVisibleAudio         - Filtered audio (excludes <15s songs by default)
+├── useHiddenAudio          - Short songs hidden by default
+```
+
+All computed values wrapped in `useMemo` to prevent re-computation. Screens prefer direct store selectors for individual fields (performance), and domain hooks for aggregate collections.
+
+### 6. **Presentation Layer (Components & Screens)**
 
 React components that consume store state and context.
 
@@ -258,9 +342,10 @@ Always use **selectors** to prevent unnecessary re-renders:
 
 ```typescript
 // ✅ Good - Only selectedFields trigger re-render
-const { isPlaying, currentFile } = usePlaybackStore(
-  (s) => ({ isPlaying: s.isPlaying, currentFile: s.currentFile })
-);
+const { isPlaying, currentFile } = usePlaybackStore((s) => ({
+  isPlaying: s.isPlaying,
+  currentFile: s.currentFile,
+}));
 
 // ❌ Bad - All store changes trigger re-render
 const store = usePlaybackStore();
@@ -286,18 +371,18 @@ const unsubscribe = AudioEngine.getInstance().subscribe((audioState) => {
 ```
 App Start
   ↓
-lifecycleManager.initialize()
-  ↓
-startHydration()
+HydrationService
   ↓
 mediaStore.loadCache()
   ↓
 FileEngine.loadFromCache() from MMKV
   ↓
 If cache stale (>24h or version mismatch):
-  FileEngine.scanAll() → Device APIs
+  FileEngine.scanAll() → Device APIs (expo-media-library)
+    → MetadataService extracts embedded artwork & metadata
+    → Stores results in SQLite (DatabaseService) + artwork files on disk
   ↓
-mediaStore updated → Components re-render
+mediaStore updated → Components re-render via selectors
 ```
 
 ### Audio Playback Flow
@@ -305,17 +390,25 @@ mediaStore updated → Components re-render
 ```
 User taps play
   ↓
-playbackStore.play(file)
+playbackStore.play(file, queue, index)
   ↓
-AudioEngine.play(file)
+AudioEngine.playFile(file)
   ↓
-Audio.Sound created/resumed
+expo-audio AudioPlayer created/resumed
+  ↓
+MetadataService.extract(uri) reads ID3 tags via music-metadata-browser
+  ├── Extracts artwork → saves to cache directory
+  ├── Extracts lyrics (embedded, LRC sidecar, or LRCLib API)
+  └── Emits ARTWORK_LOADED → mediaStore updates FileItem.thumbnail
   ↓
 _onPlaybackStatusUpdate fires on each tick
   ↓
 AudioEngine notifies subscribers
   ↓
 playbackStore updated → UI re-renders (via selectors)
+  ↓
+NowPlayingNotification updates lockscreen metadata + notification buttons
+NotificationService tracks scan completion status
 ```
 
 ### Video Playback Flow
@@ -325,11 +418,18 @@ User taps video
   ↓
 VideoPlayerScreen
   ↓
-useVideoPlayer({ uri })
+videoPlaybackStore.loadFile(file) → VideoEngine.loadFile(file)
   ↓
-VideoView renders
+expo-video useVideoPlayer + VideoView
+  ↓
+MetadataService.extract(uri) for embedded metadata
+  ↓
+Subtitles loaded (SRT parsing via VideoEnhancementService)
+  ↓
+VideoEngine subscribes → videoPlaybackStore updated
   ↓
 User gestures (swipe-up/down) → Next/prev video
+Permanent MiniPlayer (above tab bar when source === 'video')
 ```
 
 ## Performance Optimization
@@ -363,18 +463,18 @@ const visibleAudio = useMemo(
 );
 ```
 
-### 4. Lazy Loading with FlatList
+### 4. Lazy Loading with FlashList
 
 ```typescript
-<FlatList
+<FlashList
   data={files}
   keyExtractor={(item) => item.id}
   renderItem={({ item }) => <FileListItem file={item} />}
-  removeClippedSubviews={true}
-  maxToRenderPerBatch={20}
-  initialNumToRender={20}
+  estimatedItemSize={80}  // v2 auto-measures, optional hint
 />
 ```
+
+**Note**: `@shopify/flash-list` v2 replaces `FlatList` for all long lists (FileList, MusicScreen, SearchScreen, FolderScreen, CategoryScreen). `FileGrid` keeps `FlatList` because FlashList v2 doesn't support `numColumns`.
 
 ### 5. MMKV Cache Strategy
 
@@ -384,33 +484,46 @@ const visibleAudio = useMemo(
 
 ## Error Handling
 
-### ErrorBoundary Component
+### Cancellation Pattern
 
-Catches React component errors:
-
-```typescript
-<ErrorBoundary>
-  <App />
-</ErrorBoundary>
-```
-
-### FeatureBoundary (PlayerBoundary)
-
-Wraps player screens for graceful degradation.
-
-### Engine Error Recovery
+Long-running operations (scans, async tasks) use `Cancellation` service with tokens:
 
 ```typescript
-async play(file: FileItem): Promise<void> {
-  try {
-    await this.sound.loadAsync({ uri: file.path });
-    await this.sound.playAsync();
-  } catch (error) {
-    console.error('Playback failed:', error);
-    this.notify({ error: 'Failed to play file' });
-  }
-}
+const token = taskManager.createScope('media-scan');
+// Check cancellation periodically
+if (isCancelled(e)) return;
 ```
+
+### Engine Try/Catch Recovery
+
+Engines wrap all platform API calls in try/catch and fall back gracefully.
+
+### LifecycleManager
+
+Initializes services in order (permissions → storage → hydration) with timeouts.
+
+## Services Overview
+
+Key services living in `services/`:
+
+| Service                 | Purpose                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| MetadataService         | ID3 tag parsing, artwork extraction (music-metadata-browser + expo-file-system) |
+| LyricsService           | LRC parser, LRCLib API fetcher, MMKV cache                                      |
+| NotificationService     | Scan-complete/failed system notifications                                       |
+| NowPlayingNotification  | Lockscreen metadata + notification buttons (prev/play-pause/next)               |
+| PrivateFolderService    | Passcode-protected private file storage                                         |
+| ArtworkService          | Album art management                                                            |
+| DatabaseService         | SQLite cache for media metadata                                                 |
+| EventBus                | Typed event emitter (ARTWORK_LOADED, SCAN_COMPLETED, etc.)                      |
+| PermissionService       | Media library permission requests                                               |
+| HistoryService          | Playback history with MMKV cache                                                |
+| SearchService           | Full-text search over file names                                                |
+| SortService             | File sorting utilities                                                          |
+| VideoEnhancementService | SRT subtitle parsing                                                            |
+| OverlaySystem           | Bottom sheet overlay management                                                 |
+| MemoryManager           | Memory pressure handling                                                        |
+| Cancellation            | Task cancellation tokens                                                        |
 
 ## Extending the System
 
@@ -425,7 +538,8 @@ async play(file: FileItem): Promise<void> {
 1. Create `stores/yourStore.ts` using Zustand
 2. Subscribe to engine updates if applicable
 3. Initialize in `HydrationService.ts`
-4. Export hook for use in components
+4. Export hook (`useYourStore`) for use in components
+5. Register in domain hooks (`hooks/`) if aggregate selectors needed
 
 ### Adding a New Engine
 

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { CaretLeft, Lock, LockOpen, Trash, Folder } from 'phosphor-react-native';
+import { CaretLeft, Lock, LockOpen, Trash, Folder, Fingerprint } from 'phosphor-react-native';
 import { PrivateFolderService } from '../services/PrivateFolderService';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -19,6 +19,7 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [canUseBio, setCanUseBio] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -30,6 +31,15 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
       const hasPin = await PrivateFolderService.hasPasscode();
       if (!hasPin) {
         setUnlocked(true);
+      }
+      const bioAvailable = await PrivateFolderService.canUseBiometrics();
+      setCanUseBio(bioAvailable);
+      const bioEnabled = await PrivateFolderService.isBiometricsEnabled();
+      if (bioAvailable && bioEnabled) {
+        const authed = await PrivateFolderService.authenticateBiometrics();
+        if (authed) {
+          setUnlocked(true);
+        }
       }
       const files = await PrivateFolderService.getPrivateFiles();
       setEntries(files);
@@ -43,9 +53,17 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
       setUnlocked(true);
       setPasscode('');
     } else {
+      setPasscode('');
       Alert.alert('Error', 'Incorrect passcode.');
     }
   }, [passcode]);
+
+  const handleBioUnlock = useCallback(async () => {
+    const authed = await PrivateFolderService.authenticateBiometrics();
+    if (authed) {
+      setUnlocked(true);
+    }
+  }, []);
 
   const handleRemove = useCallback(async (uri: string) => {
     await PrivateFolderService.removeFile(uri);
@@ -57,7 +75,7 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
       const file: FileItem = {
         uri: entry.uri,
         name: entry.name,
-        type: PrivateFolderService._inferType(entry.name),
+        type: PrivateFolderService.inferType(entry.name),
         artColor: fileEngine.getArtColor(entry.name),
       };
       if (file.type === 'video') {
@@ -79,7 +97,7 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
       onPress={() => handlePlay(item)}>
       <View className="flex-1 flex-row items-center">
         <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-          <FileIcon type={PrivateFolderService._inferType(item.name)} size={22} />
+          <FileIcon type={PrivateFolderService.inferType(item.name)} size={22} />
         </View>
         <View className="flex-1">
           <Text className="mb-1 text-[15px]" style={{ color: textColor }} numberOfLines={1}>
@@ -139,7 +157,20 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
                 keyboardType="number-pad"
                 maxLength={6}
                 value={passcode}
-                onChangeText={setPasscode}
+                onChangeText={(t) => {
+                  setPasscode(t);
+                  if (t.length === 6) {
+                    PrivateFolderService.verifyPasscode(t).then((valid) => {
+                      if (valid) {
+                        setUnlocked(true);
+                        setPasscode('');
+                      } else {
+                        setPasscode('');
+                        Alert.alert('Error', 'Incorrect passcode.');
+                      }
+                    });
+                  }
+                }}
               />
             </View>
             <TouchableOpacity
@@ -149,6 +180,17 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
               <LockOpen size={20} color={isDarkMode ? '#06060B' : '#ffffff'} />
             </TouchableOpacity>
           </View>
+          {canUseBio && (
+            <TouchableOpacity
+              className="mt-4 flex-row items-center gap-2 rounded-xl px-5 py-2.5"
+              style={{ backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5' }}
+              onPress={handleBioUnlock}>
+              <Fingerprint size={18} color={primaryColor} />
+              <Text className="text-sm font-semibold" style={{ color: primaryColor }}>
+                Unlock with Biometrics
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : entries.length === 0 ? (
         <View className="flex-1 items-center justify-center">

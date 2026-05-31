@@ -7,11 +7,13 @@ import {
   deleteAsync,
   copyAsync,
 } from 'expo-file-system/legacy';
+import * as LocalAuthentication from 'expo-local-authentication';
 import type { FileItem, PrivateFileEntry } from '../types';
 
 const PRIVATE_FOLDER_KEY = '@lumora_private_folder';
 const PRIVATE_FILES_KEY = '@lumora_private_files';
 const PASSCODE_KEY = '@lumora_private_passcode';
+const BIOMETRICS_KEY = '@lumora_private_biometrics';
 
 const PRIVATE_DIR = (documentDirectory || '') + 'private/';
 
@@ -143,7 +145,7 @@ export const PrivateFolderService = {
     return {
       uri: entry.uri,
       name: entry.name,
-      type: this._inferType(entry.name),
+      type: this.inferType(entry.name),
       size: info.exists ? info.size : undefined,
       modifiedAt: entry.addedAt,
     };
@@ -161,9 +163,44 @@ export const PrivateFolderService = {
     return { fileCount: files.length, totalSize };
   },
 
-  _inferType(name: string): 'audio' | 'video' {
+  inferType(name: string): 'audio' | 'video' {
     const ext = name.split('.').pop()?.toLowerCase() || '';
     const videoExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'];
     return videoExts.includes(ext) ? 'video' : 'audio';
+  },
+
+  async canUseBiometrics(): Promise<boolean> {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) return false;
+      return await LocalAuthentication.isEnrolledAsync();
+    } catch {
+      return false;
+    }
+  },
+
+  async authenticateBiometrics(): Promise<boolean> {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock Private Folder',
+        fallbackLabel: 'Use Passcode',
+      });
+      return result.success;
+    } catch {
+      return false;
+    }
+  },
+
+  async isBiometricsEnabled(): Promise<boolean> {
+    try {
+      const val = await AsyncStorage.getItem(BIOMETRICS_KEY);
+      return val === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  async setBiometricsEnabled(enabled: boolean): Promise<void> {
+    await AsyncStorage.setItem(BIOMETRICS_KEY, enabled ? 'true' : 'false');
   },
 };

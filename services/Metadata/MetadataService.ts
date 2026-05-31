@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { parseBuffer } from 'music-metadata-browser';
 import { DatabaseService } from '../DatabaseService';
+import { eventBus, AppEvents } from '../EventBus';
 import type { MediaMetadata } from '../../types';
 
 export const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
@@ -86,7 +87,10 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
 export const MetadataService = {
   async extract(uri: string, name: string): Promise<MediaMetadata> {
     const cached = await this.getCached(uri);
-    if (cached) return cached;
+    if (cached) {
+      if (cached.artwork) eventBus.emit(AppEvents.ARTWORK_LOADED, uri, cached.artwork);
+      return cached;
+    }
 
     const metadata: MediaMetadata = {};
 
@@ -135,6 +139,7 @@ export const MetadataService = {
               encoding: FileSystem.EncodingType.Base64,
             });
             metadata.artwork = artworkPath;
+            eventBus.emit(AppEvents.ARTWORK_LOADED, uri, artworkPath);
           } catch {}
         }
       }

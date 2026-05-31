@@ -178,11 +178,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         }
       },
       onPanResponderTerminate: () => {
-        Animated.timing(translateMenuY, {
-          toValue: SCREEN_HEIGHT,
-          duration: 200,
+        Animated.spring(translateMenuY, {
+          toValue: 0,
           useNativeDriver: true,
-        }).start(() => translateMenuY.setValue(SCREEN_HEIGHT));
+        }).start();
       },
     })
   ).current;
@@ -606,25 +605,30 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
 
       {/* Menu Bottom Sheet */}
       <Modal visible={showMenu} transparent animationType="fade">
-        <TouchableOpacity
-          className="flex-1 justify-end bg-black/70"
-          onPress={() => {
-            Animated.timing(translateMenuY, {
-              toValue: SCREEN_HEIGHT,
-              duration: 200,
-              useNativeDriver: true,
-            }).start(() => {
-              setShowMenu(false);
-              translateMenuY.setValue(SCREEN_HEIGHT);
-            });
-          }}
-          activeOpacity={1}>
+        <View className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <TouchableOpacity
+            className="flex-1"
+            onPress={() => {
+              Animated.timing(translateMenuY, {
+                toValue: SCREEN_HEIGHT,
+                duration: 200,
+                useNativeDriver: true,
+              }).start(() => {
+                setShowMenu(false);
+                translateMenuY.setValue(SCREEN_HEIGHT);
+              });
+            }}
+            activeOpacity={1}
+          />
           <Animated.View
             style={{ transform: [{ translateY: translateMenuY }] }}
             {...menuPanResponder.panHandlers}>
             <View
               className="rounded-t-3xl px-4 pb-8 pt-5"
-              style={{ maxHeight: '70%', backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5' }}>
+              style={{
+                backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
+                maxHeight: SCREEN_HEIGHT * 0.55,
+              }}>
               <View className="mb-4 h-1 w-10 self-center rounded-full bg-zinc-500" />
               <ScrollView showsVerticalScrollIndicator={false}>
                 {menuItems.map((item, i) => (
@@ -662,14 +666,22 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               </ScrollView>
             </View>
           </Animated.View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Queue Sheet */}
       <Modal visible={showQueue} transparent animationType="slide">
-        <View className="flex-1" style={{ backgroundColor: isDarkMode ? '#18181b' : '#f4f4f5' }}>
+        <View className="flex-1 justify-end">
           <View
-            className="flex-row items-center justify-between px-5 pb-4 pt-[60px]"
+            className="rounded-t-3xl"
+            style={{
+              height: '66.67%',
+              backgroundColor: isDarkMode ? '#18181b' : '#f4f4f5',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+            }}>
+          <View
+            className="flex-row items-center justify-between px-5 pb-4 pt-5"
             style={{
               borderBottomWidth: 1,
               borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
@@ -746,6 +758,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
             }}
             onMove={moveInQueue}
           />
+        </View>
         </View>
       </Modal>
 

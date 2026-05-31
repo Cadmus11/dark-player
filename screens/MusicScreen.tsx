@@ -26,6 +26,7 @@ import {
 } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
+import { usePlaybackStore } from '../stores/playbackStore';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -60,6 +61,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const playlists = usePlaylistStore((s) => s.playlists);
   const navigation = useNavigation<any>();
   const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
+  const currentFile = usePlaybackStore((s) => s.currentFile);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -278,33 +280,49 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const renderFileItem = useCallback(
     ({ item }: { item: FileItem }) => {
       const isSelected = selectedUris.has(item.uri);
+      const isNowPlaying = currentFile?.uri === item.uri;
       const itemColor = item.artColor || primaryColor;
       return (
         <TouchableOpacity
           className="flex-row items-center gap-3 px-4 py-2.5"
-          style={isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 }}
+          style={[
+            isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 },
+            isNowPlaying && {
+              backgroundColor: `${primaryColor}08`,
+              borderRadius: 8,
+              borderLeftWidth: 3,
+              borderLeftColor: primaryColor,
+              paddingLeft: 13,
+            },
+          ]}
           onPress={() => navigateToFile(item)}
           onLongPress={() => handleLongPress(item)}
           delayLongPress={400}>
           {isSelected && <CheckCircle size={18} color={primaryColor} weight="fill" />}
           <View
             className="h-11 w-11 items-center justify-center overflow-hidden rounded-xl"
-            style={{ backgroundColor: `${itemColor}20` }}>
+            style={[
+              { backgroundColor: `${itemColor}20` },
+              isNowPlaying && { borderWidth: 1.5, borderColor: primaryColor },
+            ]}>
             {item.thumbnail ? (
               <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />
             ) : (
-              <MusicNote size={22} color={itemColor} weight="fill" />
+              <MusicNote size={22} color={isNowPlaying ? primaryColor : itemColor} weight="fill" />
             )}
           </View>
           <View className="flex-1">
             <Text
               className="mb-[3px] text-[15px] font-semibold"
-              style={{ color: textColor }}
+              style={{ color: isNowPlaying ? primaryColor : textColor }}
               numberOfLines={1}>
               {item.name}
             </Text>
             <View className="flex-row items-center gap-1.5">
-              <Text className="text-[13px]" style={{ color: mutedColor }} numberOfLines={1}>
+              <Text
+                className="text-[13px]"
+                style={{ color: isNowPlaying ? primaryColor : mutedColor }}
+                numberOfLines={1}>
                 {item.artist || 'Unknown'}
               </Text>
               {item.hasLyrics && (
@@ -324,7 +342,15 @@ export const MusicScreen = React.memo(function MusicScreen() {
         </TouchableOpacity>
       );
     },
-    [navigateToFile, handleLongPress, selectedUris, primaryColor, textColor, mutedColor]
+    [
+      navigateToFile,
+      handleLongPress,
+      selectedUris,
+      primaryColor,
+      textColor,
+      mutedColor,
+      currentFile,
+    ]
   );
 
   const renderSortModal = useMemo(

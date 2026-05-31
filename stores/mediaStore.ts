@@ -3,6 +3,8 @@ import type { FileItem, HiddenFilesSettings } from '../types';
 import { fileEngine } from '../engine/FileEngine';
 import { permissionService } from '../services/PermissionService';
 import { taskManager, isCancelled } from '../services/Cancellation';
+import { eventBus, AppEvents } from '../services/EventBus';
+import { usePlaybackStore } from './playbackStore';
 
 interface MediaStoreState {
   videos: FileItem[];
@@ -103,5 +105,34 @@ permissionService.subscribe(() => {
   const current = useMediaStore.getState().permissionsGranted;
   if (current !== granted) {
     useMediaStore.setState({ permissionsGranted: granted });
+  }
+});
+
+// Subscribe to artwork loading to update thumbnails in real-time
+eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
+  const state = useMediaStore.getState();
+  let updated = false;
+
+  const updateThumbnail = (files: FileItem[]): FileItem[] =>
+    files.map((f) => {
+      if (f.uri === uri && f.thumbnail !== artworkPath) {
+        updated = true;
+        return { ...f, thumbnail: artworkPath };
+      }
+      return f;
+    });
+
+  const audio = updateThumbnail(state.audio);
+  const videos = updateThumbnail(state.videos);
+
+  if (updated) {
+    useMediaStore.setState({ audio, videos });
+    fileEngine.setThumbnail(uri, artworkPath);
+    const playbackState = usePlaybackStore.getState();
+    if (playbackState.currentFile?.uri === uri) {
+      usePlaybackStore.setState({
+        currentFile: { ...playbackState.currentFile, thumbnail: artworkPath },
+      });
+    }
   }
 });

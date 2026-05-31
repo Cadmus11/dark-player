@@ -268,6 +268,15 @@ export class FileEngine {
     await permissionService.requestMediaLibrary();
     return permissionService.isGranted();
   }
+
+  setThumbnail(uri: string, thumbnail: string) {
+    const update = (files: FileItem[]) =>
+      files.map((f) => (f.uri === uri ? { ...f, thumbnail } : f));
+    const videos = update(this._getCached(CACHE_KEYS.videos));
+    const audio = update(this._getCached(CACHE_KEYS.audio));
+    this._saveCache(videos, audio);
+    this._state = { videos, audio, lastModified: this._state.lastModified };
+  }
 }
 
 export const fileEngine = FileEngine.getInstance();

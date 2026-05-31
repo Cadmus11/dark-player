@@ -3,7 +3,7 @@
 ## 1. File Loading Flow
 
 ```
-Device Media Library / File System (expo-media-library, expo-file-system)
+Device Media Library / File System (expo-media-library, expo-file-system/legacy)
   |
   v
 FileEngine (singleton, MMKV cache)
@@ -19,16 +19,16 @@ mediaStore (Zustand)
   - getFilteredAudio() applies hidden-files filter (<15s songs excluded by default)
   |
   v
-FileContext (React context)
-  - Reads mediaStore, playlistStore, settingsStore
-  - Derives: visibleAudio, allFiles, categories, playlists,
-    favoriteFiles, recentlyPlayed, searchHistory (all via useMemo)
-  - On mount: loads settings, playlists, cache; triggers scan if needed
+Domain Hooks (useDomainSelectors, useVisibleAudio, useFavorites)
+  - Read mediaStore, playlistStore, settingsStore directly
+  - Derive: visibleAudio, allFiles, categories, fileCounts (all via useMemo)
+  - loadCache / scan / etc. called from HydrationService on app start
   |
   v
 Screens & Components (React.memo wrapped)
-  - useFiles() hook from FileContext for file data/actions
-  - useMediaStore(selector) for direct store reads (minimal re-renders)
+  - use domain hooks for aggregate collections
+  - use direct store selectors for individual fields (minimal re-renders)
+  - e.g. useMediaStore((s) => s.audio) for file listings
 ```
 
 ## 2. Playback Flow
@@ -36,17 +36,30 @@ Screens & Components (React.memo wrapped)
 ### Audio
 
 ```
-useAudioPlayback() hook / user tap
+User tap on file / autoplay next
   |
   v
-playbackStore.play(file) -> AudioEngine.play(file)
+playbackStore.play(file, queue, index) -> AudioEngine.playFile(file)
   |
   v
-AudioEngine (expo-av Audio.Sound singleton)
-  - Creates/resumes Audio.Sound, manages queue, repeat, shuffle, speed
+AudioEngine (expo-audio AudioPlayer singleton)
+  - Creates AudioPlayer, manages queue, repeat, shuffle, speed
   - _onPlaybackStatusUpdate fires on every tick
   - Persists state to MMKV
   - subscribe(notify) pattern pushes state changes
+  - Parallel playback guard: sets _busy flag, calls videoEngine.stop()
+  |
+  v
+MetadataService.extract(uri) (runs in parallel)
+  ├── Reads ID3 tags via music-metadata-browser (base64 via expo-file-system)
+  ├── Saves artwork to cache dir, emits ARTWORK_LOADED
+  ├── Extracts lyrics (embedded → LRC sidecar → LRCLib API)
+  └── Caches result in SQLite (DatabaseService)
+  |
+  v
+NowPlayingNotification.update(file)
+  ├── Sets lockscreen metadata (title, artist, artwork)
+  └── Updates notification with prev/play-pause/next buttons
   |
   v
 playbackStore (Zustand, subscribed to AudioEngine)
@@ -56,7 +69,7 @@ playbackStore (Zustand, subscribed to AudioEngine)
   v
 Components
   - NowPlayingBar (persistent above tab bar when source==='music')
-  - MusicPlayerScreen (full player with controls, queue, lyrics)
+  - MusicPlayerScreen (full player with controls, queue, lyrics, artwork)
 ```
 
 ### Video
@@ -65,12 +78,21 @@ Components
 User taps video file -> VideoPlayerScreen
   |
   v
-VideoPlayerScreen (no store wrapper, uses expo-video VideoPlayer + VideoView)
-  - Creates useVideoPlayer({ uri }) and renders <VideoView style={{ flex: 1 }}>
-  - Play modes (loop, loopAll, shuffle, pauseAfter) managed locally
-  - Subtitle support (SRT parsing, sync polling)
+videoPlaybackStore.loadFile(file) -> VideoEngine.loadFile(file)
+  |
+  v
+VideoEngine (expo-video VideoPlayer singleton)
+  - Creates VideoPlayer via useVideoPlayer({ uri })
+  - Manages contentFit (contain/cover/fill), subtitles, speed
   - PanResponder swipe-up/down for next/prev video
-  - Bottom sheets animate from off-screen (translateY = screenHeight -> 0)
+  - subscribe(notify) pattern pushes state changes
+  - stop() called by AudioEngine for mutual exclusion
+  |
+  v
+VideoPlayerScreen (reads from videoPlaybackStore)
+  - Renders <VideoView style={{ flex: 1 }}>
+  - Subtitles via VideoEnhancementService (SRT parsing)
+  - Bottom sheets for settings (speed, subtitles, loop mode)
   |
   v
 MiniPlayer (persistent above tab bar when source==='video')
@@ -80,11 +102,11 @@ MiniPlayer (persistent above tab bar when source==='video')
 
 ```
 App.tsx
-  SafeAreaProvider
-    LanguageProvider
-      FontProvider
-        ThemeProvider
-          FileProvider
+  OverlayProvider
+    SafeAreaProvider
+      LanguageProvider
+        FontProvider
+          ThemeProvider
             ErrorBoundary
               NavigationContainer
                 Stack.Navigator (no header, transparent cards)
@@ -98,10 +120,14 @@ App.tsx
                   | -- (modal) Category       -> CategoryScreen
                   | -- (modal) VideoPlayer    -> VideoPlayerScreen
                   | -- (modal) MusicPlayer    -> MusicPlayerScreen
+                  | -- (modal) PrivateFolder  -> PrivateFolderScreen
+                  | -- (modal) Folder         -> FolderScreen
+                  | -- (modal) VideoTop       -> VideoTopScreen
                   |
                   Permanent overlays (inside MainTabs):
                     - NowPlayingBar (audio, above tab bar)
                     - MiniPlayer (video, above tab bar)
+                    - PlayerBoundary wraps screens with players
 ```
 
 ## 4. State Management Flow
@@ -112,18 +138,19 @@ App.tsx
   │FileEngine│ │AudioEngine│ │VideoEngine │ │QueueEngine │
   │(MMKV)    │ │(MMKV)     │ │(ephemeral) │ │(MMKV)      │
   └────┬─────┘ └─────┬─────┘ └─────┬──────┘ └──────┬─────┘
-       │ subscribe   │ subscribe   │               │ subscribe
+       │ subscribe   │ subscribe   │ subscribe     │ subscribe
        v             v             v               v
   ┌─────────────────────────────────────────────────────────┐
   │  ZUSTAND STORES (thin wrappers synced via subscriptions) │
-  │  mediaStore  playbackStore  (no store)  playlistStore    │
-  │  settingsStore                              profileStore │
+  │  mediaStore   playbackStore   videoPlaybackStore         │
+  │  playlistStore                settingsStore              │
   └─────────┬───────────────────────────────────────┬───────┘
             │                                       │
             v                                       v
   ┌─────────────────────────────────────────────────────────┐
-  │  CONTEXT PROVIDERS                                      │
-  │  FileContext   ThemeContext   LanguageContext  FontCtx  │
+  │  DOMAIN HOOKS + CONTEXT PROVIDERS                        │
+  │  useDomainSelectors  ThemeContext  LanguageContext       │
+  │  useVisibleAudio     FontContext                         │
   └─────────────────────────┬───────────────────────────────┘
                             │
                             v
@@ -139,33 +166,36 @@ User taps trigger (e.g. 3-dot menu)
 State setter (e.g. setShowMenu(true))
   |
   v
-Modal visible={true} animationType="fade"
+Modal visible={true} animationType="fade" (or "slide" for queue sheet)
   |
   v
-useEffect watches isVisible:
+For animated sheets (renderSheet/useSheetSwipe):
   - translateY = screenHeight (off-screen below)
   -> Animated.spring(translateY, { toValue: 0, ... })
   |
   v
-Content slides up from below the screen into view
+For simple modals (queue, playlists):
+  - Built-in Modal animation handles presentation
+  - Queue sheet uses "slide" animation, occupies bottom 2/3
   |
   v
-On swipe-down (>80px) or backdrop tap:
-  -> Animated.timing(translateY, { toValue: screenHeight })
-     .start(() => onClose())
+On backdrop tap:
+  -> setShowX(false) to dismiss
   |
   v
-Sheet exits downward, then modal hides
+Sheet exits via Modal's built-in animation
 ```
 
 ## Key Flow Patterns
 
-- **Engines** own all device APIs (expo-av, expo-media-library, MMKV) and emit state via subscribe/notify
+- **Engines** own all device APIs (expo-audio, expo-video, expo-media-library, MMKV) and emit state via subscribe/notify
 - **Zustand stores** subscribe to engines and bridge state into React
-- **FileContext** aggregates multiple stores into derived collections (avoid re-computation in screens)
-- **Screens** prefer direct store selectors over FileContext when reading individual fields (performance)
-- **VideoPlayerScreen** is the exception — reads VideoEngine directly without a store wrapper
+- **Domain hooks** aggregate multiple stores into derived collections (avoid re-computation in screens)
+- **Screens** prefer direct store selectors when reading individual fields (performance)
+- **VideoPlayerScreen** uses videoPlaybackStore (not raw VideoEngine — store wrapper exists)
+- **Audio thumbnail pipeline**: ID3 extraction → ARTWORK_LOADED event → mediaStore updates FileItem.thumbnail → playbackStore.currentFile.thumbnail updated
+- **Parallel playback guard**: AudioEngine.\_busy flag + videoEngine.stop() before audio starts
 - **Settings** persist to MMKV via settingsStore and load on every app start
-- **Bottom sheets** use spring entry (from off-screen) and timed exit (to off-screen) for smooth animations
+- **Bottom sheets** use Modal (animationType="fade"/"slide") with optional manual translateY animation
 - **Theme** provides dynamic textColor/mutedColor — never hardcode `text-white` (breaks light mode)
 - **Permissions** are auto-granted on cache load so permission screen doesn't reappear every open

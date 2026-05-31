@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import { CaretLeft, VideoCamera, MusicNote } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
+import { usePlaybackStore } from '../stores/playbackStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -23,7 +24,8 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon } = route.params;
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
-  const { textColor, mutedColor, isDarkMode } = useTheme();
+  const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
+  const currentFile = usePlaybackStore((s) => s.currentFile);
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || MusicNote;
 
@@ -34,48 +36,71 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
     else navigation.navigate('MusicPlayer', { file });
   };
 
-  const renderListItem = ({ item }: { item: FileItem }) => (
-    <TouchableOpacity
-      className="flex-row items-center justify-between py-3"
-      style={{
-        borderBottomWidth: 1,
-        borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-      }}
-      onPress={() => navigateToFile(item)}>
-      <View className="flex-1 flex-row items-center">
-        <View
-          className="mr-3 h-11 w-11 items-center justify-center rounded-xl"
-          style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
-          <FileIcon type={item.type} size={22} />
-        </View>
-        <View className="flex-1">
-          <Text className="mb-1 text-[15px]" style={{ color: textColor }} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <View className="flex-row items-center">
-            {item.size && (
-              <Text className="text-xs" style={{ color: mutedColor }}>
-                {formatFileSize(item.size)}
-              </Text>
-            )}
-            {item.duration && (
-              <>
-                <Text className="mx-1.5 text-xs" style={{ color: mutedColor }}>
-                  •
+  const renderListItem = ({ item }: { item: FileItem }) => {
+    const isNowPlaying = currentFile?.uri === item.uri;
+    return (
+      <TouchableOpacity
+        className="flex-row items-center justify-between py-3"
+        style={[
+          {
+            borderBottomWidth: 1,
+            borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          },
+          isNowPlaying && {
+            backgroundColor: `${primaryColor}08`,
+            borderLeftWidth: 3,
+            borderLeftColor: primaryColor,
+            paddingLeft: 13,
+          },
+        ]}
+        onPress={() => navigateToFile(item)}>
+        <View className="flex-1 flex-row items-center">
+          <View
+            className="mr-3 h-11 w-11 items-center justify-center rounded-xl"
+            style={[
+              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+              isNowPlaying && { borderWidth: 1.5, borderColor: primaryColor },
+            ]}>
+            <FileIcon type={item.type} size={22} />
+          </View>
+          <View className="flex-1">
+            <Text
+              className="mb-1 text-[15px]"
+              style={{ color: isNowPlaying ? primaryColor : textColor }}
+              numberOfLines={1}>
+              {item.name}
+            </Text>
+            <View className="flex-row items-center">
+              {item.size && (
+                <Text
+                  className="text-xs"
+                  style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
+                  {formatFileSize(item.size)}
                 </Text>
-                <Text className="text-xs" style={{ color: mutedColor }}>
-                  {formatDuration(item.duration)}
-                </Text>
-              </>
-            )}
+              )}
+              {item.duration && (
+                <>
+                  <Text
+                    className="mx-1.5 text-xs"
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
+                    •
+                  </Text>
+                  <Text
+                    className="text-xs"
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
+                    {formatDuration(item.duration)}
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-      <Text className="text-xl" style={{ color: mutedColor }}>
-        ›
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text className="text-xl" style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
+          ›
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScreenLayout noTopBar>

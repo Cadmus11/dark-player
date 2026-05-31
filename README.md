@@ -22,7 +22,7 @@
 The app uses a **singleton engine pattern** with Zustand state management:
 
 ```
-Device APIs (expo-av, expo-media-library, expo-file-system)
+Device APIs (expo-audio, expo-video, expo-media-library, expo-file-system)
     ↓
 ENGINES (singletons with MMKV persistence)
 ├── FileEngine        - Media scanning & caching
@@ -33,12 +33,14 @@ ENGINES (singletons with MMKV persistence)
 ZUSTAND STORES (thin wrappers, synced via subscriptions)
 ├── mediaStore        - File listings
 ├── playbackStore     - Audio state
+├── videoPlaybackStore - Video state
 ├── playlistStore     - Playlist data
 └── settingsStore     - User preferences
     ↓
+DOMAIN HOOKS (useVisibleAudio, useCategories, useFileCounts, etc.)
+    ↓
 CONTEXT PROVIDERS (derived state, memoized)
-├── FileContext       - Aggregated file collections
-├── ThemeContext      - UI theming
+├── ThemeContext      - UI theming (dark/light, accent, sizeMode, preset images)
 ├── LanguageContext   - i18n
 └── FontContext       - Font settings
     ↓
@@ -46,6 +48,7 @@ SCREENS & COMPONENTS (React.memo, optimized selectors)
 ```
 
 **Key Documentation**:
+
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) - Detailed system architecture
 - [`flow.md`](./flow.md) - Data and control flow diagrams
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) - Contributing guidelines
@@ -53,9 +56,10 @@ SCREENS & COMPONENTS (React.memo, optimized selectors)
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js ≥ 18
 - npm or yarn
-- Expo CLI: `npm install -g expo-cli`
+- Expo CLI: `npx expo` (included with expo package)
 - (iOS) Xcode command line tools
 - (Android) Android Studio
 
@@ -88,16 +92,16 @@ npm run android
 
 ## 📋 Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | Start Expo dev server |
-| `npm run web` | Run on web browser |
-| `npm run ios` | Run on iOS simulator |
-| `npm run android` | Run on Android emulator |
-| `npm run prebuild` | Generate native code |
-| `npm run lint` | Run ESLint + Prettier check |
-| `npm run format` | Auto-fix lint & formatting issues |
-| `npm run typecheck` | Run TypeScript type checking |
+| Script              | Description                       |
+| ------------------- | --------------------------------- |
+| `npm start`         | Start Expo dev server             |
+| `npm run web`       | Run on web browser                |
+| `npm run ios`       | Run on iOS simulator              |
+| `npm run android`   | Run on Android emulator           |
+| `npm run prebuild`  | Generate native code              |
+| `npm run lint`      | Run ESLint + Prettier check       |
+| `npm run format`    | Auto-fix lint & formatting issues |
+| `npm run typecheck` | Run TypeScript type checking      |
 
 ## 🛠 Development
 
@@ -117,14 +121,13 @@ npm run typecheck     # Type checking
 ├── App.tsx                    # Root navigation
 ├── screens/                   # Page-level components
 ├── components/                # Reusable UI components
-├── engines/                   # Singleton service engines
+├── engine/                    # Singleton service engines
 ├── stores/                    # Zustand state stores
-├── services/                  # Utility services
+├── services/                  # Utility services (Metadata, Lyrics, etc.)
 ├── context/                   # React Context providers
 ├── hooks/                     # Custom React hooks
 ├── types/                     # TypeScript definitions
-├── constants/                 # App constants
-└── i18n/                      # Internationalization
+└── constants/                 # App constants
 ```
 
 ### State Management
@@ -133,9 +136,10 @@ Always use **selectors** to optimize performance:
 
 ```typescript
 // ✅ Good - Only selectedFields trigger re-render
-const { isPlaying, currentFile } = usePlaybackStore(
-  (s) => ({ isPlaying: s.isPlaying, currentFile: s.currentFile })
-);
+const { isPlaying, currentFile } = usePlaybackStore((s) => ({
+  isPlaying: s.isPlaying,
+  currentFile: s.currentFile,
+}));
 
 // ❌ Bad - All store changes trigger re-render
 const store = usePlaybackStore();
@@ -144,6 +148,7 @@ const store = usePlaybackStore();
 ## 🤝 Contributing
 
 We welcome contributions! See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for:
+
 - Code style and conventions
 - Git workflow and branch naming
 - Pull request process
@@ -166,6 +171,7 @@ git push origin feature/your-feature
 ## 🐛 Troubleshooting
 
 ### App won't start
+
 ```bash
 rm -rf node_modules package-lock.json
 npm install
@@ -173,9 +179,11 @@ npm start -- --clear
 ```
 
 ### Permission errors
+
 Check `Info.plist` (iOS) or `AndroidManifest.xml` (Android) for required permissions.
 
 ### Build issues
+
 ```bash
 npm run prebuild -- --clean
 npm run ios  # or android
@@ -199,7 +207,6 @@ MIT License - see [LICENSE](./LICENSE) file for details
 ## 🌟 Roadmap
 
 - [ ] AI-powered recommendations
-- [ ] Lyrics synchronization
 - [ ] Chromecast / AirPlay support
 - [ ] Cloud sync for playlists
 - [ ] User authentication

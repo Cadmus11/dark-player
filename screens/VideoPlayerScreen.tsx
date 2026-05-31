@@ -11,6 +11,8 @@ import {
   Share,
   ScrollView,
   PanResponder,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { setAudioModeAsync } from 'expo-audio';
@@ -99,6 +101,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const [showMenu, setShowMenu] = useState(false);
 
   const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showControlsRef = useRef(true);
   const currentVideoIndexRef = useRef(0);
 
   const { isPlaying, position, duration } = playbackStatus;
@@ -129,6 +133,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     return () => {
       videoEngine.cleanup();
       ScreenOrientation.unlockAsync().catch(() => {});
+      if (autoHideRef.current) clearTimeout(autoHideRef.current);
     };
   }, [file.uri]);
 
@@ -215,16 +220,37 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
   const goBack = () => navigation.goBack();
 
-  const toggleControls = () => {
+  useEffect(() => {
+    showControlsRef.current = showControls;
+  }, [showControls]);
+
+  const startAutoHide = useCallback(() => {
+    if (autoHideRef.current) clearTimeout(autoHideRef.current);
+    autoHideRef.current = setTimeout(() => {
+      if (showControlsRef.current && !isLocked) {
+        setShowControls(false);
+        Animated.timing(controlsOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
+    }, 4000);
+  }, [isLocked, controlsOpacity]);
+
+  const toggleControls = useCallback(() => {
     if (isLocked) return;
-    const newShow = !showControls;
+    const newShow = !showControlsRef.current;
     setShowControls(newShow);
+    showControlsRef.current = newShow;
     Animated.timing(controlsOpacity, {
       toValue: newShow ? 1 : 0,
       duration: 250,
       useNativeDriver: true,
-    }).start();
-  };
+    }).start(() => {
+      if (newShow) startAutoHide();
+    });
+  }, [isLocked, controlsOpacity, startAutoHide]);
 
   const handleDelete = () => {
     Alert.alert('Delete Video', `Delete "${file.name}"?`, [
@@ -362,6 +388,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           </View>
         )}
 
+        {/* Always-tappable area to show controls when hidden */}
+        {!showControls && <Pressable style={StyleSheet.absoluteFill} onPress={toggleControls} />}
+
         <Animated.View
           style={{
             position: 'absolute',
@@ -373,7 +402,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           }}
           pointerEvents={showControls ? 'auto' : 'none'}>
           <TouchableOpacity
-            className="flex-1 justify-between bg-black/50"
+            className="flex-1 bg-black/50"
             activeOpacity={1}
             onPress={toggleControls}>
             <View className="flex-row items-center px-4 pt-[50px]">
@@ -399,37 +428,38 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 <DotsThreeVertical size={24} color="#ffffff" weight="bold" />
               </TouchableOpacity>
             </View>
-            <View />
-            <View className="mb-6 flex-row items-center justify-center gap-9">
-              <TouchableOpacity
-                className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  videoEngine.prevInQueue();
-                }}>
-                <SkipBack size={24} color="#ffffff" weight="fill" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="h-[72px] w-[72px] items-center justify-center rounded-full border-2 bg-black/50"
-                style={{ borderColor: primaryColor }}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  togglePlayback();
-                }}>
-                {isPlaying ? (
-                  <Pause size={32} color={primaryColor} weight="fill" />
-                ) : (
-                  <Play size={32} color={primaryColor} weight="fill" />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  videoEngine.nextInQueue();
-                }}>
-                <SkipForward size={24} color="#ffffff" weight="fill" />
-              </TouchableOpacity>
+            <View className="flex-1 justify-center">
+              <View className="flex-row items-center justify-center gap-9">
+                <TouchableOpacity
+                  className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    videoEngine.prevInQueue();
+                  }}>
+                  <SkipBack size={24} color="#ffffff" weight="fill" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="h-[72px] w-[72px] items-center justify-center rounded-full border-2 bg-black/50"
+                  style={{ borderColor: primaryColor }}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    togglePlayback();
+                  }}>
+                  {isPlaying ? (
+                    <Pause size={32} color={primaryColor} weight="fill" />
+                  ) : (
+                    <Play size={32} color={primaryColor} weight="fill" />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    videoEngine.nextInQueue();
+                  }}>
+                  <SkipForward size={24} color="#ffffff" weight="fill" />
+                </TouchableOpacity>
+              </View>
             </View>
             <View className="px-5 pb-[30px]">
               <View className="mb-3 flex-row items-center gap-2.5">
