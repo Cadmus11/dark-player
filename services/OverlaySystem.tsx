@@ -209,7 +209,10 @@ export function BottomSheet({
             activeOpacity={1}
             className="max-h-[90%] rounded-t-3xl pb-8 pt-5"
             style={{ backgroundColor: isDarkMode ? '#18181b' : '#ffffff' }}>
-            <View className="mb-4 h-1 w-10 self-center rounded-full" style={{ backgroundColor: isDarkMode ? '#52525b' : '#d4d4d8' }} />
+            <View
+              className="mb-4 h-1 w-10 self-center rounded-full"
+              style={{ backgroundColor: isDarkMode ? '#52525b' : '#d4d4d8' }}
+            />
             {title ? (
               <View className="mb-2 px-5">
                 <Text

@@ -467,7 +467,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                       setIsAudioOnly(true);
                     }}>
                     <Headphones size={14} color="#e4e4e7" />
-                    <Text className="text-xs font-semibold" style={{ color: textColor }}>Audio</Text>
+                    <Text className="text-xs font-semibold" style={{ color: textColor }}>
+                      Audio
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -476,7 +478,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     e.stopPropagation();
                     setShowSpeedModal(true);
                   }}>
-                  <Text className="text-xs font-bold" style={{ color: textColor }}>{playbackSpeed}x</Text>
+                  <Text className="text-xs font-bold" style={{ color: textColor }}>
+                    {playbackSpeed}x
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
@@ -516,7 +520,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               setShowPlayModeModal(true);
             }}>
             <Repeat size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Play Mode</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+              Play Mode
+            </Text>
             <Text className="ml-auto text-xs" style={{ color: mutedColor }}>
               {playMode === 'loop'
                 ? 'Loop One'
@@ -538,8 +544,12 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               color={subtitlesEnabled ? primaryColor : '#e4e4e7'}
               weight={subtitlesEnabled ? 'fill' : 'regular'}
             />
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Subtitles</Text>
-            <Text className="ml-auto text-xs" style={{ color: mutedColor }}>{subtitlesEnabled ? 'On' : 'Off'}</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+              Subtitles
+            </Text>
+            <Text className="ml-auto text-xs" style={{ color: mutedColor }}>
+              {subtitlesEnabled ? 'On' : 'Off'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -550,14 +560,21 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             <Text className="text-lg" style={{ color: primaryColor }}>
               ✨
             </Text>
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Enhance Video</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+              Enhance Video
+            </Text>
           </TouchableOpacity>
-          <View className="my-3 h-px" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />
+          <View
+            className="my-3 h-px"
+            style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}
+          />
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
             onPress={handleShare}>
             <ShareNetwork size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Share</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+              Share
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -566,7 +583,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               setShowInfo(true);
             }}>
             <Info size={20} color={primaryColor} />
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>Information</Text>
+            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+              Information
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
@@ -588,12 +607,17 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               className="rounded-xl border px-4 py-3"
               style={[
                 playbackSpeed === speed && { backgroundColor: primaryColor },
-                { borderColor: playbackSpeed === speed ? primaryColor : (isDarkMode ? '#3f3f46' : '#d4d4d8') },
+                {
+                  borderColor:
+                    playbackSpeed === speed ? primaryColor : isDarkMode ? '#3f3f46' : '#d4d4d8',
+                },
               ]}
               onPress={() => changeSpeed(speed)}>
               <Text
                 className={`text-center text-sm ${playbackSpeed === speed ? 'font-bold' : ''}`}
-                style={{ color: playbackSpeed === speed ? (isDarkMode ? '#0a0a0a' : '#ffffff') : textColor }}>
+                style={{
+                  color: playbackSpeed === speed ? (isDarkMode ? '#0a0a0a' : '#ffffff') : textColor,
+                }}>
                 {speed}x
               </Text>
             </TouchableOpacity>
@@ -648,21 +672,30 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       <BottomSheet visible={showInfo} onClose={() => setShowInfo(false)} title="Video Info">
         <View className="px-5">
           <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Name</Text>
-            <Text className="flex-[2] text-right text-sm" style={{ color: textColor }} numberOfLines={2}>
+            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>
+              Name
+            </Text>
+            <Text
+              className="flex-[2] text-right text-sm"
+              style={{ color: textColor }}
+              numberOfLines={2}>
               {file.name}
             </Text>
           </View>
           {file.size && (
             <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-              <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Size</Text>
+              <Text className="flex-1 text-sm" style={{ color: mutedColor }}>
+                Size
+              </Text>
               <Text className="flex-[2] text-right text-sm" style={{ color: textColor }}>
                 {(file.size / 1024 / 1024).toFixed(1)} MB
               </Text>
             </View>
           )}
           <View className="flex-row justify-between border-b border-white/5 py-[10px]">
-            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>Duration</Text>
+            <Text className="flex-1 text-sm" style={{ color: mutedColor }}>
+              Duration
+            </Text>
             <Text className="flex-[2] text-right text-sm" style={{ color: textColor }}>
               {fileEngine.formatDuration(duration)}
             </Text>

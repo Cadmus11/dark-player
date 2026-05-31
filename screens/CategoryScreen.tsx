@@ -37,7 +37,10 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const renderListItem = ({ item }: { item: FileItem }) => (
     <TouchableOpacity
       className="flex-row items-center justify-between py-3"
-      style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      }}
       onPress={() => navigateToFile(item)}>
       <View className="flex-1 flex-row items-center">
         <View

@@ -129,7 +129,10 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
   const renderListItem = ({ item }: { item: FileItem }) => (
     <TouchableOpacity
       className="flex-row items-center justify-between py-3"
-      style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      }}
       onPress={() => navigateToFile(item)}>
       <View className="flex-1 flex-row items-center">
         <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-white/10">

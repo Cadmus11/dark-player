@@ -232,9 +232,7 @@ export class FileEngine {
             if (info.exists) size = info.size;
           } catch {}
         }
-        const thumbnail = type === 'video'
-          ? asset.uri
-          : await this._getAudioThumbnail(asset.uri);
+        const thumbnail = type === 'video' ? asset.uri : await this._getAudioThumbnail(asset.uri);
         items.push({
           uri: asset.uri,
           name: asset.filename,

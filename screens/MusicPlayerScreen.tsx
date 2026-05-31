@@ -403,7 +403,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           ) : (
             <View className="h-full w-full" style={{ backgroundColor: `${artColor}25` }} />
           )}
-          <View className="absolute inset-0" style={{ backgroundColor: isDarkMode ? '#18181bCC' : '#f4f4f5CC' }} />
+          <View
+            className="absolute inset-0"
+            style={{ backgroundColor: isDarkMode ? '#18181bCC' : '#f4f4f5CC' }}
+          />
         </View>
 
         <View className="flex-1">
@@ -413,7 +416,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               className="h-11 w-11 items-center justify-center">
               <X size={24} color={textColor} weight="bold" />
             </TouchableOpacity>
-            <Text className="text-base font-bold" style={{ color: textColor }}>Now Playing</Text>
+            <Text className="text-base font-bold" style={{ color: textColor }}>
+              Now Playing
+            </Text>
             <TouchableOpacity
               onPress={() => setShowQueue(true)}
               className="h-11 w-11 items-center justify-center">
@@ -513,7 +518,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
 
             {/* Timers */}
             <View className="mb-5 w-full flex-row justify-between">
-              <Text className="text-xs" style={{ color: mutedColor }}>{fileEngine.formatDuration(position)}</Text>
+              <Text className="text-xs" style={{ color: mutedColor }}>
+                {fileEngine.formatDuration(position)}
+              </Text>
               <Text className="text-xs" style={{ color: mutedColor }}>
                 -{fileEngine.formatDuration(Math.max(0, (duration || 0) - position))}
               </Text>
@@ -631,7 +638,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
                       style={{ backgroundColor: `${primaryColor}15` }}>
                       <item.icon size={20} color={primaryColor} weight="bold" />
                     </View>
-                      <Text className="ml-3 text-[15px]" style={{ color: textColor }}>{item.label}</Text>
+                    <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
+                      {item.label}
+                    </Text>
                     {item.label === 'Driving Mode' && drivingMode ? (
                       <View
                         className="ml-auto h-2 w-2 rounded-full"
@@ -660,36 +669,63 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       {/* Queue Sheet */}
       <Modal visible={showQueue} transparent animationType="slide">
         <View className="flex-1" style={{ backgroundColor: isDarkMode ? '#18181b' : '#f4f4f5' }}>
-          <View className="flex-row items-center justify-between px-5 pb-4 pt-[60px]"
-            style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}>
-            <Text className="text-xl font-extrabold" style={{ color: textColor }}>Queue ({queue.length})</Text>
+          <View
+            className="flex-row items-center justify-between px-5 pb-4 pt-[60px]"
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+            }}>
+            <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+              Queue ({queue.length})
+            </Text>
             <TouchableOpacity onPress={() => setShowQueue(false)}>
               <X size={24} color={textColor} />
             </TouchableOpacity>
           </View>
 
           {/* Shuffle + Repeat Controls */}
-          <View className="flex-row items-center justify-center gap-6 px-5 py-3"
-            style={{ borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+          <View
+            className="flex-row items-center justify-center gap-6 px-5 py-3"
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+            }}>
             <TouchableOpacity
               className="flex-row items-center gap-2 rounded-xl px-4 py-2"
-              style={{ backgroundColor: shuffle ? `${primaryColor}20` : (isDarkMode ? '#27272a' : '#e4e4e7') }}
+              style={{
+                backgroundColor: shuffle ? `${primaryColor}20` : isDarkMode ? '#27272a' : '#e4e4e7',
+              }}
               onPress={toggleShuffle}>
-              <ShuffleAngular size={18} color={shuffle ? primaryColor : '#a1a1aa'} weight={shuffle ? 'bold' : 'regular'} />
-              <Text className="text-sm font-semibold" style={{ color: shuffle ? primaryColor : '#a1a1aa' }}>
+              <ShuffleAngular
+                size={18}
+                color={shuffle ? primaryColor : '#a1a1aa'}
+                weight={shuffle ? 'bold' : 'regular'}
+              />
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: shuffle ? primaryColor : '#a1a1aa' }}>
                 Shuffle
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center gap-2 rounded-xl px-4 py-2"
-              style={{ backgroundColor: repeat !== 'none' ? `${primaryColor}20` : (isDarkMode ? '#27272a' : '#e4e4e7') }}
+              style={{
+                backgroundColor:
+                  repeat !== 'none' ? `${primaryColor}20` : isDarkMode ? '#27272a' : '#e4e4e7',
+              }}
               onPress={cycleRepeat}>
               {repeat === 'one' ? (
                 <RepeatOnce size={18} color={primaryColor} weight="bold" />
               ) : (
-                <Repeat size={18} color={repeat !== 'none' ? primaryColor : '#a1a1aa'} weight={repeat !== 'none' ? 'bold' : 'regular'} />
+                <Repeat
+                  size={18}
+                  color={repeat !== 'none' ? primaryColor : '#a1a1aa'}
+                  weight={repeat !== 'none' ? 'bold' : 'regular'}
+                />
               )}
-              <Text className="text-sm font-semibold" style={{ color: repeat !== 'none' ? primaryColor : '#a1a1aa' }}>
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: repeat !== 'none' ? primaryColor : '#a1a1aa' }}>
                 {repeat === 'one' ? 'Repeat One' : repeat === 'all' ? 'Repeat All' : 'Repeat'}
               </Text>
             </TouchableOpacity>
@@ -719,8 +755,13 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowAddToPlaylist(false)}>
-          <View className="w-[85%] max-w-[360px] rounded-2xl p-6"
-            style={{ borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
+          <View
+            className="w-[85%] max-w-[360px] rounded-2xl p-6"
+            style={{
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
+            }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               Add to Playlist
             </Text>
@@ -748,20 +789,28 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
                   onPress={() => handleAddToPlaylist(pl)}>
                   <MusicNotes size={20} color={mutedColor} />
                   <View className="ml-3 flex-1">
-                    <Text className="mb-0.5 text-[15px]" style={{ color: textColor }}>{pl.name}</Text>
-                    <Text className="text-xs" style={{ color: mutedColor }}>{pl.totalTracks} songs</Text>
+                    <Text className="mb-0.5 text-[15px]" style={{ color: textColor }}>
+                      {pl.name}
+                    </Text>
+                    <Text className="text-xs" style={{ color: mutedColor }}>
+                      {pl.totalTracks} songs
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
               {playlistStore.playlists.length === 0 && (
-                <Text className="py-5 text-center text-sm" style={{ color: mutedColor }}>No playlists yet</Text>
+                <Text className="py-5 text-center text-sm" style={{ color: mutedColor }}>
+                  No playlists yet
+                </Text>
               )}
             </ScrollView>
             <TouchableOpacity
               className="items-center rounded-xl py-3"
               style={{ backgroundColor: isDarkMode ? '#27272a' : '#e4e4e7' }}
               onPress={() => setShowAddToPlaylist(false)}>
-              <Text className="text-[15px] font-bold" style={{ color: textColor }}>Cancel</Text>
+              <Text className="text-[15px] font-bold" style={{ color: textColor }}>
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -772,7 +821,8 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSpeed(false)}>
-          <View className="w-[80%] max-w-[320px] rounded-2xl p-6"
+          <View
+            className="w-[80%] max-w-[320px] rounded-2xl p-6"
             style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               Playback Speed
@@ -810,9 +860,12 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowEq(false)}>
-          <View className="w-[90%] rounded-2xl p-6"
+          <View
+            className="w-[90%] rounded-2xl p-6"
             style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
-            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>Equalizer</Text>
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
+              Equalizer
+            </Text>
             <Text className="py-6 text-center text-sm" style={{ color: mutedColor }}>
               Equalizer controls coming soon
             </Text>
@@ -821,17 +874,20 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       </Modal>
 
       {/* Lyrics Sheet */}
-      <BottomSheet
-        visible={showLyrics}
-        onClose={() => setShowLyrics(false)}
-        title="Lyrics">
+      <BottomSheet visible={showLyrics} onClose={() => setShowLyrics(false)} title="Lyrics">
         {lyricsLoading ? (
           <View className="items-center py-6">
-            <Text className="text-sm" style={{ color: mutedColor }}>Loading lyrics...</Text>
+            <Text className="text-sm" style={{ color: mutedColor }}>
+              Loading lyrics...
+            </Text>
           </View>
         ) : lyricsData?.lyrics ? (
           <ScrollView className="max-h-[300px] px-5" showsVerticalScrollIndicator>
-            <Text className="text-sm leading-6" style={{ color: isDarkMode ? '#d4d4d8' : '#18181b' }}>{lyricsData.lyrics}</Text>
+            <Text
+              className="text-sm leading-6"
+              style={{ color: isDarkMode ? '#d4d4d8' : '#18181b' }}>
+              {lyricsData.lyrics}
+            </Text>
           </ScrollView>
         ) : (
           <View className="items-center gap-3 py-6">
@@ -869,11 +925,13 @@ function QueueList({
   const [reorderIdx, setReorderIdx] = useState<number | null>(null);
   const scrollRef = useRef<FlatList>(null);
 
-    if (items.length === 0) {
+  if (items.length === 0) {
     return (
       <View className="flex-1 items-center justify-center">
         <MusicNotes size={48} color="#52525b" />
-        <Text className="mt-4 text-base" style={{ color: mutedColor }}>Queue is empty</Text>
+        <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+          Queue is empty
+        </Text>
       </View>
     );
   }
@@ -881,13 +939,16 @@ function QueueList({
   return (
     <View className="flex-1">
       {reorderIdx !== null && (
-        <View className="flex-row items-center justify-between px-5 py-2"
+        <View
+          className="flex-row items-center justify-between px-5 py-2"
           style={{ backgroundColor: isDarkMode ? 'rgba(39,39,42,0.8)' : 'rgba(0,0,0,0.06)' }}>
           <Text className="text-sm" style={{ color: mutedColor }}>
             Move &ldquo;{items[reorderIdx]?.name?.substring(0, 20)}&rdquo;
           </Text>
           <TouchableOpacity onPress={() => setReorderIdx(null)}>
-            <Text className="text-sm font-bold" style={{ color: primaryColor }}>Done</Text>
+            <Text className="text-sm font-bold" style={{ color: primaryColor }}>
+              Done
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -906,7 +967,12 @@ function QueueList({
             <View
               className="flex-row items-center px-4"
               style={[
-                { minHeight: 64, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                {
+                  minHeight: 64,
+                  paddingVertical: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                },
                 isCurrent && { backgroundColor: `${primaryColor}12` },
               ]}>
               {/* Drag Handle (hamburger) - Long press to start reorder */}
@@ -966,7 +1032,9 @@ function QueueList({
                         setReorderIdx(index - 1);
                       }
                     }}>
-                    <Text className="text-lg font-bold" style={{ color: mutedColor }}>▲</Text>
+                    <Text className="text-lg font-bold" style={{ color: mutedColor }}>
+                      ▲
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className="h-9 w-9 items-center justify-center rounded-full active:bg-white/10"
@@ -976,7 +1044,9 @@ function QueueList({
                         setReorderIdx(index + 1);
                       }
                     }}>
-                    <Text className="text-lg font-bold" style={{ color: mutedColor }}>▼</Text>
+                    <Text className="text-lg font-bold" style={{ color: mutedColor }}>
+                      ▼
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : isReorderActive ? (
@@ -989,7 +1059,9 @@ function QueueList({
                       setReorderIdx(null);
                     }
                   }}>
-                  <Text className="text-xs font-semibold" style={{ color: mutedColor }}>Move Here</Text>
+                  <Text className="text-xs font-semibold" style={{ color: mutedColor }}>
+                    Move Here
+                  </Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity

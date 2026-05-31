@@ -59,7 +59,11 @@ const GridItem = memo(function GridItem({
         className="mb-2 w-full items-center justify-center rounded-xl"
         style={{
           aspectRatio: itemAspect,
-          backgroundColor: item.artColor ? `${item.artColor}20` : (isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+          backgroundColor: item.artColor
+            ? `${item.artColor}20`
+            : isDarkMode
+              ? 'rgba(255,255,255,0.06)'
+              : 'rgba(0,0,0,0.04)',
         }}>
         {item.thumbnail ? (
           <Image source={{ uri: item.thumbnail }} className="h-full w-full rounded-xl" />
@@ -77,17 +81,21 @@ const GridItem = memo(function GridItem({
         {renderOverlay?.(item)}
       </View>
       {!hideName && (
-        <Text className="mb-0.5 text-xs font-semibold" style={{ color: textColor }} numberOfLines={1}>
+        <Text
+          className="mb-0.5 text-xs font-semibold"
+          style={{ color: textColor }}
+          numberOfLines={1}>
           {item.name}
         </Text>
       )}
-      {!hideName && (renderSubtitle
-        ? renderSubtitle(item)
-        : item.artist && (
-            <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>
-              {item.artist}
-            </Text>
-          ))}
+      {!hideName &&
+        (renderSubtitle
+          ? renderSubtitle(item)
+          : item.artist && (
+              <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>
+                {item.artist}
+              </Text>
+            ))}
     </TouchableOpacity>
   );
 });

@@ -15,11 +15,12 @@ export function TopBar() {
   const tabState = mainTabs?.state;
   const currentTab: string = tabState?.routeNames?.[tabState?.index ?? 0] ?? 'HomeTab';
 
-  const activeSegment = currentTab === 'MusicTab' ? 'music' : currentTab === 'VideosTab' ? 'videos' : null;
+  const activeSegment =
+    currentTab === 'MusicTab' ? 'music' : currentTab === 'VideosTab' ? 'videos' : null;
 
   return (
     <View>
-      <View className="flex-row items-center justify-between px-5 pt-3 pb-1">
+      <View className="flex-row items-center justify-between px-5 pb-1 pt-3">
         <TouchableOpacity onPress={() => navigation.navigate('HomeTab')}>
           <Text className="text-base font-semibold tracking-wide" style={{ color: textColor }}>
             {t('topbar.title')}
@@ -35,10 +36,16 @@ export function TopBar() {
         </View>
       </View>
       <View className="flex-row items-center justify-center px-5 pb-2">
-        <View className="flex-row rounded-full p-0.5" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}>
+        <View
+          className="flex-row rounded-full p-0.5"
+          style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}>
           <TouchableOpacity
             className="flex-row items-center rounded-full px-5 py-1.5"
-            style={activeSegment === 'music' ? { backgroundColor: primaryColor + '30' } : { opacity: 0.6 }}
+            style={
+              activeSegment === 'music'
+                ? { backgroundColor: primaryColor + '30' }
+                : { opacity: 0.6 }
+            }
             onPress={() => navigation.navigate('MusicTab')}>
             <MusicNote
               size={15}
@@ -53,7 +60,11 @@ export function TopBar() {
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-row items-center rounded-full px-5 py-1.5"
-            style={activeSegment === 'videos' ? { backgroundColor: primaryColor + '30' } : { opacity: 0.6 }}
+            style={
+              activeSegment === 'videos'
+                ? { backgroundColor: primaryColor + '30' }
+                : { opacity: 0.6 }
+            }
             onPress={() => navigation.navigate('VideosTab')}>
             <VideoCamera
               size={15}

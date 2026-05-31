@@ -62,7 +62,10 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
             onPress={() => navigateToFile(hero)}>
             <View
               className="w-full"
-              style={{ aspectRatio: 16 / 9, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}>
+              style={{
+                aspectRatio: 16 / 9,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              }}>
               {hero.thumbnail ? (
                 <Image
                   source={{ uri: hero.thumbnail }}

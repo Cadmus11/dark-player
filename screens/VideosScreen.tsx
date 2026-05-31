@@ -84,9 +84,12 @@ export const VideosScreen = React.memo(function VideosScreen() {
         <TouchableOpacity
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSortModal(false)}>
-          <View className="w-[80%] max-w-[320px] rounded-3xl p-6"
+          <View
+            className="w-[80%] max-w-[320px] rounded-3xl p-6"
             style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
-            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>Sort by</Text>
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
+              Sort by
+            </Text>
             {SORT_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.field}

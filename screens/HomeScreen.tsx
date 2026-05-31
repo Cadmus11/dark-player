@@ -339,13 +339,17 @@ export const HomeScreen = React.memo(function HomeScreen() {
         <View className="flex-1 items-center justify-center p-[30]">
           <View className="items-center">
             <MusicNote size={56} color={primaryColor} weight="bold" />
-            <Text className="mb-2 mt-5 text-[28px] font-bold tracking-[3]" style={{ color: textColor }}>
+            <Text
+              className="mb-2 mt-5 text-[28px] font-bold tracking-[3]"
+              style={{ color: textColor }}>
               Lumora
             </Text>
             <Text className="text-center text-[15px] tracking-[2]" style={{ color: mutedColor }}>
               Your Media, Immersive
             </Text>
-            <Text className="mt-4 px-2.5 text-center text-sm leading-[22px]" style={{ color: mutedColor }}>
+            <Text
+              className="mt-4 px-2.5 text-center text-sm leading-[22px]"
+              style={{ color: mutedColor }}>
               Lumora needs access to your media files to play music, videos, and view documents.
               Your files stay on your device and are never uploaded.
             </Text>
@@ -367,7 +371,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: isDarkMode ? '#09090b' : '#F0F8FF' }}>
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: isDarkMode ? '#09090b' : '#F0F8FF' }}>
         <ActivityIndicator size="large" color={primaryColor} />
         <Text className="mt-4 text-[15px] tracking-[1]" style={{ color: mutedColor }}>
           Scanning media...
@@ -393,7 +399,11 @@ export const HomeScreen = React.memo(function HomeScreen() {
           </Text>
           <View
             className="rounded-[20px] p-5 shadow-lg"
-            style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderWidth: 1, borderColor: borderColor }}>
+            style={{
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              borderWidth: 1,
+              borderColor: borderColor,
+            }}>
             <View className="flex-row items-center">
               <DoughnutChart
                 segments={storageChartSegments}
@@ -484,7 +494,11 @@ export const HomeScreen = React.memo(function HomeScreen() {
                 <TouchableOpacity
                   key={playlist.id}
                   className="mr-3 w-[140px] items-center rounded-2xl p-3 shadow-lg"
-                  style={{ borderWidth: 1, borderColor: borderColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: borderColor,
+                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  }}
                   onPress={() => navigation.navigate('MusicTab')}
                   onLongPress={() => handlePlaylistLongPress(playlist)}>
                   {playlist.coverUri ? (
@@ -514,7 +528,12 @@ export const HomeScreen = React.memo(function HomeScreen() {
           ) : (
             <TouchableOpacity
               className="items-center rounded-2xl p-5"
-              style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: borderColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
+              style={{
+                borderWidth: 1,
+                borderStyle: 'dashed',
+                borderColor: borderColor,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              }}
               onPress={handleCreatePlaylist}>
               <GlassIcon size={48}>
                 <Plus size={24} color={primaryColor} weight="bold" />
@@ -626,14 +645,20 @@ export const HomeScreen = React.memo(function HomeScreen() {
       {/* Playlist Name Input Modal */}
       <Modal visible={showPlaylistInput} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/70">
-          <View className="w-[85%] max-w-[360px] rounded-2xl p-6"
+          <View
+            className="w-[85%] max-w-[360px] rounded-2xl p-6"
             style={{ backgroundColor: cardBg, borderWidth: 1, borderColor: borderColor }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               New Playlist
             </Text>
             <TextInput
               className="mb-5 rounded-xl px-4 py-3"
-              style={{ color: textColor, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderWidth: 1, borderColor: borderColor }}
+              style={{
+                color: textColor,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                borderWidth: 1,
+                borderColor: borderColor,
+              }}
               placeholder="Playlist name"
               placeholderTextColor={mutedColor}
               value={playlistInput}
@@ -644,7 +669,9 @@ export const HomeScreen = React.memo(function HomeScreen() {
             <View className="flex-row gap-3">
               <TouchableOpacity
                 className="flex-1 items-center rounded-xl py-3"
-                style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}
+                style={{
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                }}
                 onPress={() => {
                   setShowPlaylistInput(false);
                   setPlaylistInput('');

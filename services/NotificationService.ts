@@ -48,7 +48,7 @@ export class NotificationService {
 
     this._cleanups.push(
       eventBus.on(AppEvents.SCAN_COMPLETED, (data) => this._onScanCompleted(data)),
-      eventBus.on(AppEvents.SCAN_FAILED, (error) => this._onScanFailed(error)),
+      eventBus.on(AppEvents.SCAN_FAILED, (error) => this._onScanFailed(error))
     );
   }
 

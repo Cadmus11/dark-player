@@ -211,7 +211,14 @@ export class QueueEngine {
 
   moveInQueue(fromIndex: number, toIndex: number, source: 'audio' | 'video') {
     const q = source === 'audio' ? this._audioQueue : this._videoQueue;
-    if (fromIndex < 0 || fromIndex >= q.queue.length || toIndex < 0 || toIndex >= q.queue.length || fromIndex === toIndex) return;
+    if (
+      fromIndex < 0 ||
+      fromIndex >= q.queue.length ||
+      toIndex < 0 ||
+      toIndex >= q.queue.length ||
+      fromIndex === toIndex
+    )
+      return;
     const [moved] = q.queue.splice(fromIndex, 1);
     q.queue.splice(toIndex, 0, moved);
     if (fromIndex === q.currentIndex) {

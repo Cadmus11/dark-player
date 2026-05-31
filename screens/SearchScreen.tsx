@@ -141,7 +141,10 @@ export const SearchScreen = React.memo(function SearchScreen() {
             <TouchableOpacity
               key={type}
               className="flex-row items-center gap-1.5 rounded-[10px] px-3 py-2"
-              style={{ backgroundColor: activeFilter === type ? primaryColor : (isDarkMode ? '#27272a' : '#e4e4e7') }}
+              style={{
+                backgroundColor:
+                  activeFilter === type ? primaryColor : isDarkMode ? '#27272a' : '#e4e4e7',
+              }}
               onPress={() => setActiveFilter(type)}>
               <Icon
                 size={14}

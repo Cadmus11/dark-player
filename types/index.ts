@@ -407,7 +407,13 @@ export interface PrivateFileEntry {
   addedAt: number;
 }
 
-export type FileAction = 'addToPlaylist' | 'playNext' | 'share' | 'hide' | 'moveToPrivate' | 'delete';
+export type FileAction =
+  | 'addToPlaylist'
+  | 'playNext'
+  | 'share'
+  | 'hide'
+  | 'moveToPrivate'
+  | 'delete';
 
 export interface Album {
   id: string;

@@ -15,9 +15,7 @@ export function BlurBackground({ children }: BlurBackgroundProps) {
 
   const hasBackground = !!(theme.backgroundImageUri || theme.presetImageKey);
 
-  const overlayColor = isDarkMode
-    ? `rgba(9,9,11,0.5)`
-    : `rgba(240,248,255,0.5)`;
+  const overlayColor = isDarkMode ? `rgba(9,9,11,0.5)` : `rgba(240,248,255,0.5)`;
 
   const renderBg = () => {
     if (theme.presetImageKey) {

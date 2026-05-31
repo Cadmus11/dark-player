@@ -52,19 +52,22 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
     setEntries((prev) => prev.filter((e) => e.uri !== uri));
   }, []);
 
-  const handlePlay = useCallback(async (entry: PrivateFileEntry) => {
-    const file: FileItem = {
-      uri: entry.uri,
-      name: entry.name,
-      type: PrivateFolderService._inferType(entry.name),
-      artColor: fileEngine.getArtColor(entry.name),
-    };
-    if (file.type === 'video') {
-      navigation.navigate('VideoPlayer', { file });
-    } else {
-      navigation.navigate('MusicPlayer', { file });
-    }
-  }, [navigation]);
+  const handlePlay = useCallback(
+    async (entry: PrivateFileEntry) => {
+      const file: FileItem = {
+        uri: entry.uri,
+        name: entry.name,
+        type: PrivateFolderService._inferType(entry.name),
+        artColor: fileEngine.getArtColor(entry.name),
+      };
+      if (file.type === 'video') {
+        navigation.navigate('VideoPlayer', { file });
+      } else {
+        navigation.navigate('MusicPlayer', { file });
+      }
+    },
+    [navigation]
+  );
 
   const renderItem = ({ item }: { item: PrivateFileEntry }) => (
     <TouchableOpacity

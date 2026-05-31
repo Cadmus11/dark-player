@@ -37,17 +37,27 @@ export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoun
       if (this.props.fallback) return this.props.fallback;
       const isDark = Appearance.getColorScheme() === 'dark';
       return (
-        <View className="flex-1 items-center justify-center rounded-2xl p-6" style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}>
+        <View
+          className="flex-1 items-center justify-center rounded-2xl p-6"
+          style={{ backgroundColor: isDark ? '#18181b' : '#f4f4f5' }}>
           <WarningCircle size={32} color="#ef4444" weight="bold" />
-          <Text className="mb-1 mt-3 text-base font-bold" style={{ color: isDark ? '#ffffff' : '#18181b' }}>{this.props.name} Error</Text>
-          <Text className="mb-4 text-center text-xs" style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
+          <Text
+            className="mb-1 mt-3 text-base font-bold"
+            style={{ color: isDark ? '#ffffff' : '#18181b' }}>
+            {this.props.name} Error
+          </Text>
+          <Text
+            className="mb-4 text-center text-xs"
+            style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
             {this.state.error?.message || 'Something went wrong'}
           </Text>
           <TouchableOpacity
             className="rounded-xl px-4 py-2"
             style={{ backgroundColor: isDark ? '#C2FC4A' : '#F97316' }}
             onPress={this.handleRetry}>
-            <Text className="text-xs font-bold" style={{ color: isDark ? '#18181b' : '#ffffff' }}>Retry</Text>
+            <Text className="text-xs font-bold" style={{ color: isDark ? '#18181b' : '#ffffff' }}>
+              Retry
+            </Text>
           </TouchableOpacity>
         </View>
       );
