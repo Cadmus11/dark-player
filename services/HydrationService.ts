@@ -28,8 +28,8 @@ const HYDRATION_PHASES: HydrationPhase = [
 
   // Stage 3: Playback restoration + permission check
   async () => {
-    await permissionService.checkMediaLibrary();
-    if (status === 'GRANTED' || status === 'PARTIAL') {
+    const permStatus = await permissionService.checkMediaLibrary();
+    if (permStatus === 'GRANTED' || permStatus === 'PARTIAL') {
       useMediaStore.setState({ permissionsGranted: true });
       if (!fileEngine.hasCache()) {
         useMediaStore.getState().scanMedia();

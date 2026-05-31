@@ -83,7 +83,7 @@ export default function App() {
   useEffect(() => {
     lifecycleManager.initialize();
     startHydration();
-    notificationService.setup();
+    notificationService.setup().catch(console.error);
     return () => {
       lifecycleManager.cleanup();
       notificationService.cleanup();
