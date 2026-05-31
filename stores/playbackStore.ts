@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { audioEngine } from '../engine/AudioEngine';
+import { queueEngine } from '../engine/QueueEngine';
 import type { FileItem, PlaybackSource, RepeatMode } from '../types';
 import { PlaybackTicker } from '../services/PlaybackTicker';
 
@@ -30,6 +31,7 @@ interface PlaybackStoreState {
   cycleRepeat: () => void;
   toggleShuffle: () => void;
   setQueue: (queue: FileItem[], startIndex?: number) => void;
+  moveInQueue: (fromIndex: number, toIndex: number) => void;
   setSource: (source: PlaybackSource) => void;
   reset: () => void;
 }
@@ -138,6 +140,12 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
   setQueue: (queue, startIndex = 0) => {
     audioEngine.setQueue(queue, startIndex);
     set({ queue, currentIndex: startIndex });
+  },
+
+  moveInQueue: (fromIndex, toIndex) => {
+    queueEngine.moveInQueue(fromIndex, toIndex, 'audio');
+    const qs = queueEngine.getAudioState();
+    set({ queue: qs.queue, currentIndex: qs.currentIndex });
   },
 
   setSource: (source) => set({ source }),

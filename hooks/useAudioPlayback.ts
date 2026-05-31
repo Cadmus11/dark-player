@@ -69,6 +69,7 @@ export function useAudioPlayback() {
       usePlaybackStore.getState().toggleShuffle();
     }, []),
     setQueue: usePlaybackStore.getState().setQueue,
+    moveInQueue: usePlaybackStore.getState().moveInQueue,
     stop: usePlaybackStore.getState().stop,
   };
 }

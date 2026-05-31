@@ -209,6 +209,25 @@ export class QueueEngine {
     this._notify();
   }
 
+  moveInQueue(fromIndex: number, toIndex: number, source: 'audio' | 'video') {
+    const q = source === 'audio' ? this._audioQueue : this._videoQueue;
+    if (fromIndex < 0 || fromIndex >= q.queue.length || toIndex < 0 || toIndex >= q.queue.length || fromIndex === toIndex) return;
+    const [moved] = q.queue.splice(fromIndex, 1);
+    q.queue.splice(toIndex, 0, moved);
+    if (fromIndex === q.currentIndex) {
+      q.currentIndex = toIndex;
+    } else if (fromIndex < q.currentIndex && toIndex >= q.currentIndex) {
+      q.currentIndex--;
+    } else if (fromIndex > q.currentIndex && toIndex <= q.currentIndex) {
+      q.currentIndex++;
+    }
+    q.shuffledOrder = [];
+    if (q.shuffle) this._generateShuffled(source);
+    if (source === 'audio') this._saveAudioQueue();
+    else this._saveVideoQueue();
+    this._notify();
+  }
+
   clearQueue(source: 'audio' | 'video') {
     const q = source === 'audio' ? this._audioQueue : this._videoQueue;
     q.queue = [];

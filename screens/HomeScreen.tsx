@@ -146,7 +146,6 @@ export const HomeScreen = React.memo(function HomeScreen() {
   const loading = useMediaStore((s) => s.loading);
   const videos = useMediaStore((s) => s.videos);
   const audio = useVisibleAudio();
-  const categories = useCategories();
   const recentFiles = useRecentFiles();
   const recentlyPlayed = useRecentlyPlayed();
   const playlists = useExpandedPlaylists();
@@ -184,7 +183,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
     if (!permissionsGranted && !showSplash) {
       setShowPermissionRationale(true);
     }
-  }, [showSplash]);
+  }, [showSplash, permissionsGranted]);
 
   useEffect(() => {
     Promise.all([getTotalDiskCapacityAsync(), getFreeDiskStorageAsync()])
@@ -255,7 +254,7 @@ export const HomeScreen = React.memo(function HomeScreen() {
     } catch {
       return [];
     }
-  }, [recentlyPlayed]);
+  }, []);
 
   const deviceUsed = deviceTotal - deviceFree;
   const otherUsedSize = Math.max(0, deviceUsed - musicSize - videoSize);

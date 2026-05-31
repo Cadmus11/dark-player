@@ -49,7 +49,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { fileEngine } from '../engine/FileEngine';
+import { queueEngine } from '../engine/QueueEngine';
 import { AudioEngine } from '../engine/AudioEngine';
+import { usePlaybackStore } from '../stores/playbackStore';
 import { MetadataService } from '../services/Metadata/MetadataService';
 import { LyricsService } from '../services/Lyrics/LyricsService';
 import type { LyricsData } from '../types';
@@ -67,6 +69,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const { toggleFavorite, isFavorite } = useFavorites([]);
 
   const {
+    currentFile,
     isPlaying,
     position,
     duration,
@@ -84,7 +87,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     setRate,
     cycleRepeat,
     toggleShuffle,
-    setQueue,
+    moveInQueue,
   } = useAudioPlayback();
 
   const playlistStore = usePlaylistStore();
@@ -202,13 +205,13 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     MetadataService.extract(file.uri, file.name).then((meta) => {
       if (meta.artwork) setLocalArtwork(meta.artwork);
     });
-  }, [file.uri]);
+  }, [file.uri, file.name]);
 
   useEffect(() => {
     const q = audio.length > 0 ? audio : [file];
     const idx = q.findIndex((f) => f.uri === file.uri);
     playFile(file, q, idx >= 0 ? idx : 0);
-  }, []);
+  }, [audio, file, playFile]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -221,7 +224,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       pulse.start();
       return () => pulse.stop();
     }
-  }, [isPlaying]);
+  }, [isPlaying, pulseAnim]);
 
   const currentItem = queue[currentIndex] || file;
   const artColor = currentItem?.artColor || primaryColor;
@@ -660,51 +663,57 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </Modal>
 
-      {/* Queue Modal */}
+      {/* Queue Sheet */}
       <Modal visible={showQueue} transparent animationType="slide">
         <View className="flex-1 bg-[#18181b]">
-          <View className="flex-row items-center justify-between border-b border-white/10 px-5 pb-5 pt-[60px]">
+          <View className="flex-row items-center justify-between border-b border-white/10 px-5 pb-4 pt-[60px]">
             <Text className="text-xl font-extrabold text-white">Queue ({queue.length})</Text>
             <TouchableOpacity onPress={() => setShowQueue(false)}>
               <X size={24} color="#ffffff" />
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={queue}
-            keyExtractor={(item) => item.uri}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                className="flex-row items-center px-5 py-3"
-                style={
-                  index === currentIndex ? { backgroundColor: `${primaryColor}15` } : undefined
-                }>
-                <Text
-                  className="w-10 text-center text-base text-zinc-400"
-                  style={index === currentIndex ? { color: primaryColor } : undefined}>
-                  {index === currentIndex && isPlaying ? '\u25B6' : index + 1}
-                </Text>
-                <View
-                  className="mr-2.5 h-9 w-9 items-center justify-center rounded-[10px]"
-                  style={{ backgroundColor: (item.artColor || primaryColor) + '20' }}>
-                  {item.type === 'video' ? (
-                    <VideoCamera size={16} color="#ffffff" />
-                  ) : (
-                    <MusicNote size={16} color="#ffffff" />
-                  )}
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="mb-1 text-[15px] text-white"
-                    numberOfLines={1}
-                    style={index === currentIndex ? { color: primaryColor } : undefined}>
-                    {item.name}
-                  </Text>
-                  <Text className="text-xs text-zinc-400">
-                    {item.duration ? fileEngine.formatDuration(item.duration) : 'Unknown'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
+
+          {/* Shuffle + Repeat Controls */}
+          <View className="flex-row items-center justify-center gap-6 border-b border-white/5 px-5 py-3">
+            <TouchableOpacity
+              className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+              style={{ backgroundColor: shuffle ? `${primaryColor}20` : '#27272a' }}
+              onPress={toggleShuffle}>
+              <ShuffleAngular size={18} color={shuffle ? primaryColor : '#a1a1aa'} weight={shuffle ? 'bold' : 'regular'} />
+              <Text className="text-sm font-semibold" style={{ color: shuffle ? primaryColor : '#a1a1aa' }}>
+                Shuffle
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-row items-center gap-2 rounded-xl px-4 py-2"
+              style={{ backgroundColor: repeat !== 'none' ? `${primaryColor}20` : '#27272a' }}
+              onPress={cycleRepeat}>
+              {repeat === 'one' ? (
+                <RepeatOnce size={18} color={primaryColor} weight="bold" />
+              ) : (
+                <Repeat size={18} color={repeat !== 'none' ? primaryColor : '#a1a1aa'} weight={repeat !== 'none' ? 'bold' : 'regular'} />
+              )}
+              <Text className="text-sm font-semibold" style={{ color: repeat !== 'none' ? primaryColor : '#a1a1aa' }}>
+                {repeat === 'one' ? 'Repeat One' : repeat === 'all' ? 'Repeat All' : 'Repeat'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Draggable Queue List */}
+          <QueueList
+            items={queue}
+            currentIndex={currentIndex}
+            isPlaying={isPlaying}
+            primaryColor={primaryColor}
+            currentFile={currentFile}
+            onPlayIndex={(index) => {
+              const s = usePlaybackStore.getState();
+              s.playIndex(index);
+            }}
+            onRemove={(index) => {
+              queueEngine.removeFromQueue(index, 'audio');
+            }}
+            onMove={moveInQueue}
           />
         </View>
       </Modal>
@@ -809,6 +818,163 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
+    </View>
+  );
+}
+
+function QueueList({
+  items,
+  currentIndex,
+  isPlaying,
+  primaryColor,
+  currentFile,
+  onPlayIndex,
+  onRemove,
+  onMove,
+}: {
+  items: FileItem[];
+  currentIndex: number;
+  isPlaying: boolean;
+  primaryColor: string;
+  currentFile: FileItem | null;
+  onPlayIndex: (index: number) => void;
+  onRemove: (index: number) => void;
+  onMove: (from: number, to: number) => void;
+}) {
+  const [reorderIdx, setReorderIdx] = useState<number | null>(null);
+  const scrollRef = useRef<FlatList>(null);
+
+  if (items.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <MusicNotes size={48} color="#52525b" />
+        <Text className="mt-4 text-base text-zinc-500">Queue is empty</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1">
+      {reorderIdx !== null && (
+        <View className="flex-row items-center justify-between bg-zinc-800/80 px-5 py-2">
+          <Text className="text-sm text-zinc-400">
+            Move "{items[reorderIdx]?.name?.substring(0, 20)}"
+          </Text>
+          <TouchableOpacity onPress={() => setReorderIdx(null)}>
+            <Text className="text-sm font-bold" style={{ color: primaryColor }}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      <FlatList
+        ref={scrollRef}
+        data={items}
+        keyExtractor={(item) => item.uri}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        renderItem={({ item, index }) => {
+          const isCurrent = index === currentIndex;
+          const isReorderActive = reorderIdx !== null;
+          const isThisReordering = reorderIdx === index;
+
+          return (
+            <View
+              className="flex-row items-center border-b border-white/5 px-4"
+              style={[
+                { minHeight: 64, paddingVertical: 10 },
+                isCurrent && { backgroundColor: `${primaryColor}12` },
+              ]}>
+              {/* Drag Handle (hamburger) - Long press to start reorder */}
+              <TouchableOpacity
+                className="mr-2 h-10 w-8 items-center justify-center"
+                onLongPress={() => setReorderIdx(index)}
+                delayLongPress={300}
+                onPress={() => {
+                  if (!isReorderActive) onPlayIndex(index);
+                }}>
+                <View className="gap-0.5">
+                  <View className="h-0.5 w-3.5 rounded bg-zinc-500" />
+                  <View className="h-0.5 w-3.5 rounded bg-zinc-500" />
+                  <View className="h-0.5 w-3.5 rounded bg-zinc-500" />
+                </View>
+              </TouchableOpacity>
+
+              {/* Index / Playing Indicator */}
+              <Text
+                className="mr-2 w-8 text-center text-sm font-bold"
+                style={{ color: isCurrent ? primaryColor : '#52525b' }}>
+                {isCurrent && isPlaying ? '\u25B6' : `${index + 1}`}
+              </Text>
+
+              {/* Thumbnail */}
+              <View
+                className="mr-3 h-10 w-10 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${item.artColor || primaryColor}20` }}>
+                {item.thumbnail ? (
+                  <Image source={{ uri: item.thumbnail }} className="h-10 w-10 rounded-xl" />
+                ) : (
+                  <MusicNote size={18} color={isCurrent ? primaryColor : '#a1a1aa'} />
+                )}
+              </View>
+
+              {/* Info */}
+              <View className="flex-1">
+                <Text
+                  className="text-sm font-semibold"
+                  numberOfLines={1}
+                  style={{ color: isCurrent ? primaryColor : '#e4e4e7' }}>
+                  {item.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-zinc-500">
+                  {item.artist || (item.duration ? fileEngine.formatDuration(item.duration) : '')}
+                </Text>
+              </View>
+
+              {/* Reorder Arrows or Remove */}
+              {isReorderActive && isThisReordering ? (
+                <View className="flex-row gap-1">
+                  <TouchableOpacity
+                    className="h-9 w-9 items-center justify-center rounded-full active:bg-white/10"
+                    onPress={() => {
+                      if (index > 0) {
+                        onMove(index, index - 1);
+                        setReorderIdx(index - 1);
+                      }
+                    }}>
+                    <Text className="text-lg font-bold text-zinc-300">▲</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="h-9 w-9 items-center justify-center rounded-full active:bg-white/10"
+                    onPress={() => {
+                      if (index < items.length - 1) {
+                        onMove(index, index + 1);
+                        setReorderIdx(index + 1);
+                      }
+                    }}>
+                    <Text className="text-lg font-bold text-zinc-300">▼</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : isReorderActive ? (
+                <TouchableOpacity
+                  className="rounded-lg border border-zinc-600 px-3 py-1.5"
+                  onPress={() => {
+                    if (reorderIdx !== null && reorderIdx !== index) {
+                      onMove(reorderIdx, index);
+                      setReorderIdx(null);
+                    }
+                  }}>
+                  <Text className="text-xs font-semibold text-zinc-400">Move Here</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  className="ml-2 h-9 w-9 items-center justify-center rounded-full active:bg-white/10"
+                  onPress={() => onRemove(index)}>
+                  <X size={16} color="#71717a" />
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }

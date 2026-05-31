@@ -144,26 +144,24 @@ const AVAILABLE_THEMES = [
 ];
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { setColorScheme } = useColorScheme();
   const [theme, setTheme] = useState<ThemeSettings>(DARK_THEME);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentColorThemeName, setCurrentColorThemeName] = useState('Midnight');
 
   useEffect(() => {
-    loadTheme();
-  }, []);
-
-  async function loadTheme() {
-    const settings = await getThemeSettings();
-    if (settings && settings.backgroundType) {
-      setTheme(settings);
-      const bg = settings.backgroundColor || '#06060B';
-      const lightBgs = ['#F0F8FF', '#F5F5F5', '#ffffff'];
-      const isLight = lightBgs.some((l) => bg === l) || /^#[FfEeBb].{5}/.test(bg);
-      setIsDarkMode(!isLight);
-      setColorScheme(isLight ? 'light' : 'dark');
-    }
-  }
+    (async () => {
+      const settings = await getThemeSettings();
+      if (settings && settings.backgroundType) {
+        setTheme(settings);
+        const bg = settings.backgroundColor || '#06060B';
+        const lightBgs = ['#F0F8FF', '#F5F5F5', '#ffffff'];
+        const isLight = lightBgs.some((l) => bg === l) || /^#[FfEeBb].{5}/.test(bg);
+        setIsDarkMode(!isLight);
+        setColorScheme(isLight ? 'light' : 'dark');
+      }
+    })();
+  }, [setColorScheme]);
 
   async function applyThemeSettings(settings: ThemeSettings) {
     setTheme(settings);
