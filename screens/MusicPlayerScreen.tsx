@@ -54,7 +54,7 @@ import { AudioEngine } from '../engine/AudioEngine';
 import { usePlaybackStore } from '../stores/playbackStore';
 import { MetadataService } from '../services/Metadata/MetadataService';
 import { LyricsService } from '../services/Lyrics/LyricsService';
-import type { LyricsData } from '../types';
+import type { FileItem, LyricsData } from '../types';
 import { NeonSlider } from '../components/NeonSlider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MusicPlayer'>;
