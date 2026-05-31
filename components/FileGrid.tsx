@@ -31,6 +31,7 @@ const GridItem = memo(function GridItem({
   primaryColor,
   textColor,
   mutedColor,
+  isDarkMode,
   columns,
   itemAspect,
   hideName,
@@ -42,6 +43,7 @@ const GridItem = memo(function GridItem({
   primaryColor: string;
   textColor: string;
   mutedColor: string;
+  isDarkMode: boolean;
   columns: number;
   itemAspect: number;
   hideName?: boolean;
@@ -130,6 +132,7 @@ function FileGrid({
         primaryColor={primaryColor}
         textColor={textColor}
         mutedColor={mutedColor}
+        isDarkMode={isDarkMode}
         columns={colCount}
         itemAspect={itemAspect}
         hideName={hideName}
@@ -142,6 +145,7 @@ function FileGrid({
       primaryColor,
       textColor,
       mutedColor,
+      isDarkMode,
       colCount,
       itemAspect,
       hideName,

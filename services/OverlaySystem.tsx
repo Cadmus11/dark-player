@@ -12,6 +12,9 @@ import {
   TouchableOpacity,
   Appearance,
   PanResponder,
+  Modal,
+  Dimensions,
+  Animated,
 } from 'react-native';
 
 type OverlayPriority = 'low' | 'medium' | 'high' | 'critical';
