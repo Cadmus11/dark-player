@@ -1,19 +1,21 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { MusicNote, VideoCamera, VinylRecord, FolderSimple, MicrophoneStage, Playlist } from 'phosphor-react-native';
+import {
+  MusicNote, VideoCamera, VinylRecord, FolderSimple, MicrophoneStage,
+  Playlist, SquaresFour,
+} from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const TABS = [
   { key: 'MusicTab', route: 'MusicTab', icon: MusicNote, label: 'Music' },
   { key: 'VideosTab', route: 'VideosTab', icon: VideoCamera, label: 'Videos' },
+  { key: 'CoreTab', route: 'CoreTab', icon: SquaresFour, label: 'Core' },
   { key: 'Albums', route: 'Category', icon: VinylRecord, label: 'Albums', params: { type: 'audio', title: 'Albums', icon: 'music' } },
   { key: 'Folders', route: 'FolderList', icon: FolderSimple, label: 'Folders', params: { title: 'Folders', filterType: 'recent' as const } },
   { key: 'Artists', route: 'Category', icon: MicrophoneStage, label: 'Artists', params: { type: 'audio', title: 'Artists', icon: 'music' } },
   { key: 'PlaylistsTab', route: 'PlaylistsTab', icon: Playlist, label: 'Playlists' },
 ] as const;
-
-type TabKey = (typeof TABS)[number]['key'];
 
 export function Navbar() {
   const navigation = useNavigation<any>();
@@ -27,17 +29,14 @@ export function Navbar() {
   const currentTab: string | undefined = tabState?.routeNames?.[tabState?.index ?? 0] ?? 'MusicTab';
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      className="flex-1 px-4 pb-2">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 pb-2">
       {TABS.map((tab) => {
         const isActive = currentTab === tab.key;
         const Icon = tab.icon;
         return (
           <TouchableOpacity
             key={tab.key}
-            className="flex-row items-center px-4 py-1.5 mr-2"
+            className="flex-row items-center rounded-full px-4 py-1.5 mr-2"
             style={isActive ? { backgroundColor: primaryColor + '20' } : { opacity: 0.6 }}
             onPress={() => {
               if ('params' in tab && tab.params) {

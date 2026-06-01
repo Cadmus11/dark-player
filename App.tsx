@@ -19,6 +19,7 @@ import { SplashScreen } from './screens/SplashScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
 import { PlaylistsScreen } from './screens/PlaylistsScreen';
+import { CorePage } from './screens/CorePage';
 import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CategoryScreen } from './screens/CategoryScreen';
@@ -39,6 +40,7 @@ export type MainTabParamList = {
   MusicTab: undefined;
   VideosTab: undefined;
   PlaylistsTab: undefined;
+  CoreTab: undefined;
   SearchTab: undefined;
   SettingsTab: undefined;
 };
@@ -69,6 +71,7 @@ function MainTabs() {
         <Tab.Screen name="MusicTab" component={MusicScreen} />
         <Tab.Screen name="VideosTab" component={VideosScreen} />
         <Tab.Screen name="PlaylistsTab" component={PlaylistsScreen} />
+        <Tab.Screen name="CoreTab" component={CorePage} />
         <Tab.Screen name="SearchTab" component={SearchScreen} />
         <Tab.Screen name="SettingsTab" component={SettingsScreen} />
       </Tab.Navigator>

@@ -445,36 +445,51 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      {/* File Size Mode */}
+      {/* Display Size Mode */}
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
-        File Size
+        Display Size
       </Text>
       <View
         className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row gap-2 p-1">
+        <View className="p-1">
           {(['small', 'medium', 'big'] as LayoutSize[]).map((mode) => {
-            const labels = { small: 'Small', medium: 'Medium', big: 'Big' };
+            const labels = { small: 'Compact', medium: 'Comfortable', big: 'Large' };
             const descs = {
-              small: '4 columns, compact',
-              medium: '3 columns, balanced',
-              big: '1-2 columns, large',
+              small: 'Smaller artwork, more songs visible, tighter spacing',
+              medium: 'Balanced UI, default experience',
+              big: 'Bigger text and controls, better accessibility',
             };
             const active = theme.sizeMode === mode;
             return (
               <TouchableOpacity
                 key={mode}
-                className="flex-1 items-center rounded-xl px-2 py-3"
-                style={active ? { backgroundColor: primaryColor + '20' } : undefined}
+                className="mb-1 flex-row items-center rounded-xl px-3 py-3"
+                style={active ? { backgroundColor: primaryColor + '12' } : undefined}
                 onPress={() => setSizeMode(mode)}>
-                <Text
-                  className="text-sm font-bold"
-                  style={{ color: active ? primaryColor : textColor }}>
-                  {labels[mode]}
-                </Text>
-                <Text className="mt-1 text-center text-[10px]" style={{ color: mutedColor }}>
-                  {descs[mode]}
-                </Text>
+                <View
+                  className="mr-3 h-5 w-5 items-center justify-center rounded-full"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: active ? primaryColor : mutedColor,
+                  }}>
+                  {active && (
+                    <View
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: primaryColor }}
+                    />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-sm font-bold"
+                    style={{ color: active ? primaryColor : textColor }}>
+                    {labels[mode]}
+                  </Text>
+                  <Text className="mt-0.5 text-[11px]" style={{ color: mutedColor }}>
+                    {descs[mode]}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           })}

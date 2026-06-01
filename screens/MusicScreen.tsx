@@ -17,13 +17,6 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import {
-  Heart,
-  ClockClockwise,
-  MicrophoneStage,
-  TrendUp,
-  Disc,
-  User,
-  Folder,
   MusicNote,
   ArrowDown,
   ArrowUp,
@@ -39,7 +32,6 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
-import type { FolderFilterType } from './FolderScreen';
 
 interface MusicSection {
   title: string;
@@ -58,16 +50,6 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
 
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-const CORE_ITEMS: { icon: (color: string) => React.ReactNode; label: string; filterType: FolderFilterType }[] = [
-  { icon: (c) => <Heart size={18} color={c} weight="fill" />, label: 'Liked Songs', filterType: 'favorites' },
-  { icon: (c) => <ClockClockwise size={18} color={c} weight="fill" />, label: 'Recently Played', filterType: 'recent' },
-  { icon: (c) => <MicrophoneStage size={18} color={c} weight="fill" />, label: 'With Lyrics', filterType: 'recent' },
-  { icon: (c) => <TrendUp size={18} color={c} weight="fill" />, label: 'Most Played', filterType: 'mostPlayed' },
-  { icon: (c) => <Disc size={18} color={c} weight="fill" />, label: 'Albums', filterType: 'recent' },
-  { icon: (c) => <User size={18} color={c} weight="fill" />, label: 'Artists', filterType: 'recent' },
-  { icon: (c) => <Folder size={18} color={c} weight="fill" />, label: 'Folders', filterType: 'recent' },
-];
-
 function getLetter(name: string): string {
   const char = name.charAt(0).toUpperCase();
   return /[A-Z]/.test(char) ? char : '#';
@@ -75,9 +57,8 @@ function getLetter(name: string): string {
 
 export const MusicScreen = React.memo(function MusicScreen() {
   const audio = useVisibleAudio();
-  const playlists = usePlaylistStore((s) => s.playlists);
   const navigation = useNavigation<any>();
-  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -436,26 +417,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
           Music
         </Text>
-      </View>
-
-      <View className="mb-3 px-4">
-        <Text className="mb-2 text-xs font-semibold tracking-widest uppercase" style={{ color: mutedColor }}>
-          Core
-        </Text>
-        <View className="flex-row flex-wrap gap-2">
-          {CORE_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2"
-              style={{ backgroundColor: `${primaryColor}15` }}
-              onPress={() => navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })}>
-              <View style={{ opacity: 0.9 }}>{item.icon(primaryColor)}</View>
-              <Text className="text-[12px] font-semibold" style={{ color: primaryColor }}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       <View className="flex-1 flex-row">
