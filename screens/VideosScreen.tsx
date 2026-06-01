@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { VideoCamera } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
@@ -13,7 +13,7 @@ import FileGrid from '../components/FileGrid';
 
 export const VideosScreen = React.memo(function VideosScreen() {
   const videos = useMediaStore((s) => s.videos);
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');

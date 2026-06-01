@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../App';
+import type { RootStackParamList } from '../types';
 import { CaretLeft, VideoCamera, MusicNote, FunnelSimple } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaybackStore } from '../stores/playbackStore';

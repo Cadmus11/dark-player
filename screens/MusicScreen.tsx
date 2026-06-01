@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { MusicNote, Microphone, CheckCircle } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
@@ -41,7 +41,7 @@ function getLetter(name: string): string {
 
 export const MusicScreen = React.memo(function MusicScreen() {
   const audio = useVisibleAudio();
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const [sortField, setSortField] = useState<SortField>('name');
@@ -135,8 +135,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([title, data]) => ({ title, data }));
   }, [sortedAudio, sortField]);
-
-  const currentSortLabel = SORT_OPTIONS.find((o) => o.field === sortField)?.label || 'Name';
 
   const navigateToFile = useCallback(
     (file: FileItem) => {

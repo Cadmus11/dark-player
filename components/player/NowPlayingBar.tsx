@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Play, Pause, SkipForward, MusicNote, X } from 'phosphor-react-native';
-import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { useTheme } from '../../context/ThemeContext';
 import { useColorAwareness } from '../../context/ColorAwarenessContext';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export function NowPlayingBar() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { textColor, mutedColor, cardBg, borderColor, primaryColor } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
   const currentFile = usePlaybackStore((s) => s.currentFile);

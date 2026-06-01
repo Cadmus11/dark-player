@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../App';
+import type { RootStackParamList, FolderFilterType } from '../types';
 import {
   CaretLeft,
   MusicNote,
@@ -23,15 +23,6 @@ import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
 import type { FileItem } from '../types';
-
-export type FolderFilterType =
-  | 'recent'
-  | 'mostPlayed'
-  | 'random'
-  | 'favorites'
-  | 'duplicates'
-  | 'unused'
-  | 'largeFiles';
 
 type FolderScreenProps = NativeStackScreenProps<RootStackParamList, 'FolderList'>;
 

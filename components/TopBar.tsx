@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
+import { useNavigationState } from '@react-navigation/native';
 import { MagnifyingGlass, Gear, FunnelSimple, CaretDown } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Navbar } from './Navbar';
 
 interface TopBarProps {
@@ -11,7 +12,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor } = useTheme();
 
   return (

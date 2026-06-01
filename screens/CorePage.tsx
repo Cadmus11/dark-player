@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import {
   Heart,
   ClockClockwise,
@@ -12,7 +12,7 @@ import {
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
-import type { FolderFilterType } from './FolderScreen';
+import type { FolderFilterType } from '../types';
 
 interface CoreItem {
   key: string;
@@ -67,7 +67,7 @@ const CORE_ITEMS: CoreItem[] = [
 ];
 
 export const CorePage = React.memo(function CorePage() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
 
   return (

@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../App';
+import type { RootStackParamList } from '../types';
 import { CaretLeft, Play, Star } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';

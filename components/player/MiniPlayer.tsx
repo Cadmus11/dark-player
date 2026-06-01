@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { X, Play, Pause, ArrowsOut } from 'phosphor-react-native';
-import { useNavigation } from '@react-navigation/native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { useTheme } from '../../context/ThemeContext';
 import { useColorAwareness } from '../../context/ColorAwarenessContext';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export function MiniPlayer() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { textColor, mutedColor, primaryColor, cardBg, borderColor } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
   const currentFile = usePlaybackStore((s) => s.currentFile);

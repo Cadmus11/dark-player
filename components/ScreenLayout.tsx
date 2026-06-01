@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import React, { memo, type ReactNode } from 'react';
 import { View, ScrollView, StatusBar, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurBackground } from './BlurBackground';
@@ -19,7 +19,7 @@ interface ScreenLayoutProps {
   enableEdgeLighting?: boolean;
 }
 
-export function ScreenLayout({
+export const ScreenLayout = memo(function ScreenLayout({
   children,
   scroll = false,
   noTopBar = false,
@@ -78,4 +78,4 @@ export function ScreenLayout({
   }
 
   return wrapped;
-}
+});

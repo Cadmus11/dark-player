@@ -10,7 +10,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Plus, MusicNote } from 'phosphor-react-native';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useExpandedPlaylists } from '../hooks/useDomainSelectors';
@@ -20,7 +20,7 @@ import { GlassIcon } from '../components/GlassIcon';
 import type { Playlist } from '../types';
 
 export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const playlists = useExpandedPlaylists();
   const playlistStore = usePlaylistStore();
   const { textColor, mutedColor, primaryColor, isDarkMode, borderColor, cardBg } = useTheme();

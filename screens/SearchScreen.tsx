@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSearchQuery } from '../hooks/queries/useSearchQuery';
@@ -18,7 +18,7 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 ];
 
 export const SearchScreen = React.memo(function SearchScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, borderColor, isDarkMode } = useTheme();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');

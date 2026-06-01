@@ -14,7 +14,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import {
   Clock,
   PaintBrush,
@@ -177,7 +177,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     }
   }, [setBackgroundImage]);
   const settingsStore = useSettingsStore();
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const hiddenFilesSettings = settingsStore.hiddenFiles;
   const mediaAudio = useMediaStore((s) => s.audio);
   const hiddenFiles = useMemo(() => {

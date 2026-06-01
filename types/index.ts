@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type FileType = 'video' | 'audio' | 'folder' | 'other';
 
 export type RepeatMode = 'none' | 'one' | 'all';
@@ -295,6 +297,40 @@ export interface EdgeLightingColors {
   right: string;
   bottom: string;
 }
+
+export type MainTabParamList = {
+  MusicTab: undefined;
+  VideosTab: undefined;
+  PlaylistsTab: undefined;
+  CoreTab: undefined;
+  SearchTab: undefined;
+  SettingsTab: undefined;
+};
+
+export type FolderFilterType =
+  | 'recent'
+  | 'mostPlayed'
+  | 'random'
+  | 'favorites'
+  | 'duplicates'
+  | 'unused'
+  | 'largeFiles';
+
+export type RootStackParamList = {
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
+  MusicTab: undefined;
+  VideosTab: undefined;
+  PlaylistsTab: undefined;
+  CoreTab: undefined;
+  SearchTab: undefined;
+  SettingsTab: undefined;
+  Category: { type: FileType; title: string; icon: string };
+  FolderList: { title: string; filterType: FolderFilterType };
+  VideoTop: undefined;
+  VideoPlayer: { file: FileItem; isAudioOnly?: boolean };
+  MusicPlayer: { file: FileItem; isVideoAsAudio?: boolean };
+  PrivateFolder: undefined;
+};
 
 export const THEME_PRESETS: ColorThemePreset[] = [
   {

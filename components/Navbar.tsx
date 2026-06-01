@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity } from 'react-native';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
+import { useNavigationState } from '@react-navigation/native';
 import {
   MusicNote,
   VideoCamera,
@@ -10,6 +10,7 @@ import {
   Playlist,
   SquaresFour,
 } from 'phosphor-react-native';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useTheme } from '../context/ThemeContext';
 
 const TABS = [
@@ -41,7 +42,7 @@ const TABS = [
 ] as const;
 
 export function Navbar() {
-  const navigation = useNavigation<any>();
+  const navigation = useAppNavigation();
   const { primaryColor, mutedColor } = useTheme();
 
   const tabState = useNavigationState((state) => {
