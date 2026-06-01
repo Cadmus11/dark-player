@@ -510,8 +510,13 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const renderProgress = () => (
     <View className="mb-5 px-8">
       <View className="flex-row items-center gap-3">
-        <TouchableOpacity onPress={seekBack10} hitSlop={16} className="h-8 w-8 items-center justify-center">
-          <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>{'\u23EE'}</Text>
+        <TouchableOpacity
+          onPress={seekBack10}
+          hitSlop={16}
+          className="h-8 w-8 items-center justify-center">
+          <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>
+            {'\u23EE'}
+          </Text>
         </TouchableOpacity>
         <View className="flex-1">
           <NeonSlider
@@ -527,8 +532,13 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
             showThumb
           />
         </View>
-        <TouchableOpacity onPress={seekFwd10} hitSlop={16} className="h-8 w-8 items-center justify-center">
-          <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>{'\u23ED'}</Text>
+        <TouchableOpacity
+          onPress={seekFwd10}
+          hitSlop={16}
+          className="h-8 w-8 items-center justify-center">
+          <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>
+            {'\u23ED'}
+          </Text>
         </TouchableOpacity>
       </View>
       <View className="mt-1.5 flex-row justify-between">

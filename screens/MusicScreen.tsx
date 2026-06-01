@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
   Alert,
   SectionList,
   GestureResponderEvent,
@@ -16,13 +15,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
-import {
-  MusicNote,
-  ArrowDown,
-  ArrowUp,
-  Microphone,
-  CheckCircle,
-} from 'phosphor-react-native';
+import { MusicNote, Microphone, CheckCircle } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { usePlaybackStore } from '../stores/playbackStore';
@@ -32,21 +25,12 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
+import { SortModal } from '../components/SortModal';
 
 interface MusicSection {
   title: string;
   data: FileItem[];
 }
-
-const SORT_OPTIONS: { field: SortField; label: string }[] = [
-  { field: 'name', label: 'Name' },
-  { field: 'date', label: 'Date' },
-  { field: 'artist', label: 'Artist' },
-  { field: 'album', label: 'Album' },
-  { field: 'duration', label: 'Duration' },
-  { field: 'size', label: 'Size' },
-  { field: 'newest', label: 'Newest' },
-];
 
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -351,54 +335,10 @@ export const MusicScreen = React.memo(function MusicScreen() {
     ]
   );
 
-  const renderSortModal = useMemo(
-    () => (
-      <Modal visible={showSortModal} transparent animationType="fade">
-        <TouchableOpacity
-          className="flex-1 items-center justify-center bg-black/70"
-          onPress={() => setShowSortModal(false)}>
-          <View
-            className="w-4/5 max-w-[320px] rounded-[28px] p-6"
-            style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
-            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
-              Sort by
-            </Text>
-            {SORT_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.field}
-                className="mb-2 flex-row items-center justify-between rounded-xl px-4 py-3.5"
-                style={sortField === opt.field && { backgroundColor: `${primaryColor}15` }}
-                onPress={() => {
-                  if (sortField === opt.field) {
-                    toggleDirection();
-                  } else {
-                    setSortField(opt.field);
-                    setSortDirection(opt.field === 'name' ? 'asc' : 'desc');
-                  }
-                  setShowSortModal(false);
-                }}>
-                <Text
-                  className="text-base font-medium"
-                  style={{
-                    color: sortField === opt.field ? primaryColor : textColor,
-                    fontWeight: sortField === opt.field ? '700' : '500',
-                  }}>
-                  {opt.label}
-                </Text>
-                {sortField === opt.field &&
-                  (sortDirection === 'asc' ? (
-                    <ArrowUp size={18} color={primaryColor} />
-                  ) : (
-                    <ArrowDown size={18} color={primaryColor} />
-                  ))}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    ),
-    [showSortModal, sortField, sortDirection, primaryColor, toggleDirection]
-  );
+  const handleSortSelect = useCallback((field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+  }, []);
 
   const renderSectionHeader = useCallback(
     (info: { section: MusicSection }) => (
@@ -411,8 +351,22 @@ export const MusicScreen = React.memo(function MusicScreen() {
     [primaryColor]
   );
 
+  const sortLabelMap: Record<string, string> = {
+    name: 'Name',
+    date: 'Date',
+    newest: 'Newest',
+    size: 'Size',
+    type: 'Type',
+    duration: 'Duration',
+    artist: 'Artist',
+    album: 'Album',
+    playCount: 'Plays',
+    recentlyPlayed: 'Recent',
+  };
+  const currentSortLabel = sortLabelMap[sortField] || sortField;
+
   return (
-    <ScreenLayout onSortPress={() => setShowSortModal(true)}>
+    <ScreenLayout onSortPress={() => setShowSortModal(true)} sortLabel={currentSortLabel}>
       <View className="mb-2 px-4">
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
           Music
@@ -513,7 +467,17 @@ export const MusicScreen = React.memo(function MusicScreen() {
           </>
         )}
       </View>
-      {renderSortModal}
+      <SortModal
+        visible={showSortModal}
+        onClose={() => setShowSortModal(false)}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSelect={handleSortSelect}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        mutedColor={mutedColor}
+        isDarkMode={isDarkMode}
+      />
       {selectionMode && (
         <SelectionBar
           selectedUris={selectedUris}

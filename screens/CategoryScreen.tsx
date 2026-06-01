@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
-import { CaretLeft, VideoCamera, MusicNote } from 'phosphor-react-native';
+import { CaretLeft, VideoCamera, MusicNote, FunnelSimple } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaybackStore } from '../stores/playbackStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
-import type { FileItem } from '../types';
+import { SortModal } from '../components/SortModal';
+import { Sorting } from '../services/Sorting';
+import type { FileItem, SortField, SortDirection } from '../types';
 
 type CategoryScreenProps = NativeStackScreenProps<RootStackParamList, 'Category'>;
 
@@ -26,10 +28,29 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const audio = useMediaStore((s) => s.audio);
   const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   const CategoryIcon = CATEGORY_ICON_MAP[type] || CATEGORY_ICON_MAP[icon] || MusicNote;
 
   const files = type === 'video' ? videos : audio;
+
+  const sortedFiles = useMemo(() => {
+    return Sorting.sort(files, sortField, sortDirection);
+  }, [files, sortField, sortDirection]);
+
+  const handleSortSelect = useCallback((field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+  }, []);
+
+  const sortLabelMap: Record<string, string> = {
+    name: 'Name', date: 'Date', newest: 'Newest', size: 'Size',
+    type: 'Type', duration: 'Duration', artist: 'Artist', album: 'Album',
+    playCount: 'Plays', recentlyPlayed: 'Recent',
+  };
+  const currentSortLabel = sortLabelMap[sortField] || sortField;
 
   const navigateToFile = (file: FileItem) => {
     if (type === 'video') navigation.navigate('VideoPlayer', { file });
@@ -115,10 +136,26 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
             {title}
           </Text>
         </View>
-        <View className="w-10" />
+        <TouchableOpacity onPress={() => setShowSortModal(true)} className="flex-row items-center gap-1">
+          <FunnelSimple size={18} color={primaryColor} weight="bold" />
+          <Text className="text-[11px] font-semibold" style={{ color: primaryColor }}>
+            {currentSortLabel}
+          </Text>
+        </TouchableOpacity>
       </View>
+      <SortModal
+        visible={showSortModal}
+        onClose={() => setShowSortModal(false)}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSelect={handleSortSelect}
+        primaryColor={primaryColor}
+        textColor={textColor}
+        mutedColor={mutedColor}
+        isDarkMode={isDarkMode}
+      />
       <FlashList
-        data={files}
+        data={sortedFiles}
         renderItem={renderListItem}
         keyExtractor={(item: FileItem) => item.uri}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}

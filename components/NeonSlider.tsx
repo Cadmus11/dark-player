@@ -1,5 +1,10 @@
 import React, { useRef, useMemo } from 'react';
-import { View, PanResponder, type GestureResponderEvent, type PanResponderGestureState } from 'react-native';
+import {
+  View,
+  PanResponder,
+  type GestureResponderEvent,
+  type PanResponderGestureState,
+} from 'react-native';
 
 interface NeonSliderProps {
   progress: number;
@@ -40,26 +45,30 @@ export function NeonSlider({
     return Math.min(Math.max(locationX / w, 0), 1);
   };
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (e: GestureResponderEvent) => {
-      trackLayout.current.x = 0;
-      const fraction = getFraction(e.nativeEvent.locationX);
-      onSeek(fraction);
-      onSeekStart?.();
-    },
-    onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
-      const fraction = getFraction(e.nativeEvent.locationX);
-      onSeek(fraction);
-    },
-    onPanResponderRelease: (_e: GestureResponderEvent, _gs: PanResponderGestureState) => {
-      onSeekEnd?.();
-    },
-    onPanResponderTerminate: () => {
-      onSeekEnd?.();
-    },
-  }), [onSeek, onSeekStart, onSeekEnd, containerWidth]);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (e: GestureResponderEvent) => {
+          trackLayout.current.x = 0;
+          const fraction = getFraction(e.nativeEvent.locationX);
+          onSeek(fraction);
+          onSeekStart?.();
+        },
+        onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+          const fraction = getFraction(e.nativeEvent.locationX);
+          onSeek(fraction);
+        },
+        onPanResponderRelease: (_e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+          onSeekEnd?.();
+        },
+        onPanResponderTerminate: () => {
+          onSeekEnd?.();
+        },
+      }),
+    [onSeek, onSeekStart, onSeekEnd, containerWidth]
+  );
 
   return (
     <View

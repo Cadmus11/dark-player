@@ -52,7 +52,9 @@ const BottomSheetModal = forwardRef((props: BottomSheetModalProps, ref: Ref<any>
               paddingTop: 16,
               backgroundColor: 'rgba(24,24,27,0.85)',
               overflow: 'hidden',
-              ...(isWeb ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } : {}),
+              ...(isWeb
+                ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }
+                : {}),
             } as any,
             props.backgroundStyle,
           ]}>

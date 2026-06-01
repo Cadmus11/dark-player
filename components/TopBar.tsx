@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { MagnifyingGlass, Gear, FunnelSimple } from 'phosphor-react-native';
+import { MagnifyingGlass, Gear, FunnelSimple, CaretDown } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Navbar } from './Navbar';
 
@@ -29,8 +29,14 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
         </TouchableOpacity>
         <View className="flex-row items-center gap-4">
           {onSortPress && (
-            <TouchableOpacity onPress={onSortPress}>
-              <FunnelSimple size={20} color={primaryColor} weight="bold" />
+            <TouchableOpacity onPress={onSortPress} className="flex-row items-center gap-1">
+              <FunnelSimple size={18} color={primaryColor} weight="bold" />
+              {sortLabel && (
+                <Text className="text-[11px] font-semibold" style={{ color: primaryColor }}>
+                  {sortLabel}
+                </Text>
+              )}
+              <CaretDown size={10} color={primaryColor} weight="bold" />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={() => navigation.navigate('SearchTab')}>

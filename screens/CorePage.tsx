@@ -2,8 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
-  Heart, ClockClockwise, MicrophoneStage, TrendUp,
-  VinylRecord, User, Folder,
+  Heart,
+  ClockClockwise,
+  MicrophoneStage,
+  TrendUp,
+  VinylRecord,
+  User,
+  Folder,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -17,13 +22,48 @@ interface CoreItem {
 }
 
 const CORE_ITEMS: CoreItem[] = [
-  { key: 'liked', icon: (c) => <Heart size={24} color={c} weight="fill" />, label: 'Liked Songs', filterType: 'favorites' },
-  { key: 'recent', icon: (c) => <ClockClockwise size={24} color={c} weight="fill" />, label: 'Recently Played', filterType: 'recent' },
-  { key: 'lyrics', icon: (c) => <MicrophoneStage size={24} color={c} weight="fill" />, label: 'With Lyrics', filterType: 'recent' },
-  { key: 'top', icon: (c) => <TrendUp size={24} color={c} weight="fill" />, label: 'Most Played', filterType: 'mostPlayed' },
-  { key: 'albums', icon: (c) => <VinylRecord size={24} color={c} weight="fill" />, label: 'Albums', filterType: 'recent' },
-  { key: 'artists', icon: (c) => <User size={24} color={c} weight="fill" />, label: 'Artists', filterType: 'recent' },
-  { key: 'folders', icon: (c) => <Folder size={24} color={c} weight="fill" />, label: 'Folders', filterType: 'recent' },
+  {
+    key: 'liked',
+    icon: (c) => <Heart size={24} color={c} weight="fill" />,
+    label: 'Liked Songs',
+    filterType: 'favorites',
+  },
+  {
+    key: 'recent',
+    icon: (c) => <ClockClockwise size={24} color={c} weight="fill" />,
+    label: 'Recently Played',
+    filterType: 'recent',
+  },
+  {
+    key: 'lyrics',
+    icon: (c) => <MicrophoneStage size={24} color={c} weight="fill" />,
+    label: 'With Lyrics',
+    filterType: 'recent',
+  },
+  {
+    key: 'top',
+    icon: (c) => <TrendUp size={24} color={c} weight="fill" />,
+    label: 'Most Played',
+    filterType: 'mostPlayed',
+  },
+  {
+    key: 'albums',
+    icon: (c) => <VinylRecord size={24} color={c} weight="fill" />,
+    label: 'Albums',
+    filterType: 'recent',
+  },
+  {
+    key: 'artists',
+    icon: (c) => <User size={24} color={c} weight="fill" />,
+    label: 'Artists',
+    filterType: 'recent',
+  },
+  {
+    key: 'folders',
+    icon: (c) => <Folder size={24} color={c} weight="fill" />,
+    label: 'Folders',
+    filterType: 'recent',
+  },
 ];
 
 export const CorePage = React.memo(function CorePage() {
@@ -51,7 +91,9 @@ export const CorePage = React.memo(function CorePage() {
               borderWidth: 1,
               borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
             }}
-            onPress={() => navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })}>
+            onPress={() =>
+              navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })
+            }>
             <View
               className="mb-3 h-14 w-14 items-center justify-center rounded-full"
               style={{ backgroundColor: `${primaryColor}15` }}>

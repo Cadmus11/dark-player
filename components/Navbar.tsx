@@ -2,8 +2,13 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import {
-  MusicNote, VideoCamera, VinylRecord, FolderSimple, MicrophoneStage,
-  Playlist, SquaresFour,
+  MusicNote,
+  VideoCamera,
+  VinylRecord,
+  FolderSimple,
+  MicrophoneStage,
+  Playlist,
+  SquaresFour,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 
@@ -11,9 +16,27 @@ const TABS = [
   { key: 'MusicTab', route: 'MusicTab', icon: MusicNote, label: 'Music' },
   { key: 'VideosTab', route: 'VideosTab', icon: VideoCamera, label: 'Videos' },
   { key: 'CoreTab', route: 'CoreTab', icon: SquaresFour, label: 'Core' },
-  { key: 'Albums', route: 'Category', icon: VinylRecord, label: 'Albums', params: { type: 'audio', title: 'Albums', icon: 'music' } },
-  { key: 'Folders', route: 'FolderList', icon: FolderSimple, label: 'Folders', params: { title: 'Folders', filterType: 'recent' as const } },
-  { key: 'Artists', route: 'Category', icon: MicrophoneStage, label: 'Artists', params: { type: 'audio', title: 'Artists', icon: 'music' } },
+  {
+    key: 'Albums',
+    route: 'Category',
+    icon: VinylRecord,
+    label: 'Albums',
+    params: { type: 'audio', title: 'Albums', icon: 'music' },
+  },
+  {
+    key: 'Folders',
+    route: 'FolderList',
+    icon: FolderSimple,
+    label: 'Folders',
+    params: { title: 'Folders', filterType: 'recent' as const },
+  },
+  {
+    key: 'Artists',
+    route: 'Category',
+    icon: MicrophoneStage,
+    label: 'Artists',
+    params: { type: 'audio', title: 'Artists', icon: 'music' },
+  },
   { key: 'PlaylistsTab', route: 'PlaylistsTab', icon: Playlist, label: 'Playlists' },
 ] as const;
 
@@ -36,7 +59,7 @@ export function Navbar() {
         return (
           <TouchableOpacity
             key={tab.key}
-            className="flex-row items-center rounded-full px-4 py-1.5 mr-2"
+            className="mr-2 flex-row items-center rounded-full px-4 py-1.5"
             style={isActive ? { backgroundColor: primaryColor + '20' } : { opacity: 0.6 }}
             onPress={() => {
               if ('params' in tab && tab.params) {

@@ -449,10 +449,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
         <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
           {/* Header */}
-          <BlurView
-            intensity={40}
-            tint={isDarkMode ? 'dark' : 'light'}
-            style={styles.header}>
+          <BlurView intensity={40} tint={isDarkMode ? 'dark' : 'light'} style={styles.header}>
             <View className="flex-row items-center justify-between px-4 py-2">
               <TouchableOpacity
                 className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
@@ -502,13 +499,16 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     allowsPictureInPicture={Platform.OS !== 'web'}
                   />
                 ) : (
-                  <View className="items-center justify-center bg-[#0a0a0a]"
+                  <View
+                    className="items-center justify-center bg-[#0a0a0a]"
                     style={[styles.video, { borderRadius: 24 }]}>
-                    <View className="h-20 w-20 items-center justify-center rounded-[20px] border-2 bg-white/[0.03]"
+                    <View
+                      className="h-20 w-20 items-center justify-center rounded-[20px] border-2 bg-white/[0.03]"
                       style={{ borderColor: accentColor + '60' }}>
                       <MusicNote size={40} color={accentColor} />
                     </View>
-                    <Text className="mt-3 text-sm font-semibold tracking-[2px]"
+                    <Text
+                      className="mt-3 text-sm font-semibold tracking-[2px]"
                       style={{ color: accentColor }}>
                       Audio Mode
                     </Text>
@@ -526,23 +526,24 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
                 {/* Overlay controls */}
                 <Animated.View
-                  style={[
-                    StyleSheet.absoluteFill,
-                    { opacity: controlsOpacity },
-                  ]}
+                  style={[StyleSheet.absoluteFill, { opacity: controlsOpacity }]}
                   pointerEvents={showControls && !isAudioOnly ? 'auto' : 'none'}>
-                  <Pressable
-                    style={styles.overlayTouchable}
-                    onPress={handleVideoTap}>
+                  <Pressable style={styles.overlayTouchable} onPress={handleVideoTap}>
                     <View className="flex-row items-center justify-center gap-8">
                       <TouchableOpacity
                         className="items-center justify-center"
-                        onPress={(e) => { e.stopPropagation(); prevVideo(); }}>
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          prevVideo();
+                        }}>
                         <SkipBack size={42} color="#ffffff" weight="fill" />
                       </TouchableOpacity>
                       <TouchableOpacity
                         className="h-20 w-20 items-center justify-center rounded-full border-2 border-white/20 bg-black/40"
-                        onPress={(e) => { e.stopPropagation(); togglePlayback(); }}>
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          togglePlayback();
+                        }}>
                         {isPlaying ? (
                           <Pause size={36} color="#ffffff" weight="fill" />
                         ) : (
@@ -551,7 +552,10 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                       </TouchableOpacity>
                       <TouchableOpacity
                         className="items-center justify-center"
-                        onPress={(e) => { e.stopPropagation(); nextVideo(); }}>
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          nextVideo();
+                        }}>
                         <SkipForward size={42} color="#ffffff" weight="fill" />
                       </TouchableOpacity>
                     </View>
@@ -800,9 +804,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     key={item.uri + index}
                     activeOpacity={0.7}
                     style={styles.upNextItem}
-                    onPress={() =>
-                      navigation.replace('VideoPlayer', { file: item })
-                    }>
+                    onPress={() => navigation.replace('VideoPlayer', { file: item })}>
                     <View style={styles.upNextThumb}>
                       {item.thumbnail ? (
                         <Image
@@ -811,7 +813,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                           style={{ borderRadius: 12 }}
                         />
                       ) : (
-                        <View className="h-full w-full items-center justify-center"
+                        <View
+                          className="h-full w-full items-center justify-center"
                           style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                           <VideoCamera size={24} color={mutedColor} />
                         </View>
@@ -824,7 +827,10 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                         numberOfLines={1}>
                         {item.name.replace(/\.[^/.]+$/, '')}
                       </Text>
-                      <Text className="mt-0.5 text-xs" style={{ color: mutedColor }} numberOfLines={1}>
+                      <Text
+                        className="mt-0.5 text-xs"
+                        style={{ color: mutedColor }}
+                        numberOfLines={1}>
                         {item.artist || 'Unknown'}
                       </Text>
                     </View>
@@ -927,23 +933,14 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 playbackSpeed === speed && { backgroundColor: accentColor },
                 {
                   borderColor:
-                    playbackSpeed === speed
-                      ? accentColor
-                      : isDarkMode
-                        ? '#3f3f46'
-                        : '#d4d4d8',
+                    playbackSpeed === speed ? accentColor : isDarkMode ? '#3f3f46' : '#d4d4d8',
                 },
               ]}
               onPress={() => changeSpeed(speed)}>
               <Text
                 className={`text-center text-sm ${playbackSpeed === speed ? 'font-bold' : ''}`}
                 style={{
-                  color:
-                    playbackSpeed === speed
-                      ? isDarkMode
-                        ? '#0a0a0a'
-                        : '#ffffff'
-                      : textColor,
+                  color: playbackSpeed === speed ? (isDarkMode ? '#0a0a0a' : '#ffffff') : textColor,
                 }}>
                 {speed}x
               </Text>
@@ -984,12 +981,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 {label}
               </Text>
               {playMode === mode && (
-                <Check
-                  size={18}
-                  color={accentColor}
-                  weight="bold"
-                  style={{ marginLeft: 'auto' }}
-                />
+                <Check size={18} color={accentColor} weight="bold" style={{ marginLeft: 'auto' }} />
               )}
             </TouchableOpacity>
           ))}
