@@ -95,7 +95,7 @@ export const NowPlayingNotification = {
         ...(Platform.OS === 'android'
           ? {
               channelId: CHANNEL_ID,
-              color: '#C2FC4A',
+              color: '#00E5FF',
               priority: Notifications.AndroidNotificationPriority.LOW,
               ...(file.thumbnail ? { icon: file.thumbnail } : {}),
             }

@@ -12,8 +12,10 @@
       "backgroundColor": "#0a0a0a"
     },
     "assetBundlePatterns": ["**/*"],
+    "scheme": "com.darkmanager.app",
     "ios": {
       "supportsTablet": true,
+      "usesIcloudStorage": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Lumora needs access to your photo library to display and manage your images.",
         "NSPhotoLibraryAddUsageDescription": "Lumora needs access to save images to your photo library.",
@@ -42,9 +44,6 @@
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "FOREGROUND_SERVICE_DATA_SYNC"
       ]
-      //   "foregroundService": {
-      //     "appsUsing": ["mediaPlayback"]
-      //   }
     },
     "web": {
       "favicon": "./assets/adaptive-icon.png"
@@ -74,12 +73,15 @@
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
         }
-      ]
+      ],
+      "react-native-audio-api",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
         "projectId": "39e64c2f-573a-4d24-83ac-8e332d418794"
-      }
+      },
+      "GOOGLE_CLIENT_ID": ""
     },
     "owner": "cadmuslabss-organization"
   }

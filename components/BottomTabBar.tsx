@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { House, MusicNote, VideoCamera, MagnifyingGlass, Gear } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useColorAwareness } from '../context/ColorAwarenessContext';
 import { useLanguage } from '../context/LanguageContext';
 
 const TABS = [
@@ -14,13 +15,26 @@ const TABS = [
 ];
 
 export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { primaryColor, textColor, mutedColor, cardBg, borderColor, isDarkMode } = useTheme();
+  const {
+    primaryColor: themePrimary,
+    textColor: themeText,
+    mutedColor: themeMuted,
+    cardBg,
+    borderColor: themeBorder,
+    isDarkMode,
+  } = useTheme();
+  const { canUseArtwork, themeColors } = useColorAwareness();
   const { t } = useLanguage();
+
+  const activeColor = canUseArtwork ? themeColors.accent : themePrimary;
+  const inactiveColor = canUseArtwork ? themeColors.textSecondary : themeMuted;
+  const navBg = canUseArtwork ? themeColors.surface : cardBg;
+  const navBorder = canUseArtwork ? themeColors.textSecondary + '18' : themeBorder;
 
   return (
     <View
       className="flex-row pb-6 pt-2.5"
-      style={{ backgroundColor: cardBg, borderTopWidth: 1, borderTopColor: borderColor }}>
+      style={{ backgroundColor: navBg, borderTopWidth: 1, borderTopColor: navBorder }}>
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
 
@@ -47,11 +61,11 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             className="flex-1 items-center justify-center">
             <tab.Icon
               size={22}
-              color={isFocused ? primaryColor : mutedColor}
+              color={isFocused ? activeColor : inactiveColor}
               weight={isFocused ? 'fill' : 'regular'}
             />
             {isFocused && (
-              <Text className="mt-0.5 text-[10px] font-medium" style={{ color: primaryColor }}>
+              <Text className="mt-0.5 text-[10px] font-medium" style={{ color: activeColor }}>
                 {t(tab.labelKey)}
               </Text>
             )}

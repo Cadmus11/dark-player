@@ -31,16 +31,22 @@ export interface Category {
   color: string;
 }
 
+export interface ColorThemePreset {
+  key: string;
+  name: string;
+  background: string;
+  surface: string;
+  text: string;
+  accent: string;
+}
+
 export interface ThemeSettings {
-  backgroundType: 'solid' | 'gradient';
-  backgroundColor: string;
-  gradientColors?: string[];
+  colorThemeKey: string;
   backgroundImageUri?: string;
-  presetImageKey?: string;
   backgroundBlur?: number;
   backgroundImageFit?: 'cover' | 'contain';
-  primaryColor: string;
-  accentColor: string;
+  backgroundMode?: 'fill' | 'wallpaper' | 'spotlight';
+  backgroundBrightness?: number;
   sizeMode: LayoutSize;
 }
 
@@ -197,6 +203,29 @@ export interface EnhancementJob {
 
 export type PlaybackSource = 'music' | 'video' | 'none';
 
+export interface EqualizerBand {
+  frequency: number;
+  label: string;
+}
+
+export interface EQPreset {
+  name: string;
+  gains: number[];
+}
+
+export interface EqualizerSettings {
+  enabled: boolean;
+  gains: number[];
+  preset: string;
+}
+
+export interface EQPlaybackState {
+  currentFile: FileItem | null;
+  isPlaying: boolean;
+  position: number;
+  duration: number;
+}
+
 export type SortField =
   | 'name'
   | 'date'
@@ -215,191 +244,220 @@ export interface SortConfig {
   direction: SortDirection;
 }
 
+export interface RawArtworkPalette {
+  dominant?: string;
+  vibrant?: string;
+  darkVibrant?: string;
+  lightVibrant?: string;
+  muted?: string;
+  darkMuted?: string;
+  lightMuted?: string;
+  primary?: string;
+  secondary?: string;
+  background?: string;
+  detail?: string;
+  average?: string;
+}
+
 export interface ColorTheme {
-  name: string;
-  group: string;
   primary: string;
+  secondary: string;
+  accent: string;
   background: string;
-  card: string;
-  border: string;
-  text: string;
-  muted: string;
+  surface: string;
+  textPrimary: string;
+  textSecondary: string;
 }
 
-export interface ColorThemeGroup {
-  name: string;
-  themes: ColorTheme[];
+export type MoodType =
+  | 'neutral'
+  | 'energetic'
+  | 'calm'
+  | 'melancholic'
+  | 'happy'
+  | 'dark'
+  | 'upbeat';
+
+export interface ArtworkColorState {
+  artworkUri: string | null;
+  rawPalette: RawArtworkPalette | null;
+  theme: ColorTheme;
+  isDark: boolean;
+  blurStrength: number;
+  overlayOpacity: number;
+  edgeColors: { left: string; right: string; bottom: string };
+  mood: MoodType;
+  genre?: string;
 }
 
-export const COLOR_THEME_GROUPS: ColorThemeGroup[] = [
+export interface EdgeLightingColors {
+  left: string;
+  right: string;
+  bottom: string;
+}
+
+export const THEME_PRESETS: ColorThemePreset[] = [
   {
-    name: 'Dark',
-    themes: [
-      {
-        name: 'Midnight',
-        group: 'Dark',
-        primary: '#8b5cf6',
-        background: '#0a0a0a',
-        card: '#18181b',
-        border: '#27272a',
-        text: '#ffffff',
-        muted: '#71717a',
-      },
-      {
-        name: 'Slate',
-        group: 'Dark',
-        primary: '#64748b',
-        background: '#0a0a0c',
-        card: '#14141a',
-        border: '#1f1f2a',
-        text: '#ffffff',
-        muted: '#6b6b7b',
-      },
-      {
-        name: 'Obsidian',
-        group: 'Dark',
-        primary: '#14b8a6',
-        background: '#080c0c',
-        card: '#121a1a',
-        border: '#1f2a2a',
-        text: '#ffffff',
-        muted: '#6b8b85',
-      },
-    ],
+    key: 'obsidian',
+    name: 'OBSIDIAN',
+    background: '#000000',
+    surface: '#121212',
+    text: '#FFFFFF',
+    accent: '#00E5FF',
   },
   {
-    name: 'Vibrant',
-    themes: [
-      {
-        name: 'Rose',
-        group: 'Vibrant',
-        primary: '#e11d48',
-        background: '#120a0a',
-        card: '#1e1414',
-        border: '#2e1f1f',
-        text: '#ffffff',
-        muted: '#8b6b6b',
-      },
-      {
-        name: 'Sunset',
-        group: 'Vibrant',
-        primary: '#f472b6',
-        background: '#120a0e',
-        card: '#1e141a',
-        border: '#2e1f26',
-        text: '#ffffff',
-        muted: '#8b6b7b',
-      },
-      {
-        name: 'Amber',
-        group: 'Vibrant',
-        primary: '#f59e0b',
-        background: '#0f0d08',
-        card: '#1a1610',
-        border: '#2a2218',
-        text: '#ffffff',
-        muted: '#8b7b5b',
-      },
-      {
-        name: 'Gold',
-        group: 'Vibrant',
-        primary: '#eab308',
-        background: '#100d06',
-        card: '#1a1608',
-        border: '#2a2208',
-        text: '#ffffff',
-        muted: '#8b7b4b',
-      },
-    ],
+    key: 'midnight',
+    name: 'MIDNIGHT',
+    background: '#0B1220',
+    surface: '#111827',
+    text: '#F9FAFB',
+    accent: '#3B82F6',
   },
   {
-    name: 'Nature',
-    themes: [
-      {
-        name: 'Forest',
-        group: 'Nature',
-        primary: '#22c55e',
-        background: '#0a0f0a',
-        card: '#141a14',
-        border: '#1f2a1f',
-        text: '#ffffff',
-        muted: '#6b7b6b',
-      },
-      {
-        name: 'Ocean',
-        group: 'Nature',
-        primary: '#06b6d4',
-        background: '#0a0e12',
-        card: '#141a22',
-        border: '#1f2a36',
-        text: '#ffffff',
-        muted: '#6b7b8b',
-      },
-      {
-        name: 'Emerald',
-        group: 'Nature',
-        primary: '#10b981',
-        background: '#080e0a',
-        card: '#121a14',
-        border: '#1f2a22',
-        text: '#ffffff',
-        muted: '#6b8b75',
-      },
-    ],
+    key: 'phantom',
+    name: 'PHANTOM',
+    background: '#0A0A0A',
+    surface: '#1A1A1A',
+    text: '#F5F5F5',
+    accent: '#8B5CF6',
   },
   {
-    name: 'Soft',
-    themes: [
-      {
-        name: 'Lavender',
-        group: 'Soft',
-        primary: '#a78bfa',
-        background: '#0e0a14',
-        card: '#18142a',
-        border: '#221f36',
-        text: '#ffffff',
-        muted: '#7b6b9b',
-      },
-      {
-        name: 'Coral',
-        group: 'Soft',
-        primary: '#fb7185',
-        background: '#120a0c',
-        card: '#1a1416',
-        border: '#2a1f22',
-        text: '#ffffff',
-        muted: '#8b6b73',
-      },
-    ],
+    key: 'aurora',
+    name: 'AURORA',
+    background: '#071A1A',
+    surface: '#0F2E2E',
+    text: '#F0FFFF',
+    accent: '#22D3EE',
   },
   {
-    name: 'Light',
-    themes: [
-      {
-        name: 'Light',
-        group: 'Light',
-        primary: '#F97316',
-        background: '#F0F8FF',
-        card: '#F4F4F5',
-        border: '#D4D4D8',
-        text: '#18181B',
-        muted: '#71717A',
-      },
-      {
-        name: 'Pearl',
-        group: 'Light',
-        primary: '#6366f1',
-        background: '#f8fafc',
-        card: '#f1f5f9',
-        border: '#e2e8f0',
-        text: '#0f172a',
-        muted: '#64748b',
-      },
-    ],
+    key: 'nebula',
+    name: 'NEBULA',
+    background: '#140C1F',
+    surface: '#231338',
+    text: '#F5EDFF',
+    accent: '#A855F7',
+  },
+  {
+    key: 'oceanic',
+    name: 'OCEANIC',
+    background: '#081B29',
+    surface: '#102A43',
+    text: '#F0F9FF',
+    accent: '#38BDF8',
+  },
+  {
+    key: 'ember',
+    name: 'EMBER',
+    background: '#2B1200',
+    surface: '#402000',
+    text: '#FFF7ED',
+    accent: '#F97316',
+  },
+  {
+    key: 'forest',
+    name: 'FOREST',
+    background: '#0A170D',
+    surface: '#112415',
+    text: '#F0FDF4',
+    accent: '#22C55E',
+  },
+  {
+    key: 'crimson',
+    name: 'CRIMSON',
+    background: '#19090A',
+    surface: '#2B1012',
+    text: '#FFF5F5',
+    accent: '#EF4444',
+  },
+  {
+    key: 'glacier',
+    name: 'GLACIER',
+    background: '#EAF4FF',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    accent: '#2563EB',
+  },
+  {
+    key: 'velvet',
+    name: 'VELVET',
+    background: '#2D1821',
+    surface: '#40222E',
+    text: '#FFF1F5',
+    accent: '#FB7185',
+  },
+  {
+    key: 'cyberNeon',
+    name: 'CYBER NEON',
+    background: '#050816',
+    surface: '#0F172A',
+    text: '#E0F2FE',
+    accent: '#00F5D4',
+  },
+  {
+    key: 'matrix',
+    name: 'MATRIX',
+    background: '#020A02',
+    surface: '#071507',
+    text: '#E6FFE6',
+    accent: '#00FF66',
+  },
+  {
+    key: 'goldenHour',
+    name: 'GOLDEN HOUR',
+    background: '#2A1A00',
+    surface: '#3B2600',
+    text: '#FFF8E7',
+    accent: '#FBBF24',
+  },
+  {
+    key: 'royal',
+    name: 'ROYAL',
+    background: '#0F1029',
+    surface: '#191B45',
+    text: '#F5F3FF',
+    accent: '#6366F1',
+  },
+  {
+    key: 'roseGold',
+    name: 'ROSE GOLD',
+    background: '#2B1D20',
+    surface: '#3C2A2E',
+    text: '#FFF5F7',
+    accent: '#F472B6',
+  },
+  {
+    key: 'slate',
+    name: 'SLATE',
+    background: '#111827',
+    surface: '#1F2937',
+    text: '#F9FAFB',
+    accent: '#94A3B8',
+  },
+  {
+    key: 'arctic',
+    name: 'ARCTIC',
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    accent: '#2563EB',
+  },
+  {
+    key: 'paper',
+    name: 'PAPER',
+    background: '#FAFAF9',
+    surface: '#FFFFFF',
+    text: '#1C1917',
+    accent: '#EA580C',
+  },
+  {
+    key: 'lavender',
+    name: 'LAVENDER',
+    background: '#F5F3FF',
+    surface: '#FFFFFF',
+    text: '#312E81',
+    accent: '#8B5CF6',
   },
 ];
-
-export const COLOR_THEMES: ColorTheme[] = COLOR_THEME_GROUPS.flatMap((g) => g.themes);
 
 export interface PrivateFileEntry {
   uri: string;

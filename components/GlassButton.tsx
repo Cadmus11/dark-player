@@ -66,7 +66,7 @@ export function GlassButton({
       {icon && (
         <Text
           className="mr-2 text-lg"
-          style={variant === 'neon' ? { color: isDarkMode ? '#06060B' : '#ffffff' } : undefined}>
+          style={variant === 'neon' ? { color: '#000000' } : undefined}>
           {icon}
         </Text>
       )}
@@ -76,7 +76,7 @@ export function GlassButton({
           size === 'sm' && { fontSize: 13 },
           size === 'lg' && { fontSize: 17 },
           variant === 'glass' && { color: textColor },
-          variant === 'neon' && { color: isDarkMode ? '#06060B' : '#ffffff', fontWeight: '700' },
+          variant === 'neon' && { color: '#000000', fontWeight: '700' },
           variant === 'ghost' && { color: primaryColor },
         ]}>
         {title}

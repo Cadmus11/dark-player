@@ -17,10 +17,16 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import {
+  Heart,
+  ClockClockwise,
+  MicrophoneStage,
+  TrendUp,
+  Disc,
+  User,
+  Folder,
   MusicNote,
   ArrowDown,
   ArrowUp,
-  FunnelSimple,
   Microphone,
   CheckCircle,
 } from 'phosphor-react-native';
@@ -33,6 +39,7 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { Sorting } from '../services/Sorting';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
+import type { FolderFilterType } from './FolderScreen';
 
 interface MusicSection {
   title: string;
@@ -50,6 +57,16 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
 ];
 
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+const CORE_ITEMS: { icon: (color: string) => React.ReactNode; label: string; filterType: FolderFilterType }[] = [
+  { icon: (c) => <Heart size={18} color={c} weight="fill" />, label: 'Liked Songs', filterType: 'favorites' },
+  { icon: (c) => <ClockClockwise size={18} color={c} weight="fill" />, label: 'Recently Played', filterType: 'recent' },
+  { icon: (c) => <MicrophoneStage size={18} color={c} weight="fill" />, label: 'With Lyrics', filterType: 'recent' },
+  { icon: (c) => <TrendUp size={18} color={c} weight="fill" />, label: 'Most Played', filterType: 'mostPlayed' },
+  { icon: (c) => <Disc size={18} color={c} weight="fill" />, label: 'Albums', filterType: 'recent' },
+  { icon: (c) => <User size={18} color={c} weight="fill" />, label: 'Artists', filterType: 'recent' },
+  { icon: (c) => <Folder size={18} color={c} weight="fill" />, label: 'Folders', filterType: 'recent' },
+];
 
 function getLetter(name: string): string {
   const char = name.charAt(0).toUpperCase();
@@ -360,7 +377,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSortModal(false)}>
           <View
-            className="w-4/5 max-w-[320px] rounded-3xl p-6"
+            className="w-4/5 max-w-[320px] rounded-[28px] p-6"
             style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               Sort by
@@ -414,30 +431,30 @@ export const MusicScreen = React.memo(function MusicScreen() {
   );
 
   return (
-    <ScreenLayout>
-      <View className="mb-2 flex-row items-center justify-between px-4">
+    <ScreenLayout onSortPress={() => setShowSortModal(true)}>
+      <View className="mb-2 px-4">
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
           Music
         </Text>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity
-            className="flex-row items-center gap-1 rounded-lg px-2.5 py-1.5"
-            style={{
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              borderWidth: 0.5,
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-            }}
-            onPress={() => setShowSortModal(true)}>
-            <FunnelSimple size={16} color={primaryColor} />
-            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>
-              {currentSortLabel}
-            </Text>
-            {sortDirection === 'asc' ? (
-              <ArrowUp size={14} color={mutedColor} />
-            ) : (
-              <ArrowDown size={14} color={mutedColor} />
-            )}
-          </TouchableOpacity>
+      </View>
+
+      <View className="mb-3 px-4">
+        <Text className="mb-2 text-xs font-semibold tracking-widest uppercase" style={{ color: mutedColor }}>
+          Core
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {CORE_ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2"
+              style={{ backgroundColor: `${primaryColor}15` }}
+              onPress={() => navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })}>
+              <View style={{ opacity: 0.9 }}>{item.icon(primaryColor)}</View>
+              <Text className="text-[12px] font-semibold" style={{ color: primaryColor }}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 

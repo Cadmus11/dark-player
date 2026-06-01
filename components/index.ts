@@ -14,3 +14,6 @@ export { default as LayoutToggle } from './LayoutToggle';
 export { SelectionBar } from './SelectionBar';
 export { MiniPlayer } from './player/MiniPlayer';
 export { NowPlayingBar } from './player/NowPlayingBar';
+export { DynamicArtworkBackground } from './DynamicArtworkBackground';
+export { ArtworkGlow } from './ArtworkGlow';
+export { EdgeLighting } from './EdgeLighting';

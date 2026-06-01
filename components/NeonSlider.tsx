@@ -1,38 +1,90 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import React, { useRef, useMemo } from 'react';
+import { View, PanResponder, type GestureResponderEvent, type PanResponderGestureState } from 'react-native';
 
 interface NeonSliderProps {
   progress: number;
   onSeek: (percentage: number) => void;
+  onSeekStart?: () => void;
+  onSeekEnd?: () => void;
   width?: number;
   showThumb?: boolean;
   height?: number;
   primaryColor?: string;
+  secondaryColor?: string;
+  bufferColor?: string;
+  bufferedProgress?: number;
 }
 
 export function NeonSlider({
   progress,
   onSeek,
+  onSeekStart,
+  onSeekEnd,
   width: containerWidth,
   showThumb = true,
   height = 4,
-  primaryColor = '#C2FC4A',
+  primaryColor = '#00E5FF',
+  secondaryColor,
+  bufferColor,
+  bufferedProgress,
 }: NeonSliderProps) {
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
+  const clampedBuffered =
+    bufferedProgress !== undefined ? Math.min(Math.max(bufferedProgress, 0), 1) : 0;
+  const trackBgColor = secondaryColor ? secondaryColor + '40' : 'rgba(255, 255, 255, 0.1)';
+  const trackRef = useRef<View>(null);
+  const trackLayout = useRef({ x: 0, width: 300 });
+
+  const getFraction = (locationX: number) => {
+    const w = trackLayout.current.width || containerWidth || 300;
+    return Math.min(Math.max(locationX / w, 0), 1);
+  };
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (e: GestureResponderEvent) => {
+      trackLayout.current.x = 0;
+      const fraction = getFraction(e.nativeEvent.locationX);
+      onSeek(fraction);
+      onSeekStart?.();
+    },
+    onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+      const fraction = getFraction(e.nativeEvent.locationX);
+      onSeek(fraction);
+    },
+    onPanResponderRelease: (_e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+      onSeekEnd?.();
+    },
+    onPanResponderTerminate: () => {
+      onSeekEnd?.();
+    },
+  }), [onSeek, onSeekStart, onSeekEnd, containerWidth]);
 
   return (
-    <TouchableOpacity
+    <View
+      ref={trackRef}
       className="justify-center"
-      style={{ height: height + 20, width: containerWidth }}
-      onPress={(e) => {
-        const { locationX } = e.nativeEvent;
-        const percentage = locationX / (containerWidth || 300);
-        onSeek(Math.min(Math.max(percentage, 0), 1));
+      style={{ height: height + 24, width: containerWidth }}
+      onLayout={() => {
+        trackRef.current?.measureInWindow((_x, _y, w) => {
+          trackLayout.current.width = w;
+        });
       }}
-      activeOpacity={1}>
+      {...panResponder.panHandlers}>
       <View
         className="overflow-visible rounded-[3px]"
-        style={{ height, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+        style={{ height, backgroundColor: trackBgColor }}>
+        {bufferedProgress !== undefined && clampedBuffered > 0 && (
+          <View
+            className="absolute rounded-[3px]"
+            style={{
+              width: `${clampedBuffered * 100}%` as unknown as number,
+              height,
+              backgroundColor: bufferColor || primaryColor + '30',
+            }}
+          />
+        )}
         <View
           className="rounded-[3px]"
           style={{
@@ -48,7 +100,7 @@ export function NeonSlider({
         />
         {showThumb && (
           <View
-            className="absolute -top-1.5 -ml-2 h-4 w-4 rounded-full"
+            className="absolute -top-1.5 -ml-2.5 h-5 w-5 rounded-full"
             style={{
               left: `${clampedProgress * 100}%` as unknown as number,
               backgroundColor: primaryColor,
@@ -61,6 +113,6 @@ export function NeonSlider({
           />
         )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }

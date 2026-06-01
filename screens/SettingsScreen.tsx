@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,12 @@ import {
   Sun,
   Palette,
   Globe,
+  GoogleLogo,
+  UploadSimple,
+  DownloadSimple,
+  CloudArrowUp,
+  CloudArrowDown,
+  List,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -51,6 +57,7 @@ import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ScreenLayout } from '../components/ScreenLayout';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { GlassIcon } from '../components/GlassIcon';
 import {
   getPlaybackSettings,
@@ -76,30 +83,30 @@ import type {
   RecentlyDeleted,
   FileItem,
 } from '../types';
-import { COLOR_THEMES, LayoutSize } from '../types';
-import { PRESET_IMAGE_LIST } from '../constants/ThemeImages';
+import { THEME_PRESETS, LayoutSize } from '../types';
+import type { ColorThemePreset } from '../types';
+
 import { PrivateFolderService } from '../services/PrivateFolderService';
+import { MMKV } from 'react-native-mmkv';
+import * as DocumentPicker from 'expo-document-picker';
+import Constants from 'expo-constants';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
+import {
+  collectBackupData,
+  restoreFromBackup,
+  exportLocalBackup,
+  getLocalBackups,
+  loadLocalBackup,
+  deleteLocalBackup,
+  uploadBackupToDrive,
+  listDriveBackups,
+  downloadBackupFromDrive,
+  deleteDriveBackup,
+  uploadMediaToDrive,
+} from '../services/BackupService';
+import type { DriveFileInfo } from '../services/BackupService';
 
 const APP_VERSION = '1.0.0';
-
-const ACCENT_COLORS = [
-  '#C2FC4A',
-  '#6c5ce7',
-  '#00cec9',
-  '#e17055',
-  '#74b9ff',
-  '#ff7675',
-  '#a29bfe',
-  '#55efc4',
-  '#fdcb6e',
-  '#fd79a8',
-  '#e94560',
-  '#58a6ff',
-  '#8b5cf6',
-  '#f59e0b',
-  '#10b981',
-  '#ec4899',
-];
 
 type ActiveView =
   | 'list'
@@ -114,7 +121,8 @@ type ActiveView =
   | 'sleepTimer'
   | 'removeAds'
   | 'privateFolder'
-  | 'futureUpdates';
+  | 'futureUpdates'
+  | 'backup';
 
 export const SettingsScreen = React.memo(function SettingsScreen() {
   const {
@@ -122,23 +130,21 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     clearBackgroundImage,
     setBackgroundBlur,
     setBackgroundFit,
+    setBackgroundMode,
+    setBackgroundBrightness,
     theme,
     updateTheme,
-    setAccentColor,
-    setGradient,
     setColorTheme,
-    setDarkMode,
+    setSizeMode,
     isDarkMode,
     primaryColor,
     textColor,
     mutedColor,
-    borderColor,
     cardBg,
-    setSizeMode,
-    setPresetImage,
-    availableColorThemes,
-    availableThemeGroups,
-    currentColorThemeName,
+    borderColor,
+    backgroundColor,
+    currentThemeKey,
+    themePresets,
   } = useTheme();
   const { t, language, setLanguage, languages } = useLanguage();
   const { fontKey, setFont } = useFont();
@@ -154,6 +160,22 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     await clearRecentlyDeleted();
     setRecentlyDeleted([]);
   };
+  const pickBg = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const pickedUri = result.assets[0].uri;
+      const ext = pickedUri.split('.').pop() || 'jpg';
+      const dest = `${FileSystem.documentDirectory}background.${ext}`;
+      const existing = await FileSystem.getInfoAsync(dest);
+      if (existing.exists) await FileSystem.deleteAsync(dest);
+      await FileSystem.copyAsync({ from: pickedUri, to: dest });
+      await setBackgroundImage(dest);
+    }
+  }, [setBackgroundImage]);
   const settingsStore = useSettingsStore();
   const navigation = useNavigation<any>();
   const hiddenFilesSettings = settingsStore.hiddenFiles;
@@ -184,10 +206,34 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const [crossFadeInput, setCrossFadeInput] = useState('3');
   const [sleepMinutesInput, setSleepMinutesInput] = useState('30');
   const [adsRemoved, setAdsRemoved] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [driveBackups, setDriveBackups] = useState<DriveFileInfo[]>([]);
+  const [localBackups, setLocalBackups] = useState<
+    { name: string; path: string; createdAt: number }[]
+  >([]);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [showDriveBackups, setShowDriveBackups] = useState(false);
+  const [showLocalBackups, setShowLocalBackups] = useState(false);
+  const [driveMedia, setDriveMedia] = useState<DriveFileInfo[]>([]);
+  const [showDriveMedia, setShowDriveMedia] = useState(false);
+  const [googleClientIdInput, setGoogleClientIdInput] = useState('');
+  const [showClientIdModal, setShowClientIdModal] = useState(false);
 
   useEffect(() => {
     loadSettings();
     loadRemoveAds();
+    const settingsMmkv = new MMKV({ id: 'settings' });
+    const stored = settingsMmkv.getString('@google_client_id');
+    if (stored) {
+      setGoogleClientId(stored);
+    } else {
+      const defaultId = Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID as string | undefined;
+      if (defaultId) {
+        setGoogleClientId(defaultId);
+        settingsMmkv.set('@google_client_id', defaultId);
+      }
+    }
   }, []);
 
   async function loadRemoveAds() {
@@ -207,6 +253,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   }
 
   const appVersion = APP_VERSION;
+  const googleDrive = useGoogleDrive(googleClientId);
 
   const totalPlaytime = useMemo(() => {
     let totalMs = 0;
@@ -240,6 +287,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       label: t('settings.recentlyDeleted'),
       badge: recentlyDeleted.length > 0 ? String(recentlyDeleted.length) : undefined,
     },
+    { id: 'backup', Icon: CloudArrowUp, label: 'Backup & Restore' },
     { id: 'playback', Icon: SlidersHorizontal, label: t('settings.playback') },
     { id: 'notification', Icon: Bell, label: t('settings.notification') },
     { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
@@ -253,17 +301,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     { id: 'futureUpdates', Icon: Star, label: 'Future Updates' },
     { id: 'about', Icon: Info, label: t('settings.about') },
   ];
-
-  const applyColorPreset = async (preset: (typeof COLOR_THEMES)[0]) => {
-    const isLight = preset.name === 'Light';
-    const bg = isLight ? '#F0F8FF' : '#0a0a0a';
-    await updateTheme({
-      backgroundType: 'solid',
-      backgroundColor: bg,
-      gradientColors: undefined,
-      primaryColor: preset.primary,
-    });
-  };
 
   const handleSettingPress = (id: string) => {
     switch (id) {
@@ -296,6 +333,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         break;
       case 'sleepTimer':
         setActiveView('sleepTimer');
+        break;
+      case 'backup':
+        setActiveView('backup');
         break;
       case 'privateFolder':
         navigation.navigate('PrivateFolder');
@@ -361,8 +401,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       {SETTINGS_ITEMS.map((item) => (
         <TouchableOpacity
           key={item.id}
-          className="flex-row items-center border-b px-2 py-[14]"
-          style={{ borderBottomColor: borderColor }}
+          className="mb-2 flex-row items-center px-2 py-[14]"
           onPress={() => handleSettingPress(item.id)}>
           <GlassIcon size={36}>
             <item.Icon size={18} color={primaryColor} />
@@ -406,32 +445,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      {/* Dark/Light Mode Toggle */}
-      <View
-        className="mb-5 rounded-2xl border p-2"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        <View
-          className="flex-row items-center justify-between border-b px-2 py-3"
-          style={{ borderBottomColor: borderColor }}>
-          <Sun size={22} color={textColor} />
-          <Text className="ml-[14] flex-1 text-[15px]" style={{ color: textColor }}>
-            Dark Mode
-          </Text>
-          <Switch
-            value={isDarkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: '#3f3f46', true: primaryColor }}
-            thumbColor="#ffffff"
-          />
-        </View>
-      </View>
-
       {/* File Size Mode */}
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
         File Size
       </Text>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row gap-2 p-1">
           {(['small', 'medium', 'big'] as LayoutSize[]).map((mode) => {
@@ -462,313 +481,179 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
       </View>
 
-      {/* Gradient Themes */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
-        Gradients
-      </Text>
-      <View
-        className="mb-5 rounded-2xl border p-2"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row flex-wrap gap-2.5 p-2">
-          {[
-            { name: 'Deep Space', colors: ['#06060B', '#1D1D21', '#0a0a0f'] },
-            { name: 'Neon', colors: ['#06060B', '#1D1D21', '#2d1b69'] },
-            { name: 'Cyber', colors: ['#0a0a0a', '#ff006e', '#8338ec'] },
-            { name: 'Ocean', colors: ['#03045e', '#0077b6', '#00b4d8'] },
-            { name: 'Forest', colors: ['#0d1b2a', '#1b4332', '#2d6a4f'] },
-            { name: 'Sunset', colors: ['#2d1b69', '#e44d6e', '#f7b731'] },
-          ].map((g) => (
-            <TouchableOpacity
-              key={g.name}
-              className="w-[100] items-center"
-              onPress={() => setGradient(g.colors)}>
-              <View
-                className="h-11 w-[88] flex-row overflow-hidden rounded-[10] border"
-                style={{ borderColor }}>
-                {g.colors.map((c, i) => (
-                  <View
-                    key={i}
-                    className="h-full flex-1"
-                    style={{ backgroundColor: c, zIndex: g.colors.length - i }}
-                  />
-                ))}
-              </View>
-              <Text className="mt-1 text-[10px] " style={{ color: mutedColor }} numberOfLines={1}>
-                {g.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
       {/* Color Themes */}
       <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
-        {t('settings.colorThemes')}
-      </Text>
-      {availableThemeGroups.map((group) => (
-        <View key={group.name} className="mb-3">
-          <Text
-            className="mb-1.5 ml-1 text-[11px] font-bold uppercase tracking-widest"
-            style={{ color: mutedColor }}>
-            {group.name}
-          </Text>
-          <View className="rounded-2xl border p-2" style={{ borderColor, backgroundColor: cardBg }}>
-            <View className="flex-row flex-wrap gap-2 p-1.5">
-              {group.themes.map((ct) => (
-                <TouchableOpacity
-                  key={ct.name}
-                  className="w-[76] items-center rounded-xl border-2 py-[10]"
-                  style={
-                    currentColorThemeName === ct.name
-                      ? { borderColor: primaryColor }
-                      : { borderColor: 'transparent' }
-                  }
-                  onPress={() => setColorTheme(ct.name)}>
-                  <View
-                    className="h-[42] w-[52] items-center justify-center overflow-hidden rounded-[10]"
-                    style={{ backgroundColor: ct.background }}>
-                    <View
-                      className="absolute left-1 top-1 h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: ct.primary }}
-                    />
-                    <Text
-                      className="text-[13px] font-bold leading-tight"
-                      style={{ color: ct.text, marginTop: 4 }}>
-                      Aa
-                    </Text>
-                    <Text className="text-[9px] leading-tight" style={{ color: ct.muted }}>
-                      aa
-                    </Text>
-                  </View>
-                  <Text
-                    className="mt-1 text-center text-[10px] font-semibold"
-                    style={
-                      currentColorThemeName === ct.name
-                        ? { color: primaryColor }
-                        : { color: mutedColor }
-                    }>
-                    {ct.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
-      ))}
-
-      {/* Accent Colors */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
-        {t('settings.accentColor')}
+        Themes
       </Text>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
-        <View
-          className="mb-2 flex-row items-center rounded-xl px-3 py-[10]"
-          style={{ backgroundColor: cardBg }}>
-          <View
-            className="mr-3 h-7 w-7 rounded-full border-2"
-            style={{ backgroundColor: primaryColor, borderColor: borderColor }}
-          />
-          <Text className="font-mono text-sm " style={{ color: mutedColor }}>
-            {primaryColor}
-          </Text>
-        </View>
-        <View className="flex-row flex-wrap justify-start gap-2.5 px-1 py-1">
-          {ACCENT_COLORS.map((color) => (
-            <TouchableOpacity
-              key={color}
-              className="h-[38] w-[38] items-center justify-center rounded-full border-[3] border-transparent"
-              style={[
-                { backgroundColor: color },
-                theme.primaryColor === color && { borderColor: '#ffffff' },
-              ]}
-              onPress={() => setAccentColor(color)}>
-              {theme.primaryColor === color && <Check size={16} color="#0a0a0a" weight="bold" />}
-            </TouchableOpacity>
-          ))}
+        <View className="flex-row flex-wrap gap-2 p-2">
+          {themePresets.map((preset) => {
+            const active = currentThemeKey === preset.key;
+            return (
+              <TouchableOpacity
+                key={preset.key}
+                className="w-[72] items-center rounded-xl border-2 py-[10]"
+                style={active ? { borderColor: primaryColor } : { borderColor: 'transparent' }}
+                onPress={() => setColorTheme(preset.key)}>
+                <View
+                  className="h-[40] w-[50] items-center justify-center overflow-hidden rounded-[10]"
+                  style={{ backgroundColor: preset.background }}>
+                  <View
+                    className="absolute left-1 top-1 h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: preset.accent }}
+                  />
+                  <Text
+                    className="text-[13px] font-bold leading-tight"
+                    style={{ color: preset.text, marginTop: 4 }}>
+                    Aa
+                  </Text>
+                  <Text className="text-[8px] leading-tight" style={{ color: mutedColor }}>
+                    aa
+                  </Text>
+                </View>
+                <Text
+                  className="mt-1 text-center text-[9px] font-semibold leading-tight"
+                  style={active ? { color: primaryColor } : { color: mutedColor }}
+                  numberOfLines={1}>
+                  {preset.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
-      {/* Preset Backgrounds */}
-      <Text className="mb-3 mt-5 text-lg font-semibold" style={{ color: textColor }}>
-        Preset Backgrounds
+      {/* Background Image */}
+      <Text className="mb-2 mt-5 text-sm font-semibold" style={{ color: textColor }}>
+        Background Image
       </Text>
-      <View
-        className="mb-5 rounded-2xl border p-2"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        <View className="flex-row flex-wrap gap-2 p-2">
-          {PRESET_IMAGE_LIST.map((img) => (
-            <TouchableOpacity
-              key={img.key}
-              className="items-center"
-              onPress={() => setPresetImage(theme.presetImageKey === img.key ? null : img.key)}>
-              <View
-                className="h-[54] w-[72] overflow-hidden rounded-xl border-2"
-                style={{
-                  borderColor: theme.presetImageKey === img.key ? primaryColor : borderColor,
-                }}>
+      <View className="mb-4 rounded-xl border p-3" style={{ borderColor, backgroundColor: cardBg }}>
+        {theme.backgroundImageUri ? (
+          <View>
+            <View className="mb-2 flex-row gap-2">
+              <View className="h-16 w-16 overflow-hidden rounded-lg">
                 <Image
-                  source={img.source}
+                  source={{ uri: theme.backgroundImageUri }}
                   className="h-full w-full"
                   style={{ resizeMode: 'cover' }}
                 />
               </View>
-              <Text
-                className="mt-1 text-[10px]"
-                style={{ color: theme.presetImageKey === img.key ? primaryColor : mutedColor }}
-                numberOfLines={1}>
-                {img.name}
+              <View className="flex-1 justify-center gap-1.5">
+                <Text className="text-xs font-semibold" style={{ color: textColor }}>
+                  Background Set
+                </Text>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    className="rounded-lg px-3 py-1.5"
+                    style={{ backgroundColor: primaryColor + '20' }}
+                    onPress={pickBg}>
+                    <Text className="text-[11px] font-semibold" style={{ color: primaryColor }}>
+                      Change
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="rounded-lg bg-red-500/20 px-3 py-1.5"
+                    onPress={clearBackgroundImage}>
+                    <Text className="text-[11px] font-semibold" style={{ color: '#ef4444' }}>
+                      Remove
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <View className="mt-2 flex-row gap-1.5">
+              <FitButton
+                label="Fill"
+                active={(theme.backgroundMode ?? 'fill') === 'fill'}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onPress={() => setBackgroundMode('fill')}
+              />
+              <FitButton
+                label="Wallpaper"
+                active={(theme.backgroundMode ?? 'fill') === 'wallpaper'}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onPress={() => setBackgroundMode('wallpaper')}
+              />
+              <FitButton
+                label="Spotlight"
+                active={(theme.backgroundMode ?? 'fill') === 'spotlight'}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onPress={() => setBackgroundMode('spotlight')}
+              />
+            </View>
+            {(theme.backgroundMode ?? 'fill') === 'wallpaper' && (
+              <View className="mt-2 flex-row items-center gap-2">
+                <Text className="w-8 text-[11px]" style={{ color: mutedColor }}>
+                  Dim
+                </Text>
+                <SliderTrack
+                  value={theme.backgroundBrightness ?? 50}
+                  max={100}
+                  primaryColor={primaryColor}
+                  mutedColor={mutedColor}
+                  onChange={setBackgroundBrightness}
+                />
+                <Text className="w-6 text-right text-[11px]" style={{ color: mutedColor }}>
+                  {theme.backgroundBrightness ?? 50}
+                </Text>
+              </View>
+            )}
+            <View className="mt-2 flex-row items-center gap-2">
+              <Text className="w-6 text-[11px]" style={{ color: mutedColor }}>
+                Blur
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity className="items-center py-2" onPress={() => setPresetImage(null)}>
-          <Text className="text-[12px]" style={{ color: mutedColor }}>
-            Clear preset background
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Background Image */}
-      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
-        Background Image
-      </Text>
-      <View
-        className="mb-5 rounded-2xl border p-4"
-        style={{ borderColor, backgroundColor: cardBg }}>
-        {theme.backgroundImageUri ? (
-          <View className="mb-3">
-            <Image
-              source={{ uri: theme.backgroundImageUri }}
-              className="mb-2 h-[140] w-full rounded-xl"
-              style={{ resizeMode: 'cover' }}
-            />
-            <View className="flex-row gap-2">
-              <TouchableOpacity
-                className="flex-1 items-center rounded-xl py-2.5"
-                style={{ backgroundColor: primaryColor + '20' }}
-                onPress={async () => {
-                  const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ['images'],
-                    quality: 1,
-                  });
-                  if (!result.canceled && result.assets?.[0]) {
-                    await setBackgroundImage(result.assets[0].uri);
-                  }
-                }}>
-                <Text className="text-[13px] font-semibold" style={{ color: primaryColor }}>
-                  Change
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 items-center rounded-xl bg-red-500/20 py-2.5"
-                onPress={clearBackgroundImage}>
-                <Text className="text-[13px] font-semibold" style={{ color: '#ef4444' }}>
-                  Remove
-                </Text>
-              </TouchableOpacity>
+              <SliderTrack
+                value={theme.backgroundBlur ?? 0}
+                max={100}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onChange={setBackgroundBlur}
+              />
+              <Text className="w-6 text-right text-[11px]" style={{ color: mutedColor }}>
+                {theme.backgroundBlur ?? 0}
+              </Text>
+            </View>
+            <View className="mt-1.5 flex-row gap-2">
+              <FitButton
+                label="Cover"
+                active={theme.backgroundImageFit === 'cover'}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onPress={() => setBackgroundFit('cover')}
+              />
+              <FitButton
+                label="Contain"
+                active={theme.backgroundImageFit === 'contain'}
+                primaryColor={primaryColor}
+                mutedColor={mutedColor}
+                onPress={() => setBackgroundFit('contain')}
+              />
             </View>
           </View>
         ) : (
           <TouchableOpacity
-            className="items-center rounded-xl border-2 border-dashed py-4"
-            style={{ borderColor: mutedColor + '40' }}
-            onPress={async () => {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
-                quality: 1,
-              });
-              if (!result.canceled && result.assets?.[0]) {
-                await setBackgroundImage(result.assets[0].uri);
-              }
-            }}>
+            className="flex-row items-center gap-3 rounded-lg px-2 py-2.5"
+            style={{ backgroundColor: mutedColor + '08' }}
+            onPress={pickBg}>
             <View
-              className="mb-2 h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: cardBg }}>
-              <Text className="text-lg">🖼</Text>
+              className="h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: primaryColor + '15' }}>
+              <Text className="text-sm">🖼</Text>
             </View>
-            <Text className="text-[13px] font-semibold" style={{ color: mutedColor }}>
-              Tap to add background image
-            </Text>
-            <Text className="mt-1 text-[11px]" style={{ color: mutedColor }}>
-              Supports HD images (wallpaper / spotlight)
-            </Text>
+            <View className="flex-1">
+              <Text className="text-xs font-semibold" style={{ color: textColor }}>
+                Choose background image
+              </Text>
+              <Text className="text-[10px]" style={{ color: mutedColor }}>
+                HD quality — no compression
+              </Text>
+            </View>
           </TouchableOpacity>
-        )}
-
-        {theme.backgroundImageUri && (
-          <View className="mt-4">
-            <View className="mb-2 flex-row items-center justify-between">
-              <Text className="text-[13px] " style={{ color: textColor }}>
-                Blur
-              </Text>
-              <Text className="text-[13px] " style={{ color: textColor }}>
-                {theme.backgroundBlur ?? 0}
-              </Text>
-            </View>
-            <View className="h-8 justify-center">
-              <TouchableOpacity
-                className="h-1.5 justify-center rounded-full"
-                style={{ backgroundColor: mutedColor + '30' }}
-                onPress={async (e) => {
-                  const { locationX } = e.nativeEvent;
-                  const pct = locationX / 260;
-                  await setBackgroundBlur(Math.round(pct * 100));
-                }}>
-                <View
-                  className="h-1.5 rounded-full"
-                  style={{
-                    width: `${((theme.backgroundBlur ?? 0) / 100) * 100}%` as any,
-                    backgroundColor: primaryColor,
-                  }}
-                />
-                <View
-                  className="absolute -top-1.5 h-4 w-4 rounded-full"
-                  style={{
-                    left: `${((theme.backgroundBlur ?? 0) / 100) * 100}%` as any,
-                    backgroundColor: primaryColor,
-                  }}
-                />
-              </TouchableOpacity>
-            </View>
-            <View className="mt-3 flex-row gap-2">
-              <TouchableOpacity
-                className="flex-1 items-center rounded-xl py-2"
-                style={{
-                  backgroundColor:
-                    theme.backgroundImageFit === 'cover'
-                      ? `${primaryColor}20`
-                      : 'rgba(255,255,255,0.05)',
-                }}
-                onPress={() => setBackgroundFit('cover')}>
-                <Text
-                  className="text-[12px]"
-                  style={{
-                    color: theme.backgroundImageFit === 'cover' ? primaryColor : '#e4e4e7',
-                  }}>
-                  Cover
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 items-center rounded-xl py-2"
-                style={{
-                  backgroundColor:
-                    theme.backgroundImageFit === 'contain'
-                      ? `${primaryColor}20`
-                      : 'rgba(255,255,255,0.05)',
-                }}
-                onPress={() => setBackgroundFit('contain')}>
-                <Text
-                  className="text-[12px]"
-                  style={{
-                    color: theme.backgroundImageFit === 'contain' ? primaryColor : '#e4e4e7',
-                  }}>
-                  Contain
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         )}
       </View>
     </>
@@ -788,7 +673,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <Text className="mb-2 text-center text-2xl font-bold " style={{ color: textColor }}>
           Lumora
@@ -863,7 +748,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         {languages.map((lang) => (
           <TouchableOpacity
@@ -900,7 +785,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         {FONT_OPTIONS.map((opt) => (
           <TouchableOpacity
@@ -934,7 +819,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View style={{ width: 44 }} />
       </View>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <Text className="p-3 text-sm " style={{ color: mutedColor }}>
           {t('settings.hiddenFilesCount', { count: hiddenFilesCount })}
@@ -992,7 +877,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </TouchableOpacity>
       )}
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <Text className="p-3 text-sm " style={{ color: mutedColor }}>
           {t('settings.recentlyDeletedCount', { count: recentlyDeleted.length })}
@@ -1208,7 +1093,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
       {!privateFolderExists ? (
         <View
-          className="mb-5 rounded-2xl border p-2"
+          className="mb-5 rounded-[28px] border p-2"
           style={{ borderColor, backgroundColor: cardBg }}>
           <Text className="p-4 text-center text-sm leading-[22] " style={{ color: mutedColor }}>
             Create a private folder on your device to hide sensitive files from the main library.
@@ -1232,7 +1117,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         </View>
       ) : !privateFolderUnlocked ? (
         <View
-          className="mb-5 rounded-2xl border p-2"
+          className="mb-5 rounded-[28px] border p-2"
           style={{ borderColor, backgroundColor: cardBg }}>
           <Text className="p-4 text-center text-sm leading-[22] " style={{ color: mutedColor }}>
             Enter your passcode to access the private folder.
@@ -1256,7 +1141,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       ) : (
         <>
           <View
-            className="mb-5 rounded-2xl border p-2"
+            className="mb-5 rounded-[28px] border p-2"
             style={{ borderColor, backgroundColor: cardBg }}>
             <View style={{ padding: 12, gap: 6 }}>
               <Text className="p-3 text-sm" style={{ padding: 0, color: mutedColor }}>
@@ -1338,7 +1223,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           </View>
           {privateFilesList.length > 0 && (
             <View
-              className="mb-5 rounded-2xl border p-2"
+              className="mb-5 rounded-[28px] border p-2"
               style={{ borderColor, backgroundColor: cardBg }}>
               <Text className="p-3 text-sm font-bold " style={{ color: textColor }}>
                 Files
@@ -1392,7 +1277,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="flex-1 items-center justify-center"
           style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View
-            className="w-[280] rounded-2xl p-6"
+            className="w-[280] rounded-[28px] p-6"
             style={{ backgroundColor: cardBg, borderWidth: 1, borderColor }}>
             <Text className="mb-4 text-center text-lg font-bold" style={{ color: textColor }}>
               {passcodeMode === 'create' && !confirmStep
@@ -1493,7 +1378,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View
           className="flex-row items-center justify-between border-b px-2 py-3"
@@ -1516,7 +1401,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View
           className="flex-row items-center justify-between border-b px-2 py-3"
@@ -1560,7 +1445,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row items-center justify-between px-2 py-3">
           <View className="mr-3 flex-1">
@@ -1597,7 +1482,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         {t('settings.notification')}
       </Text>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View
           className="flex-row items-center justify-between border-b px-2 py-3"
@@ -1642,7 +1527,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <TouchableOpacity
           className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
@@ -1752,7 +1637,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View className="flex-row items-center justify-between px-2 py-3">
           <View className="mr-3 flex-1">
@@ -1789,7 +1674,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       </View>
 
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         <View className="items-center gap-3 py-8">
           <ShieldCheck
@@ -1938,7 +1823,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         Features planned for upcoming releases. Vote and suggest on our GitHub.
       </Text>
       <View
-        className="mb-5 rounded-2xl border p-2"
+        className="mb-5 rounded-[28px] border p-2"
         style={{ borderColor, backgroundColor: cardBg }}>
         {FUTURE_UPDATES.map((item, idx) => (
           <View
@@ -1965,6 +1850,512 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     </>
   );
 
+  const renderBackupView = () => (
+    <>
+      <View className="mb-5 flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={() => setActiveView('list')}
+          className="h-11 w-11 items-center justify-center">
+          <CaretLeft size={28} color={textColor} />
+        </TouchableOpacity>
+        <Text className="text-xl font-semibold" style={{ color: textColor }}>
+          Backup & Restore
+        </Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      {/* Google Drive Connection */}
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        Google Drive
+      </Text>
+      <View
+        className="mb-5 rounded-[28px] border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        {!googleClientId ? (
+          <View className="px-2 py-4">
+            <Text className="text-sm" style={{ color: mutedColor }}>
+              Configure your Google Drive client ID to enable cloud backup.
+            </Text>
+            <TouchableOpacity
+              className="mt-3 items-center rounded-xl py-2.5"
+              style={{ backgroundColor: primaryColor }}
+              onPress={() => {
+                setGoogleClientIdInput(googleClientId);
+                setShowClientIdModal(true);
+              }}>
+              <Text className="text-sm font-bold text-[#18181b]">Set Client ID</Text>
+            </TouchableOpacity>
+          </View>
+        ) : googleDrive.isConnected ? (
+          <View className="px-2 py-3">
+            <View className="flex-row items-center gap-3">
+              <GoogleLogo size={24} color={primaryColor} />
+              <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+                Connected to Google Drive
+              </Text>
+              <View className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            </View>
+            <TouchableOpacity
+              className="mt-3 items-center rounded-xl py-2.5"
+              style={{ backgroundColor: '#ef444420' }}
+              onPress={googleDrive.signOut}>
+              <Text className="text-sm font-bold" style={{ color: '#ef4444' }}>
+                Disconnect
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View className="px-2 py-3">
+            {googleDrive.error && (
+              <Text className="mb-2 text-xs" style={{ color: '#ef4444' }}>
+                {googleDrive.error}
+              </Text>
+            )}
+            <TouchableOpacity
+              className="flex-row items-center justify-center gap-2 rounded-xl py-2.5"
+              style={{ backgroundColor: primaryColor }}
+              onPress={googleDrive.signIn}
+              disabled={googleDrive.loading}>
+              <GoogleLogo size={20} color="#18181b" />
+              <Text className="text-sm font-bold text-[#18181b]">
+                {googleDrive.loading ? 'Connecting...' : 'Connect to Google Drive'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="mt-2 items-center rounded-xl py-2"
+              style={{ backgroundColor: isDarkMode ? '#27272a' : '#e4e4e7' }}
+              onPress={() => {
+                setGoogleClientIdInput(googleClientId);
+                setShowClientIdModal(true);
+              }}>
+              <Text className="text-xs" style={{ color: mutedColor }}>
+                Change Client ID
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Data Backup */}
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        Data Backup
+      </Text>
+      <View
+        className="mb-5 rounded-[28px] border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        {backupStatus && (
+          <View
+            className="mx-2 mb-2 mt-1 rounded-lg px-3 py-2"
+            style={{ backgroundColor: isDarkMode ? '#18181b' : '#f4f4f5' }}>
+            <Text className="text-xs" style={{ color: textColor }}>
+              {backupStatus}
+            </Text>
+          </View>
+        )}
+        <TouchableOpacity
+          className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+          onPress={async () => {
+            setBackupStatus('Collecting app data...');
+            setBackupLoading(true);
+            try {
+              const data = await collectBackupData();
+              if (googleDrive.isConnected) {
+                const token = googleDrive.getAccessToken();
+                if (token) {
+                  setBackupStatus('Uploading to Google Drive...');
+                  await uploadBackupToDrive(token, data);
+                  setBackupStatus('Backup uploaded successfully!');
+                } else {
+                  setBackupStatus('Reconnect Google Drive and try again.');
+                }
+              } else {
+                await exportLocalBackup(data);
+                setBackupStatus('Local backup created successfully!');
+              }
+              const lbs = await getLocalBackups();
+              setLocalBackups(lbs);
+            } catch (e: any) {
+              setBackupStatus(`Backup failed: ${e.message}`);
+            } finally {
+              setBackupLoading(false);
+            }
+          }}
+          disabled={backupLoading}>
+          <CloudArrowUp size={22} color={primaryColor} />
+          <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+            {backupLoading ? 'Backing up...' : 'Backup Now'}
+          </Text>
+          <UploadSimple size={18} color={mutedColor} />
+        </TouchableOpacity>
+
+        <View className="border-b" style={{ borderBottomColor: borderColor }} />
+
+        <TouchableOpacity
+          className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+          onPress={async () => {
+            try {
+              const result = await DocumentPicker.getDocumentAsync({
+                type: 'application/json',
+                copyToCacheDirectory: true,
+              });
+              if (!result.canceled && result.assets?.[0]) {
+                setBackupStatus('Importing backup...');
+                const data = await loadLocalBackup(result.assets[0].uri);
+                if (data) {
+                  await restoreFromBackup(data);
+                  setBackupStatus(
+                    'Backup restored successfully! Restart the app to apply all changes.'
+                  );
+                } else {
+                  setBackupStatus('Invalid backup file.');
+                }
+              }
+            } catch (e: any) {
+              setBackupStatus(`Import failed: ${e.message}`);
+            }
+          }}>
+          <CloudArrowDown size={22} color={primaryColor} />
+          <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+            Restore from Local File
+          </Text>
+          <DownloadSimple size={18} color={mutedColor} />
+        </TouchableOpacity>
+
+        {/* Upload Media */}
+        {googleDrive.isConnected && (
+          <>
+            <View className="border-b" style={{ borderBottomColor: borderColor }} />
+            <TouchableOpacity
+              className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+              onPress={async () => {
+                try {
+                  const result = await DocumentPicker.getDocumentAsync({
+                    type: ['audio/*', 'video/*'],
+                    copyToCacheDirectory: true,
+                  });
+                  if (!result.canceled && result.assets?.[0]) {
+                    const asset = result.assets[0];
+                    setBackupStatus(`Uploading ${asset.name}...`);
+                    const token = googleDrive.getAccessToken();
+                    if (token) {
+                      await uploadMediaToDrive(token, asset.uri, asset.name);
+                      setBackupStatus(`${asset.name} uploaded to Drive!`);
+                    }
+                  }
+                } catch (e: any) {
+                  setBackupStatus(`Upload failed: ${e.message}`);
+                }
+              }}>
+              <UploadSimple size={22} color={primaryColor} />
+              <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+                Upload Media Files
+              </Text>
+              <MusicNotes size={18} color={mutedColor} />
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
+      {/* Google Drive Backups */}
+      {googleDrive.isConnected && (
+        <>
+          <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+            Drive Backups
+          </Text>
+          <View
+            className="mb-5 rounded-[28px] border p-2"
+            style={{ borderColor, backgroundColor: cardBg }}>
+            <TouchableOpacity
+              className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+              onPress={async () => {
+                setBackupLoading(true);
+                try {
+                  const token = googleDrive.getAccessToken();
+                  if (token) {
+                    const backups = await listDriveBackups(token);
+                    setDriveBackups(backups);
+                    setShowDriveBackups(!showDriveBackups);
+                  }
+                } catch (e: any) {
+                  setBackupStatus(`Failed to list backups: ${e.message}`);
+                } finally {
+                  setBackupLoading(false);
+                }
+              }}>
+              <List size={22} color={primaryColor} />
+              <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+                {showDriveBackups ? 'Hide Drive Backups' : 'List Drive Backups'}
+              </Text>
+              <Text className="text-xs" style={{ color: mutedColor }}>
+                {driveBackups.length > 0 ? `${driveBackups.length} files` : ''}
+              </Text>
+            </TouchableOpacity>
+
+            {showDriveBackups && driveBackups.length === 0 && (
+              <Text className="px-5 pb-3 text-xs" style={{ color: mutedColor }}>
+                No backups found on Google Drive.
+              </Text>
+            )}
+
+            {showDriveBackups &&
+              driveBackups.map((file) => (
+                <View
+                  key={file.id}
+                  className="flex-row items-center border-t px-3 py-3"
+                  style={{ borderTopColor: borderColor }}>
+                  <View className="flex-1">
+                    <Text className="text-sm" style={{ color: textColor }} numberOfLines={1}>
+                      {file.name}
+                    </Text>
+                    <Text className="mt-0.5 text-xs" style={{ color: mutedColor }}>
+                      {new Date(file.createdTime).toLocaleDateString()} |{' '}
+                      {file.size ? `${(parseInt(file.size) / 1024).toFixed(1)} KB` : '--'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    className="mr-2 rounded-lg px-3 py-1.5"
+                    style={{ backgroundColor: `${primaryColor}20` }}
+                    onPress={async () => {
+                      setBackupStatus('Restoring from Drive...');
+                      try {
+                        const token = googleDrive.getAccessToken();
+                        if (token) {
+                          const data = await downloadBackupFromDrive(token, file.id);
+                          await restoreFromBackup(data);
+                          setBackupStatus('Restored successfully! Restart the app.');
+                        }
+                      } catch (e: any) {
+                        setBackupStatus(`Restore failed: ${e.message}`);
+                      }
+                    }}>
+                    <DownloadSimple size={16} color={primaryColor} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="rounded-lg px-3 py-1.5"
+                    style={{ backgroundColor: '#ef444420' }}
+                    onPress={async () => {
+                      try {
+                        const token = googleDrive.getAccessToken();
+                        if (token) {
+                          await deleteDriveBackup(token, file.id);
+                          setDriveBackups((prev) => prev.filter((f) => f.id !== file.id));
+                          setBackupStatus('Backup deleted.');
+                        }
+                      } catch (e: any) {
+                        setBackupStatus(`Delete failed: ${e.message}`);
+                      }
+                    }}>
+                    <Trash size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+          </View>
+        </>
+      )}
+
+      {/* Local Backups */}
+      <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+        Local Backups
+      </Text>
+      <View
+        className="mb-5 rounded-[28px] border p-2"
+        style={{ borderColor, backgroundColor: cardBg }}>
+        <TouchableOpacity
+          className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+          onPress={async () => {
+            const lbs = await getLocalBackups();
+            setLocalBackups(lbs);
+            setShowLocalBackups(!showLocalBackups);
+          }}>
+          <Folder size={22} color={primaryColor} />
+          <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+            {showLocalBackups ? 'Hide Local Backups' : 'Show Local Backups'}
+          </Text>
+          <Text className="text-xs" style={{ color: mutedColor }}>
+            {localBackups.length > 0 ? `${localBackups.length} files` : ''}
+          </Text>
+        </TouchableOpacity>
+
+        {showLocalBackups && localBackups.length === 0 && (
+          <Text className="px-5 pb-3 text-xs" style={{ color: mutedColor }}>
+            No local backups found.
+          </Text>
+        )}
+
+        {showLocalBackups &&
+          localBackups.map((file) => (
+            <View
+              key={file.path}
+              className="flex-row items-center border-t px-3 py-3"
+              style={{ borderTopColor: borderColor }}>
+              <View className="flex-1">
+                <Text className="text-sm" style={{ color: textColor }} numberOfLines={1}>
+                  {file.name}
+                </Text>
+                <Text className="mt-0.5 text-xs" style={{ color: mutedColor }}>
+                  {new Date(file.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                className="mr-2 rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: `${primaryColor}20` }}
+                onPress={async () => {
+                  setBackupStatus('Restoring from local backup...');
+                  try {
+                    const data = await loadLocalBackup(file.path);
+                    if (data) {
+                      await restoreFromBackup(data);
+                      setBackupStatus('Restored successfully! Restart the app.');
+                    }
+                  } catch (e: any) {
+                    setBackupStatus(`Restore failed: ${e.message}`);
+                  }
+                }}>
+                <DownloadSimple size={16} color={primaryColor} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: '#ef444420' }}
+                onPress={async () => {
+                  await deleteLocalBackup(file.path);
+                  setLocalBackups((prev) => prev.filter((f) => f.path !== file.path));
+                }}>
+                <Trash size={16} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          ))}
+      </View>
+
+      {/* Drive Media */}
+      {googleDrive.isConnected && (
+        <>
+          <Text className="mb-3 mt-2 text-lg font-semibold" style={{ color: textColor }}>
+            Drive Media
+          </Text>
+          <View
+            className="mb-5 rounded-[28px] border p-2"
+            style={{ borderColor, backgroundColor: cardBg }}>
+            <TouchableOpacity
+              className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
+              onPress={async () => {
+                try {
+                  const token = googleDrive.getAccessToken();
+                  if (token) {
+                    const { listDriveMedia } = await import('../services/BackupService');
+                    const media = await listDriveMedia(token);
+                    setDriveMedia(media);
+                    setShowDriveMedia(!showDriveMedia);
+                  }
+                } catch (e: any) {
+                  setBackupStatus(`Failed to list media: ${e.message}`);
+                }
+              }}>
+              <MusicNotes size={22} color={primaryColor} />
+              <Text className="flex-1 text-[15px]" style={{ color: textColor }}>
+                {showDriveMedia ? 'Hide Drive Media' : 'Show Drive Media'}
+              </Text>
+              <Text className="text-xs" style={{ color: mutedColor }}>
+                {driveMedia.length > 0 ? `${driveMedia.length} files` : ''}
+              </Text>
+            </TouchableOpacity>
+
+            {showDriveMedia && driveMedia.length === 0 && (
+              <Text className="px-5 pb-3 text-xs" style={{ color: mutedColor }}>
+                No media files uploaded to Drive.
+              </Text>
+            )}
+
+            {showDriveMedia &&
+              driveMedia.map((file) => (
+                <View
+                  key={file.id}
+                  className="flex-row items-center border-t px-3 py-3"
+                  style={{ borderTopColor: borderColor }}>
+                  <View className="flex-1">
+                    <Text className="text-sm" style={{ color: textColor }} numberOfLines={1}>
+                      {file.name}
+                    </Text>
+                    <Text className="mt-0.5 text-xs" style={{ color: mutedColor }}>
+                      {file.size ? `${(parseInt(file.size) / 1024 / 1024).toFixed(1)} MB` : '--'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    className="rounded-lg px-3 py-1.5"
+                    style={{ backgroundColor: '#ef444420' }}
+                    onPress={async () => {
+                      try {
+                        const token = googleDrive.getAccessToken();
+                        if (token) {
+                          await deleteDriveBackup(token, file.id);
+                          setDriveMedia((prev) => prev.filter((f) => f.id !== file.id));
+                          setBackupStatus('Media file deleted from Drive.');
+                        }
+                      } catch (e: any) {
+                        setBackupStatus(`Delete failed: ${e.message}`);
+                      }
+                    }}>
+                    <Trash size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+          </View>
+        </>
+      )}
+
+      {/* Google Client ID Modal */}
+      <Modal visible={showClientIdModal} transparent animationType="fade">
+        <TouchableOpacity
+          className="flex-1 items-center justify-center bg-black/70"
+          onPress={() => setShowClientIdModal(false)}>
+          <View
+            className="w-[85%] max-w-[360px] rounded-[28px] p-6"
+            style={{
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+              backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
+            }}>
+            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
+              Google Drive Client ID
+            </Text>
+            <Text className="mb-3 text-xs" style={{ color: mutedColor }}>
+              Enter your Google OAuth 2.0 Web Client ID (from Google Cloud Console).
+            </Text>
+            <TextInput
+              className="mb-4 rounded-xl px-3.5 py-3 text-sm"
+              style={{ backgroundColor: isDarkMode ? '#18181b' : '#e4e4e7', color: textColor }}
+              placeholder="xxxxx.apps.googleusercontent.com"
+              placeholderTextColor={mutedColor}
+              value={googleClientIdInput}
+              onChangeText={setGoogleClientIdInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View className="flex-row gap-2.5">
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: isDarkMode ? '#27272a' : '#e4e4e7' }}
+                onPress={() => setShowClientIdModal(false)}>
+                <Text className="text-[15px] font-bold" style={{ color: textColor }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: primaryColor }}
+                onPress={() => {
+                  setGoogleClientId(googleClientIdInput);
+                  new MMKV({ id: 'settings' }).set('@google_client_id', googleClientIdInput);
+                  setShowClientIdModal(false);
+                }}>
+                <Text className="text-[15px] font-bold text-[#18181b]">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+
   const renderActiveView = () => {
     switch (activeView) {
       case 'theme':
@@ -1979,6 +2370,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         return renderHiddenFilesView();
       case 'recentlyDeleted':
         return renderRecentlyDeletedView();
+      case 'backup':
+        return renderBackupView();
       case 'privateFolder':
         return renderPrivateFolderView();
       case 'playback':
@@ -2014,7 +2407,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           {t('settings.title')}
         </Text>
         <View
-          className="mb-5 rounded-2xl border p-2"
+          className="mb-5 rounded-[28px] border p-2"
           style={{ borderColor, backgroundColor: cardBg }}>
           {renderMainList()}
         </View>
@@ -2023,3 +2416,76 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     </ScreenLayout>
   );
 });
+
+function SliderTrack({
+  value,
+  max,
+  primaryColor,
+  mutedColor,
+  onChange,
+}: {
+  value: number;
+  max: number;
+  primaryColor: string;
+  mutedColor: string;
+  onChange: (v: number) => void;
+}) {
+  const [trackWidth, setTrackWidth] = React.useState(200);
+  return (
+    <View
+      className="h-5 flex-1 justify-center"
+      onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}>
+      <TouchableOpacity
+        className="h-1 justify-center rounded-full"
+        style={{ backgroundColor: mutedColor + '30' }}
+        onPress={async (e) => {
+          const pct = e.nativeEvent.locationX / trackWidth;
+          await onChange(Math.round(Math.min(pct, 1) * max));
+        }}>
+        <View
+          className="h-1 rounded-full"
+          style={{
+            width: `${Math.min((value / max) * 100, 100)}%` as any,
+            backgroundColor: primaryColor,
+          }}
+        />
+        <View
+          className="absolute -top-1 h-3 w-3 rounded-full"
+          style={{
+            left: `${Math.min((value / max) * 100, 100)}%` as any,
+            backgroundColor: primaryColor,
+          }}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function FitButton({
+  label,
+  active,
+  primaryColor,
+  mutedColor,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  primaryColor: string;
+  mutedColor: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      className="flex-1 items-center rounded-lg py-1.5"
+      style={{
+        backgroundColor: active ? `${primaryColor}20` : 'rgba(255,255,255,0.05)',
+      }}
+      onPress={onPress}>
+      <Text
+        className="text-[11px] font-semibold"
+        style={{ color: active ? primaryColor : mutedColor }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}

@@ -4,6 +4,7 @@ import type { FileItem, RepeatMode } from '../types';
 import type { AudioMetadata } from 'expo-audio';
 import { queueEngine } from './QueueEngine';
 import { videoEngine } from './VideoEngine';
+import { equalizerEngine } from './EqualizerEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { NowPlayingNotification } from '../services/NowPlayingNotification';
 
@@ -172,6 +173,7 @@ export class AudioEngine {
   private _unload() {
     if (this._player) {
       try {
+        this._player.pause();
         this._player.remove();
       } catch {}
       this._player = null;
@@ -181,7 +183,22 @@ export class AudioEngine {
   private _startPositionCheck() {
     this._stopPositionCheck();
     this._positionCheckInterval = setInterval(() => {
-      if (this._player) {
+      if (equalizerEngine.isActive()) {
+        const eqState = equalizerEngine.getPlaybackState();
+        this._state.position = eqState.position;
+        this._state.duration = eqState.duration;
+        this._state.isPlaying = eqState.isPlaying;
+        this._persistState();
+        this._notify();
+
+        if (
+          !eqState.isPlaying &&
+          eqState.position >= eqState.duration - 500 &&
+          eqState.duration > 500
+        ) {
+          this._handleTrackEnd();
+        }
+      } else if (this._player) {
         const prevPlaying = this._state.isPlaying;
         this._state.position = this._player.currentTime * 1000;
         this._state.duration = this._player.duration * 1000;
@@ -244,7 +261,13 @@ export class AudioEngine {
     const { repeat } = this._state;
     if (repeat === 'one') {
       this.seekTo(0);
-      this.play();
+      if (this._player) {
+        this._player.play();
+        this._state.position = 0;
+        this._state.isPlaying = true;
+        this._persistState();
+        this._notify();
+      }
       return;
     }
     const next = queueEngine.resolveNext('audio');
@@ -279,28 +302,42 @@ export class AudioEngine {
 
       this._unload();
       try {
-        const player = createAudioPlayer({ uri: file.uri });
-        this._player = player;
-        if (this._state.playbackSpeed !== 1) {
-          player.playbackRate = this._state.playbackSpeed;
-          player.shouldCorrectPitch = true;
+        if (equalizerEngine.isEnabled()) {
+          await equalizerEngine.play(file);
+          this._state.isPlaying = true;
+          HistoryService.record(file, 0, 'music');
+          NowPlayingNotification.show(file, true);
+        } else {
+          const player = createAudioPlayer({ uri: file.uri });
+          this._player = player;
+          if (this._state.playbackSpeed !== 1) {
+            player.playbackRate = this._state.playbackSpeed;
+            player.shouldCorrectPitch = true;
+          }
+          const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
+          const metadata: AudioMetadata = {
+            title: cleanTitle,
+            artist: file.artist,
+            albumTitle: file.album,
+            artworkUrl: file.thumbnail,
+          };
+          player.setActiveForLockScreen(true, metadata, {
+            showSeekForward: true,
+            showSeekBackward: true,
+          });
+          player.play();
+          this._state.isPlaying = true;
+          HistoryService.record(file, 0, 'music');
+          NowPlayingNotification.show(file, true);
         }
-        const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
-        const metadata: AudioMetadata = {
-          title: cleanTitle,
-          artist: file.artist,
-          albumTitle: file.album,
-          artworkUrl: file.thumbnail,
-        };
-        player.setActiveForLockScreen(true, metadata, {
-          showSeekForward: true,
-          showSeekBackward: true,
-        });
-        player.play();
-        this._state.isPlaying = true;
-        HistoryService.record(file, 0, 'music');
-        NowPlayingNotification.show(file, true);
       } catch {
+        if (this._player) {
+          try {
+            this._player.pause();
+            this._player.remove();
+          } catch {}
+          this._player = null;
+        }
         this._state.isPlaying = false;
         this._state.currentFile = null;
         this._state.currentIndex = -1;
@@ -335,6 +372,14 @@ export class AudioEngine {
   }
 
   pause() {
+    if (equalizerEngine.isActive()) {
+      equalizerEngine.pause();
+      this._state.isPlaying = false;
+      this._persistState();
+      this._notify();
+      this._stopPositionCheck();
+      return;
+    }
     try {
       this._player?.pause();
     } catch {}
@@ -348,6 +393,14 @@ export class AudioEngine {
   }
 
   resume() {
+    if (equalizerEngine.isActive()) {
+      equalizerEngine.resume();
+      this._state.isPlaying = true;
+      this._persistState();
+      this._notify();
+      this._startPositionCheck();
+      return;
+    }
     try {
       this._player?.play();
     } catch {}
@@ -369,6 +422,9 @@ export class AudioEngine {
   }
 
   stop() {
+    if (equalizerEngine.isActive()) {
+      equalizerEngine.stop();
+    }
     if (this._player) {
       try {
         this._player.clearLockScreenControls();
@@ -387,6 +443,10 @@ export class AudioEngine {
   }
 
   seekTo(millis: number) {
+    if (equalizerEngine.isActive()) {
+      equalizerEngine.seekTo(millis);
+      return;
+    }
     try {
       this._player?.seekTo(Math.max(0, millis) / 1000);
     } catch {}
@@ -394,12 +454,14 @@ export class AudioEngine {
 
   setRate(rate: number) {
     this._state.playbackSpeed = rate;
-    try {
-      if (this._player) {
-        this._player.playbackRate = rate;
-        this._player.shouldCorrectPitch = true;
-      }
-    } catch {}
+    if (!equalizerEngine.isActive()) {
+      try {
+        if (this._player) {
+          this._player.playbackRate = rate;
+          this._player.shouldCorrectPitch = true;
+        }
+      } catch {}
+    }
     this._persistState();
     this._notify();
   }
@@ -516,6 +578,7 @@ export class AudioEngine {
     this._stopPositionCheck();
     if (this._sleepTimeout) clearTimeout(this._sleepTimeout);
     if (this._crossfadeTimeout) clearTimeout(this._crossfadeTimeout);
+    equalizerEngine.destroy();
   }
 }
 

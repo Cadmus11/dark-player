@@ -43,11 +43,11 @@ export const StorageService = {
       if (stored) return JSON.parse(stored);
     } catch {}
     return {
-      backgroundType: 'solid',
-      backgroundColor: '#06060B',
-      gradientColors: ['#06060B', '#1D1D21'],
-      primaryColor: '#C2FC4A',
-      accentColor: '#C2FC4A',
+      colorThemeKey: 'obsidian',
+      backgroundBlur: 20,
+      backgroundImageFit: 'cover',
+      backgroundMode: 'fill',
+      backgroundBrightness: 50,
       sizeMode: 'medium',
     };
   },

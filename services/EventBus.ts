@@ -21,6 +21,9 @@ export const AppEvents = {
   STORAGE_PRESSURE: 'storage:pressure',
   MEMORY_WARNING: 'memory:warning',
   HYDRATION_PHASE: 'hydration:phase',
+  COLOR_THEME_CHANGED: 'color:theme:changed',
+  ARTWORK_COLORS_EXTRACTED: 'artwork:colors:extracted',
+  MOOD_CHANGED: 'mood:changed',
 } as const;
 
 export type AppEvent = (typeof AppEvents)[keyof typeof AppEvents];

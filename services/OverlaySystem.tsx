@@ -4,18 +4,13 @@ import React, {
   useState,
   useCallback,
   useRef,
+  useEffect,
   type ReactNode,
 } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Appearance,
-  PanResponder,
-  Modal,
-  Dimensions,
-  Animated,
-} from 'react-native';
+import { View, Text, Modal } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useTheme } from '../context/ThemeContext';
 
 type OverlayPriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -116,60 +111,24 @@ export function usePortalHost() {
   return ctx;
 }
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-
-interface SheetConfig {
-  onClose: () => void;
-  isVisible: boolean;
-}
-
-export function useSheetGesture({ onClose, isVisible }: SheetConfig) {
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const prevVisible = useRef(isVisible);
-
-  if (isVisible && !prevVisible.current) {
-    translateY.setValue(SCREEN_HEIGHT);
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11,
-    }).start();
-  }
-  prevVisible.current = isVisible;
-
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 10,
-      onPanResponderMove: (_, gs) => {
-        if (gs.dy > 0) translateY.setValue(gs.dy);
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dy > 80) {
-          Animated.timing(translateY, {
-            toValue: SCREEN_HEIGHT,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            onClose();
-            translateY.setValue(SCREEN_HEIGHT);
-          });
-        } else {
-          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
-        }
-      },
-      onPanResponderTerminate: () => {
-        Animated.timing(translateY, {
-          toValue: SCREEN_HEIGHT,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => translateY.setValue(SCREEN_HEIGHT));
-      },
-    })
-  ).current;
-
-  return { translateY, panHandlers: pan.panHandlers };
+function SheetBackground({ isDark }: { isDark: boolean }) {
+  return (
+    <BlurView
+      intensity={80}
+      tint={isDark ? 'dark' : 'light'}
+      style={{
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        overflow: 'hidden',
+      }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: isDark ? 'rgba(24,24,27,0.85)' : 'rgba(255,255,255,0.85)',
+        }}
+      />
+    </BlurView>
+  );
 }
 
 export function BottomSheet({
@@ -183,49 +142,43 @@ export function BottomSheet({
   title?: string;
   children: ReactNode;
 }) {
-  const { translateY, panHandlers } = useSheetGesture({ onClose, isVisible: visible });
-  const colorScheme = Appearance.getColorScheme();
-  const isDarkMode = colorScheme === 'dark';
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const prevVisible = useRef(visible);
+  const { isDarkMode, textColor, mutedColor } = useTheme();
+
+  useEffect(() => {
+    if (visible && !prevVisible.current) {
+      bottomSheetModalRef.current?.present();
+    } else if (!visible && prevVisible.current) {
+      bottomSheetModalRef.current?.dismiss();
+    }
+    prevVisible.current = visible;
+  }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 justify-end bg-black/70">
-        <TouchableOpacity
-          className="flex-1"
-          onPress={() => {
-            Animated.timing(translateY, {
-              toValue: SCREEN_HEIGHT,
-              duration: 200,
-              useNativeDriver: true,
-            }).start(() => {
-              onClose();
-              translateY.setValue(SCREEN_HEIGHT);
-            });
-          }}
-          activeOpacity={1}
-        />
-        <Animated.View style={{ transform: [{ translateY }] }} {...panHandlers}>
-          <TouchableOpacity
-            activeOpacity={1}
-            className="max-h-[90%] rounded-t-3xl pb-8 pt-5"
-            style={{ backgroundColor: isDarkMode ? '#18181b' : '#ffffff' }}>
-            <View
-              className="mb-4 h-1 w-10 self-center rounded-full"
-              style={{ backgroundColor: isDarkMode ? '#52525b' : '#d4d4d8' }}
-            />
-            {title ? (
-              <View className="mb-2 px-5">
-                <Text
-                  className="text-center text-lg font-extrabold"
-                  style={{ color: isDarkMode ? '#ffffff' : '#18181b' }}>
-                  {title}
-                </Text>
-              </View>
-            ) : null}
-            {children}
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    </Modal>
+    <BottomSheetModal
+      ref={bottomSheetModalRef}
+      snapPoints={['50%']}
+      onDismiss={onClose}
+      enablePanDownToClose
+      backgroundComponent={() => <SheetBackground isDark={isDarkMode} />}
+      handleIndicatorStyle={{
+        backgroundColor: mutedColor,
+        width: 40,
+        height: 4,
+      }}>
+      {title ? (
+        <View className="mb-2 px-5 pt-2">
+          <Text className="text-center text-lg font-extrabold" style={{ color: textColor }}>
+            {title}
+          </Text>
+        </View>
+      ) : null}
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        {children}
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
 }

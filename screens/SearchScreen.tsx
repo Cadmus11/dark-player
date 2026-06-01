@@ -1,14 +1,15 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState, useMemo, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
-import { useAllFiles } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';
-import type { FileItem, FileType, SavedSearch } from '../types';
+import { useSearchQuery } from '../hooks/queries/useSearchQuery';
+import { useSearchHistoryQuery } from '../hooks/queries/useStorageQueries';
+import { SearchService } from '../services/Search/SearchService';
+import type { FileItem, FileType } from '../types';
 import { FileIcon } from '../components/FileIcon';
 import { ScreenLayout } from '../components/ScreenLayout';
-import { SearchService } from '../services/Search/SearchService';
 
 const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.ElementType }[] = [
   { type: 'all', label: 'All', Icon: MagnifyingGlass },
@@ -18,29 +19,18 @@ const TYPE_FILTERS: { type: FileType | 'all'; label: string; Icon: React.Element
 
 export const SearchScreen = React.memo(function SearchScreen() {
   const navigation = useNavigation<any>();
-  const files = useAllFiles();
   const { primaryColor, textColor, mutedColor, borderColor, isDarkMode } = useTheme();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
   const [isFocused, setIsFocused] = useState(false);
-  const [searchHistory, setSearchHistory] = useState<SavedSearch[]>([]);
+  const { data: searchHistory = [] } = useSearchHistoryQuery();
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    setSearchHistory(SearchService.getHistory());
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, []);
-
+  const rawResults = useSearchQuery(query);
   const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const searched = SearchService.search(query, files);
-    if (activeFilter !== 'all') {
-      return searched.filter((f) => f.type === activeFilter);
-    }
-    return searched;
-  }, [query, files, activeFilter]);
+    if (activeFilter === 'all') return rawResults;
+    return rawResults.filter((f) => f.type === activeFilter);
+  }, [rawResults, activeFilter]);
 
   const showHistory = !query.trim() && isFocused;
 
@@ -55,7 +45,6 @@ export const SearchScreen = React.memo(function SearchScreen() {
     if (text.trim()) {
       searchTimer.current = setTimeout(() => {
         SearchService.saveHistory(text.trim());
-        setSearchHistory(SearchService.getHistory());
       }, 500);
     }
   };
@@ -63,17 +52,14 @@ export const SearchScreen = React.memo(function SearchScreen() {
   const handleHistoryTap = (searchQuery: string) => {
     setQuery(searchQuery);
     SearchService.saveHistory(searchQuery);
-    setSearchHistory(SearchService.getHistory());
   };
 
   const removeSearch = (id: string) => {
     SearchService.removeHistory(id);
-    setSearchHistory(SearchService.getHistory());
   };
 
   const clearSearchHistory = () => {
     SearchService.clearHistory();
-    setSearchHistory([]);
   };
 
   const renderItem = ({ item }: { item: FileItem }) => (

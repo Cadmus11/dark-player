@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </Text>
           <TouchableOpacity
             className="rounded-xl px-6 py-3"
-            style={{ backgroundColor: isDark ? '#C2FC4A' : '#F97316' }}
+            style={{ backgroundColor: '#8B5CF6' }}
             onPress={this.handleRetry}>
             <Text
               className="text-[15px] font-bold"

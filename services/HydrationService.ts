@@ -6,6 +6,8 @@ import { lifecycleManager } from './LifecycleManager';
 import { permissionService } from './PermissionService';
 import { taskManager } from './Cancellation';
 import { eventBus, AppEvents } from './EventBus';
+import { getQueryClient } from '../hooks/queries/QueryProvider';
+import { queryKeys } from '../hooks/queries/queryKeys';
 
 type HydrationPhase = (() => Promise<void>)[];
 
@@ -21,6 +23,10 @@ const HYDRATION_PHASES: HydrationPhase = [
     const mediaState = useMediaStore.getState();
     if (fileEngine.hasCache()) {
       mediaState.loadCache();
+      const cached = fileEngine.loadFromCache();
+      const qc = getQueryClient();
+      qc.setQueryData(queryKeys.media.videos(), cached.videos);
+      qc.setQueryData(queryKeys.media.audio(), cached.audio);
     }
     usePlaylistStore.getState().load();
     useMediaStore.getState().setHydrationStage(2);

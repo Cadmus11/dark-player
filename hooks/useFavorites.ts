@@ -1,19 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { StorageService } from '../services/StorageService';
+import { useFavoritesQuery } from './queries/useStorageQueries';
+import { queryKeys } from './queries/queryKeys';
 import type { FileItem } from '../types';
 
 export function useFavorites(allFiles: FileItem[]) {
-  const [favoriteUris, setFavoriteUris] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+  const { data: favoriteUris = [] } = useFavoritesQuery();
 
-  useEffect(() => {
-    StorageService.getFavorites().then(setFavoriteUris);
-  }, []);
-
-  const toggleFavorite = useCallback(async (uri: string) => {
-    const updated = await StorageService.toggleFavorite(uri);
-    setFavoriteUris(updated);
-    return updated;
-  }, []);
+  const toggleFavorite = useCallback(
+    async (uri: string) => {
+      const updated = await StorageService.toggleFavorite(uri);
+      queryClient.setQueryData(queryKeys.storage.favorites(), updated);
+      return updated;
+    },
+    [queryClient]
+  );
 
   const isFavorite = useCallback((uri: string) => favoriteUris.includes(uri), [favoriteUris]);
 

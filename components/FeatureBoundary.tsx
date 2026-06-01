@@ -53,7 +53,7 @@ export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoun
           </Text>
           <TouchableOpacity
             className="rounded-xl px-4 py-2"
-            style={{ backgroundColor: isDark ? '#C2FC4A' : '#F97316' }}
+            style={{ backgroundColor: '#8B5CF6' }}
             onPress={this.handleRetry}>
             <Text className="text-xs font-bold" style={{ color: isDark ? '#18181b' : '#ffffff' }}>
               Retry

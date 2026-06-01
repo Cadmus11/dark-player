@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { VideoCamera, FunnelSimple, ArrowUp, ArrowDown } from 'phosphor-react-native';
+import { VideoCamera, ArrowUp, ArrowDown } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
@@ -85,7 +85,7 @@ export const VideosScreen = React.memo(function VideosScreen() {
           className="flex-1 items-center justify-center bg-black/70"
           onPress={() => setShowSortModal(false)}>
           <View
-            className="w-[80%] max-w-[320px] rounded-3xl p-6"
+            className="w-[80%] max-w-[320px] rounded-[28px] p-6"
             style={{ backgroundColor: isDarkMode ? '#27272a' : '#ffffff' }}>
             <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
               Sort by
@@ -130,31 +130,11 @@ export const VideosScreen = React.memo(function VideosScreen() {
   );
 
   return (
-    <ScreenLayout>
-      <View className="mb-2 flex-row items-center justify-between px-4">
+    <ScreenLayout onSortPress={() => setShowSortModal(true)}>
+      <View className="mb-2 px-4">
         <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
           Videos
         </Text>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity
-            className="flex-row items-center gap-1 rounded-lg px-2.5 py-1.5"
-            style={{
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              borderWidth: 0.5,
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-            }}
-            onPress={() => setShowSortModal(true)}>
-            <FunnelSimple size={16} color={primaryColor} />
-            <Text className="text-[11px] font-semibold" style={{ color: mutedColor }}>
-              {currentSortLabel}
-            </Text>
-            {sortDirection === 'asc' ? (
-              <ArrowUp size={14} color={mutedColor} />
-            ) : (
-              <ArrowDown size={14} color={mutedColor} />
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
       <View className="flex-1">
         <FileGrid

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,49 +13,62 @@ import {
   PanResponder,
   Pressable,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { setAudioModeAsync } from 'expo-audio';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../App';
 import {
-  CaretLeft,
+  CaretDown,
+  Broadcast,
+  DotsThreeVertical,
   Play,
   Pause,
-  MusicNote,
-  VideoCamera,
-  FrameCorners,
-  Square,
-  ArrowsOut,
-  Subtitles,
   SkipBack,
   SkipForward,
+  Shuffle,
+  Repeat,
+  Heart,
+  ThumbsUp,
+  Queue,
+  DownloadSimple,
+  ShareNetwork,
+  MusicNote,
+  VideoCamera,
+  Check,
   Info,
   Trash,
-  Repeat,
-  Shuffle,
-  Check,
-  DotsThreeVertical,
   Headphones,
   Lock,
   LockOpen,
   ArrowsClockwise,
-  ShareNetwork,
+  FrameCorners,
+  Square,
+  ArrowsOut,
+  Subtitles,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useColorAwareness } from '../context/ColorAwarenessContext';
+import { colorAwarenessEngine } from '../services/ColorAwarenessEngine';
+import { NeonSlider } from '../components/NeonSlider';
 import { fileEngine } from '../engine/FileEngine';
 import { videoEngine } from '../engine/VideoEngine';
 import { queueEngine } from '../engine/QueueEngine';
-import type { SubtitleEntry } from '../types';
-import { VideoEnhancementModal } from '../components/player/VideoEnhancementModal';
+import type { FileItem, SubtitleEntry } from '../types';
 import { HistoryService } from '../services/History/HistoryService';
-import { StorageService } from '../services/StorageService';
 import { BottomSheet } from '../services/OverlaySystem';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const VIDEO_HEIGHT = 250;
+const VIDEO_WIDTH = SCREEN_WIDTH * 0.92;
 
 type ContentFit = 'contain' | 'cover' | 'fill';
 
@@ -67,23 +80,24 @@ const CONTENT_FITS: { mode: ContentFit; Icon: any; label: string }[] = [
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
+const QUALITY_OPTIONS = ['Auto', '360p', '480p', '720p', '1080p', '4K'];
+
 type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
   const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
+  const { themeColors, canUseArtwork, state: artState } = useColorAwareness();
 
   const player = useVideoPlayer(file.uri);
 
   const [showControls, setShowControls] = useState(true);
   const [contentFit, setContentFit] = useState<ContentFit>('contain');
-  const [showResizeModal, setShowResizeModal] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(initialAudioOnly || false);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showEnhancement, setShowEnhancement] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showPlayModeModal, setShowPlayModeModal] = useState(false);
   const [playbackStatus, setPlaybackStatus] = useState({
@@ -92,23 +106,39 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     duration: 0,
   });
   const [currentSubtitle, setCurrentSubtitle] = useState('');
-  const [subtitleEntries, setSubtitleEntries] = useState<SubtitleEntry[]>([]);
   const [playMode, setPlayMode] = useState<PlayMode>('loopAll');
-  const [audioTrack, setAudioTrack] = useState('default');
-  const [showAudioTrackModal, setShowAudioTrackModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [orientationLock, setOrientationLock] = useState<'portrait' | 'landscape'>('portrait');
-  const [showMenu, setShowMenu] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState('Auto');
 
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showControlsRef = useRef(true);
   const currentVideoIndexRef = useRef(0);
+  const heartScale = useRef(new Animated.Value(1)).current;
 
   const { isPlaying, position, duration } = playbackStatus;
-  const progress = duration > 0 ? (position / duration) * 100 : 0;
+  const progress = duration > 0 ? position / duration : 0;
 
-  // Subscribe to videoPlaybackStore for engine state
+  const gradientColors = useMemo(() => {
+    if (canUseArtwork) {
+      return [artState.theme.background, artState.theme.surface, '#000'] as const;
+    }
+    return [primaryColor + '40', cardBg || '#111', '#000'] as const;
+  }, [canUseArtwork, artState, primaryColor, cardBg]);
+
+  const accentColor = useMemo(
+    () => (canUseArtwork ? themeColors.accent : primaryColor),
+    [canUseArtwork, themeColors.accent, primaryColor]
+  );
+
+  const videoGlowColor = useMemo(
+    () => (canUseArtwork ? themeColors.primary : primaryColor),
+    [canUseArtwork, themeColors.primary, primaryColor]
+  );
+
+  // Subscribe to engine state
   useEffect(() => {
     const unsub = videoEngine.subscribe(() => {
       const s = videoEngine.getState();
@@ -125,11 +155,16 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     return unsub;
   }, []);
 
-  // Load file into engine
+  // Load file + trigger color extraction from thumbnail
   useEffect(() => {
     videoEngine.loadFile(file);
     queueEngine.setVideoQueue([file], 0);
     currentVideoIndexRef.current = 0;
+    if (file.thumbnail) {
+      colorAwarenessEngine.extractFromArtwork(file.thumbnail, {
+        artist: file.artist,
+      });
+    }
     return () => {
       videoEngine.cleanup();
       ScreenOrientation.unlockAsync().catch(() => {});
@@ -145,7 +180,6 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     });
   }, [isAudioOnly]);
 
-  // Attach/detach player to engine
   useEffect(() => {
     videoEngine.attachPlayer(player);
     player.play();
@@ -169,7 +203,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     prevPlayingRef.current = isPlaying;
   }, [isPlaying, position, duration, player, navigation, playMode]);
 
-  // Record play session
+  // History tracking
   const sessionStartedRef = useRef(false);
   const prevIsPlayingRef = useRef(false);
   useEffect(() => {
@@ -191,35 +225,6 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     };
   }, []);
 
-  const togglePlayback = () => {
-    try {
-      if (isPlaying) {
-        player.pause();
-        HistoryService.pausePlaySession(file.uri);
-      } else {
-        player.play();
-        HistoryService.resumePlaySession(file.uri);
-      }
-    } catch {}
-  };
-
-  const seekTo = (percent: number) => {
-    if (!duration) return;
-    player.currentTime = (percent * duration) / 1000;
-  };
-
-  const skip = (seconds: number) => {
-    player.seekBy(seconds);
-  };
-
-  const changeSpeed = (speed: number) => {
-    player.playbackRate = speed;
-    setPlaybackSpeed(speed);
-    setShowSpeedModal(false);
-  };
-
-  const goBack = () => navigation.goBack();
-
   useEffect(() => {
     showControlsRef.current = showControls;
   }, [showControls]);
@@ -235,7 +240,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           useNativeDriver: true,
         }).start();
       }
-    }, 4000);
+    }, 3000);
   }, [isLocked, controlsOpacity]);
 
   const toggleControls = useCallback(() => {
@@ -252,6 +257,62 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     });
   }, [isLocked, controlsOpacity, startAutoHide]);
 
+  const togglePlayback = useCallback(() => {
+    try {
+      if (isPlaying) {
+        player.pause();
+        HistoryService.pausePlaySession(file.uri);
+      } else {
+        player.play();
+        HistoryService.resumePlaySession(file.uri);
+      }
+    } catch {}
+  }, [isPlaying, player, file.uri]);
+
+  const seekTo = useCallback(
+    (percent: number) => {
+      if (!duration) return;
+      player.currentTime = percent * (duration / 1000);
+    },
+    [duration, player]
+  );
+
+  const skip = useCallback(
+    (seconds: number) => {
+      player.seekBy(seconds);
+    },
+    [player]
+  );
+
+  const changeSpeed = useCallback(
+    (speed: number) => {
+      player.playbackRate = speed;
+      setPlaybackSpeed(speed);
+      setShowSpeedModal(false);
+    },
+    [player]
+  );
+
+  const goBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const toggleFavorite = useCallback(() => {
+    setIsFavorite((prev) => !prev);
+    Animated.sequence([
+      Animated.timing(heartScale, { toValue: 1.3, duration: 150, useNativeDriver: true }),
+      Animated.timing(heartScale, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }, [heartScale]);
+
+  const nextVideo = useCallback(() => {
+    const next = videoEngine.nextInQueue();
+    if (next) navigation.replace('VideoPlayer', { file: next });
+  }, [navigation]);
+
+  const prevVideo = useCallback(() => {
+    const prev = videoEngine.prevInQueue();
+    if (prev) navigation.replace('VideoPlayer', { file: prev });
+  }, [navigation]);
+
   const handleDelete = () => {
     Alert.alert('Delete Video', `Delete "${file.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -259,6 +320,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          const { StorageService } = require('../services/StorageService');
           await StorageService.addToRecentlyDeleted(file);
           await StorageService.moveToTrash(file);
           navigation.goBack();
@@ -286,7 +348,36 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     } catch {}
   };
 
-  // Swipe gestures
+  // Double-tap seek
+  const lastTapRef = useRef(0);
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTapSideRef = useRef<'left' | 'right' | null>(null);
+
+  const handleVideoTap = useCallback(
+    (evt: any) => {
+      if (isLocked) return;
+      const now = Date.now();
+      const { locationX } = evt.nativeEvent;
+      const side = locationX < VIDEO_WIDTH / 2 ? 'left' : 'right';
+
+      if (now - lastTapRef.current < 300 && pendingTapSideRef.current === side) {
+        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+        skip(side === 'left' ? -10 : 10);
+        pendingTapSideRef.current = null;
+      } else {
+        pendingTapSideRef.current = side;
+        if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = setTimeout(() => {
+          toggleControls();
+          pendingTapSideRef.current = null;
+        }, 300);
+      }
+      lastTapRef.current = now;
+    },
+    [isLocked, skip, toggleControls]
+  );
+
+  // Swipe down to dismiss
   const swipeTranslateY = useRef(new Animated.Value(0)).current;
   const videoSwipePan = useRef(
     PanResponder.create({
@@ -300,31 +391,20 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         swipeTranslateY.setValue(gs.dy * 0.3);
       },
       onPanResponderRelease: (_, gs) => {
-        if (gs.dy < -60) {
-          const next = videoEngine.nextInQueue();
-          if (next) {
-            Animated.timing(swipeTranslateY, {
-              toValue: -SCREEN_HEIGHT,
-              duration: 200,
-              useNativeDriver: true,
-            }).start(() => navigation.replace('VideoPlayer', { file: next }));
-            return;
-          }
-        } else if (gs.dy > 60) {
-          const prev = videoEngine.prevInQueue();
-          if (prev) {
-            Animated.timing(swipeTranslateY, {
-              toValue: SCREEN_HEIGHT,
-              duration: 200,
-              useNativeDriver: true,
-            }).start(() => navigation.replace('VideoPlayer', { file: prev }));
-            return;
-          }
+        if (gs.dy > 80) {
+          Animated.timing(swipeTranslateY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => navigation.goBack());
+        } else if (gs.dy < -60) {
+          nextVideo();
+        } else {
+          Animated.spring(swipeTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
         }
-        Animated.spring(swipeTranslateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
       },
       onPanResponderTerminate: () => {
         Animated.spring(swipeTranslateY, {
@@ -335,221 +415,442 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     })
   ).current;
 
+  const displayTitle = file.name.replace(/\.[^/.]+$/, '');
+  const displayArtist = file.artist || 'Unknown Artist';
+
+  const upNextQueue = useMemo(() => {
+    const qs = queueEngine.getVideoState();
+    return qs.queue.slice(qs.currentIndex + 1);
+  }, []);
+
+  // Quality selector press handler (visual only)
+  const handleQualityPress = useCallback((quality: string) => {
+    setSelectedQuality(quality);
+  }, []);
+
   return (
-    <View className="flex-1" style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#f4f4f5' }}>
+    <View className="flex-1" style={{ backgroundColor: '#000' }}>
       <StatusBar hidden />
       <Animated.View
         className="flex-1"
         style={{ transform: [{ translateY: swipeTranslateY }] }}
         {...videoSwipePan.panHandlers}>
-        {!isAudioOnly && (
-          <VideoView
-            player={player}
-            style={{ flex: 1, width: '100%', height: '100%' }}
-            contentFit={contentFit}
-            nativeControls={false}
-            allowsPictureInPicture={Platform.OS !== 'web'}
+        {/* Immersive blurred background */}
+        {file.thumbnail && (
+          <Image
+            source={{ uri: file.thumbnail }}
+            blurRadius={100}
+            style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
           />
         )}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
 
-        {isAudioOnly && (
-          <View className="absolute inset-0 items-center justify-center gap-4 bg-[#0a0a0a]">
-            <View
-              className="h-40 w-40 items-center justify-center rounded-[32px] border-2 bg-white/[0.03]"
-              style={{ borderColor: primaryColor + '60' }}>
-              <MusicNote size={64} color={primaryColor} />
-            </View>
-            <Text
-              className="text-base font-semibold tracking-[2px]"
-              style={{ color: primaryColor }}>
-              Audio Mode
-            </Text>
-            <TouchableOpacity
-              className="flex-row items-center gap-2 rounded-xl px-4 py-[10px]"
-              style={{ backgroundColor: `${primaryColor}20` }}
-              onPress={() => setIsAudioOnly(false)}>
-              <VideoCamera size={16} color={primaryColor} />
-              <Text className="text-sm font-semibold" style={{ color: primaryColor }}>
-                Switch to Video
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
 
-        {currentSubtitle && subtitlesEnabled && !isAudioOnly && (
-          <View
-            className="absolute inset-0 items-center justify-end pb-[120px]"
-            style={{ pointerEvents: 'none' }}>
-            <View className="max-w-[85%] rounded-xl border border-[rgba(194,252,74,0.2)] bg-black/60 px-5 py-[10px]">
-              <Text className="text-center text-base font-medium text-white">
-                {currentSubtitle}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Always-tappable area to show controls when hidden */}
-        {!showControls && <Pressable style={StyleSheet.absoluteFill} onPress={toggleControls} />}
-
-        <Animated.View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: controlsOpacity,
-          }}
-          pointerEvents={showControls ? 'auto' : 'none'}>
-          <TouchableOpacity
-            className="flex-1 bg-black/50"
-            activeOpacity={1}
-            onPress={toggleControls}>
-            <View className="flex-row items-center px-4 pt-[50px]">
+        <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
+          {/* Header */}
+          <BlurView
+            intensity={40}
+            tint={isDarkMode ? 'dark' : 'light'}
+            style={styles.header}>
+            <View className="flex-row items-center justify-between px-4 py-2">
               <TouchableOpacity
-                className="h-11 w-11 items-center justify-center"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  goBack();
-                }}>
-                <CaretLeft size={26} color="#ffffff" weight="bold" />
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
+                onPress={goBack}
+                activeOpacity={0.7}>
+                <CaretDown size={22} color="#ffffff" weight="bold" />
               </TouchableOpacity>
-              <Text
-                className="mx-2 flex-1 text-center text-[15px] font-semibold text-white"
-                numberOfLines={1}>
-                {file.name}
-              </Text>
-              <TouchableOpacity
-                className="h-11 w-11 items-center justify-center"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setShowMenu(true);
-                }}>
-                <DotsThreeVertical size={24} color="#ffffff" weight="bold" />
-              </TouchableOpacity>
-            </View>
-            <View className="flex-1 justify-center">
-              <View className="flex-row items-center justify-center gap-9">
+              <View className="flex-row gap-3">
                 <TouchableOpacity
-                  className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    videoEngine.prevInQueue();
-                  }}>
-                  <SkipBack size={24} color="#ffffff" weight="fill" />
+                  className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
+                  activeOpacity={0.7}>
+                  <Broadcast size={20} color="#ffffff" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="h-[72px] w-[72px] items-center justify-center rounded-full border-2 bg-black/50"
-                  style={{ borderColor: primaryColor }}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    togglePlayback();
-                  }}>
-                  {isPlaying ? (
-                    <Pause size={32} color={primaryColor} weight="fill" />
-                  ) : (
-                    <Play size={32} color={primaryColor} weight="fill" />
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="h-11 w-11 items-center justify-center rounded-full bg-black/40"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    videoEngine.nextInQueue();
-                  }}>
-                  <SkipForward size={24} color="#ffffff" weight="fill" />
+                  className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
+                  onPress={() => setShowMenu(true)}
+                  activeOpacity={0.7}>
+                  <DotsThreeVertical size={20} color="#ffffff" weight="bold" />
                 </TouchableOpacity>
               </View>
             </View>
-            <View className="px-5 pb-[30px]">
-              <View className="mb-3 flex-row items-center gap-2.5">
-                <Text className="w-10 text-xs text-white/70">
+          </BlurView>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}>
+            {/* Video Container */}
+            <View style={styles.videoContainer}>
+              <View
+                style={[
+                  styles.videoWrapper,
+                  {
+                    shadowColor: videoGlowColor,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 20,
+                    elevation: 8,
+                  },
+                ]}>
+                {!isAudioOnly ? (
+                  <VideoView
+                    player={player}
+                    style={styles.video}
+                    contentFit={contentFit}
+                    nativeControls={false}
+                    allowsPictureInPicture={Platform.OS !== 'web'}
+                  />
+                ) : (
+                  <View className="items-center justify-center bg-[#0a0a0a]"
+                    style={[styles.video, { borderRadius: 24 }]}>
+                    <View className="h-20 w-20 items-center justify-center rounded-[20px] border-2 bg-white/[0.03]"
+                      style={{ borderColor: accentColor + '60' }}>
+                      <MusicNote size={40} color={accentColor} />
+                    </View>
+                    <Text className="mt-3 text-sm font-semibold tracking-[2px]"
+                      style={{ color: accentColor }}>
+                      Audio Mode
+                    </Text>
+                    <TouchableOpacity
+                      className="mt-3 flex-row items-center gap-2 rounded-xl px-4 py-2"
+                      style={{ backgroundColor: `${accentColor}20` }}
+                      onPress={() => setIsAudioOnly(false)}>
+                      <VideoCamera size={14} color={accentColor} />
+                      <Text className="text-xs font-semibold" style={{ color: accentColor }}>
+                        Switch to Video
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Overlay controls */}
+                <Animated.View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { opacity: controlsOpacity },
+                  ]}
+                  pointerEvents={showControls && !isAudioOnly ? 'auto' : 'none'}>
+                  <Pressable
+                    style={styles.overlayTouchable}
+                    onPress={handleVideoTap}>
+                    <View className="flex-row items-center justify-center gap-8">
+                      <TouchableOpacity
+                        className="items-center justify-center"
+                        onPress={(e) => { e.stopPropagation(); prevVideo(); }}>
+                        <SkipBack size={42} color="#ffffff" weight="fill" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="h-20 w-20 items-center justify-center rounded-full border-2 border-white/20 bg-black/40"
+                        onPress={(e) => { e.stopPropagation(); togglePlayback(); }}>
+                        {isPlaying ? (
+                          <Pause size={36} color="#ffffff" weight="fill" />
+                        ) : (
+                          <Play size={36} color="#ffffff" weight="fill" />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="items-center justify-center"
+                        onPress={(e) => { e.stopPropagation(); nextVideo(); }}>
+                        <SkipForward size={42} color="#ffffff" weight="fill" />
+                      </TouchableOpacity>
+                    </View>
+                  </Pressable>
+                </Animated.View>
+
+                {/* Subtitle overlay */}
+                {currentSubtitle && subtitlesEnabled && !isAudioOnly && (
+                  <View
+                    className="absolute inset-0 items-center justify-end pb-4"
+                    style={{ pointerEvents: 'none' }}>
+                    <View className="max-w-[85%] rounded-xl border border-white/10 bg-black/60 px-4 py-2">
+                      <Text className="text-center text-sm font-medium text-white">
+                        {currentSubtitle}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Progress Bar */}
+              <View className="mt-3 flex-row items-center gap-2 px-1">
+                <Text className="w-10 text-xs" style={{ color: mutedColor }}>
                   {fileEngine.formatDuration(position)}
                 </Text>
-                <TouchableOpacity
-                  className="h-[20px] flex-1 justify-center"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    const { locationX } = e.nativeEvent;
-                    seekTo(locationX / (SCREEN_WIDTH - 80));
-                  }}>
-                  <View className="h-1 rounded-sm bg-white/20">
-                    <View
-                      className="h-full rounded-sm"
-                      style={{ width: `${progress}%` as any, backgroundColor: primaryColor }}
-                    />
-                  </View>
-                  <View
-                    className="absolute -top-1 h-3 w-3 rounded-full"
-                    style={{ left: `${progress}%` as any, backgroundColor: primaryColor }}
+                <View className="flex-1">
+                  <NeonSlider
+                    progress={progress}
+                    onSeek={seekTo}
+                    primaryColor={accentColor}
+                    height={4}
+                    showThumb
                   />
-                </TouchableOpacity>
-                <Text className="w-10 text-right text-xs text-white/70">
+                </View>
+                <Text className="w-10 text-right text-xs" style={{ color: mutedColor }}>
                   {fileEngine.formatDuration(duration)}
                 </Text>
               </View>
-              <View className="flex-row items-center justify-center gap-4">
-                {!isAudioOnly && (
-                  <TouchableOpacity
-                    className="flex-row items-center gap-1.5 rounded-[10px] bg-zinc-800 px-3 py-2"
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setIsAudioOnly(true);
-                    }}>
-                    <Headphones size={14} color="#e4e4e7" />
-                    <Text className="text-xs font-semibold" style={{ color: textColor }}>
-                      Audio
-                    </Text>
-                  </TouchableOpacity>
+            </View>
+
+            {/* Metadata + Favorite */}
+            <View className="mt-6 flex-row items-start justify-between px-5">
+              <View className="flex-1 pr-4">
+                <Text
+                  className="font-bold leading-tight"
+                  style={{ fontSize: 32, color: '#ffffff' }}
+                  numberOfLines={2}>
+                  {displayTitle}
+                </Text>
+                <Text
+                  className="mt-1 text-base"
+                  style={{ color: 'rgba(255,255,255,0.6)' }}
+                  numberOfLines={1}>
+                  {displayArtist}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={toggleFavorite}
+                className="h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+                  <Heart
+                    size={24}
+                    color={accentColor}
+                    weight={isFavorite ? 'fill' : 'regular'}
+                    style={isFavorite ? { color: accentColor } : {}}
+                  />
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Actions */}
+            <View className="mt-5 px-5">
+              <BlurView
+                intensity={50}
+                tint={isDarkMode ? 'dark' : 'light'}
+                style={styles.quickActionsBlur}>
+                <View className="flex-row items-center justify-around py-3">
+                  {[
+                    { Icon: ThumbsUp, label: 'Like' },
+                    { Icon: Queue, label: 'Playlist' },
+                    { Icon: DownloadSimple, label: 'Download' },
+                    { Icon: ShareNetwork, label: 'Share' },
+                  ].map(({ Icon, label }, idx) => (
+                    <TouchableOpacity
+                      key={label}
+                      className="items-center gap-1.5 px-4 py-1"
+                      onPress={() => {
+                        if (label === 'Share') handleShare();
+                      }}
+                      activeOpacity={0.6}>
+                      <Icon size={22} color={accentColor} weight="regular" />
+                      <Text className="text-xs font-medium" style={{ color: mutedColor }}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </BlurView>
+            </View>
+
+            {/* Main Playback Controls */}
+            <View className="mt-8 flex-row items-center justify-center gap-6 px-5">
+              <TouchableOpacity
+                className="items-center justify-center"
+                onPress={() => {
+                  const qs = queueEngine.getVideoState();
+                  queueEngine.toggleShuffle('video');
+                }}
+                activeOpacity={0.6}>
+                <Shuffle size={24} color={mutedColor} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="items-center justify-center"
+                onPress={prevVideo}
+                activeOpacity={0.6}>
+                <SkipBack size={32} color="#ffffff" weight="fill" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={togglePlayback}
+                activeOpacity={0.8}
+                style={[
+                  styles.playButton,
+                  {
+                    backgroundColor: accentColor,
+                    shadowColor: accentColor,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.5,
+                    shadowRadius: 16,
+                    elevation: 10,
+                  },
+                ]}>
+                {isPlaying ? (
+                  <Pause size={36} color="#000000" weight="fill" />
+                ) : (
+                  <Play size={36} color="#000000" weight="fill" />
                 )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="items-center justify-center"
+                onPress={nextVideo}
+                activeOpacity={0.6}>
+                <SkipForward size={32} color="#ffffff" weight="fill" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="items-center justify-center"
+                onPress={() => {
+                  const modes: PlayMode[] = ['loopAll', 'loop', 'shuffle', 'pauseAfter'];
+                  const idx = modes.indexOf(playMode);
+                  setPlayMode(modes[(idx + 1) % modes.length]);
+                }}
+                activeOpacity={0.6}>
+                <Repeat
+                  size={24}
+                  color={playMode === 'loopAll' ? accentColor : mutedColor}
+                  weight={playMode === 'loopAll' ? 'fill' : 'regular'}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Utility Buttons Row */}
+            <View className="mt-4 flex-row items-center justify-center gap-4">
+              {!isAudioOnly && (
                 <TouchableOpacity
-                  className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setShowSpeedModal(true);
-                  }}>
-                  <Text className="text-xs font-bold" style={{ color: textColor }}>
-                    {playbackSpeed}x
+                  className="flex-row items-center gap-1.5 rounded-[10px] px-3 py-2"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                  onPress={() => setIsAudioOnly(true)}>
+                  <Headphones size={14} color={mutedColor} />
+                  <Text className="text-xs font-semibold" style={{ color: mutedColor }}>
+                    Audio
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setIsLocked(!isLocked);
-                  }}>
-                  {isLocked ? (
-                    <Lock size={16} color={primaryColor} weight="fill" />
-                  ) : (
-                    <LockOpen size={16} color="#e4e4e7" />
-                  )}
-                </TouchableOpacity>
-                {!isAudioOnly && (
-                  <TouchableOpacity
-                    className="h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-zinc-800"
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleOrientationToggle();
-                    }}>
-                    <ArrowsClockwise size={16} color="#e4e4e7" />
-                  </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
+                style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                onPress={() => setShowSpeedModal(true)}>
+                <Text className="text-xs font-bold" style={{ color: mutedColor }}>
+                  {playbackSpeed}x
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
+                style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                onPress={() => setIsLocked(!isLocked)}>
+                {isLocked ? (
+                  <Lock size={16} color={accentColor} weight="fill" />
+                ) : (
+                  <LockOpen size={16} color={mutedColor} />
                 )}
-              </View>
+              </TouchableOpacity>
+              {!isAudioOnly && (
+                <TouchableOpacity
+                  className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                  onPress={handleOrientationToggle}>
+                  <ArrowsClockwise size={16} color={mutedColor} />
+                </TouchableOpacity>
+              )}
             </View>
-          </TouchableOpacity>
-        </Animated.View>
+
+            {/* Quality Selector */}
+            <View className="mt-6 px-5">
+              <Text
+                className="mb-3 text-sm font-semibold uppercase tracking-wider"
+                style={{ color: mutedColor }}>
+                Quality
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.qualityRow}>
+                {QUALITY_OPTIONS.map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.qualityChip,
+                      {
+                        backgroundColor:
+                          selectedQuality === q ? accentColor : 'rgba(255,255,255,0.08)',
+                      },
+                    ]}
+                    onPress={() => handleQualityPress(q)}>
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{
+                        color: selectedQuality === q ? '#000000' : '#ffffff',
+                      }}>
+                      {q}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Up Next Queue */}
+            {upNextQueue.length > 0 && (
+              <View className="mb-8 mt-6 px-5">
+                <Text
+                  className="mb-3 text-sm font-semibold uppercase tracking-wider"
+                  style={{ color: mutedColor }}>
+                  Up Next
+                </Text>
+                {upNextQueue.map((item: FileItem, index: number) => (
+                  <TouchableOpacity
+                    key={item.uri + index}
+                    activeOpacity={0.7}
+                    style={styles.upNextItem}
+                    onPress={() =>
+                      navigation.replace('VideoPlayer', { file: item })
+                    }>
+                    <View style={styles.upNextThumb}>
+                      {item.thumbnail ? (
+                        <Image
+                          source={{ uri: item.thumbnail }}
+                          className="h-full w-full"
+                          style={{ borderRadius: 12 }}
+                        />
+                      ) : (
+                        <View className="h-full w-full items-center justify-center"
+                          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                          <VideoCamera size={24} color={mutedColor} />
+                        </View>
+                      )}
+                    </View>
+                    <View className="ml-3 flex-1 justify-center">
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: '#ffffff' }}
+                        numberOfLines={1}>
+                        {item.name.replace(/\.[^/.]+$/, '')}
+                      </Text>
+                      <Text className="mt-0.5 text-xs" style={{ color: mutedColor }} numberOfLines={1}>
+                        {item.artist || 'Unknown'}
+                      </Text>
+                    </View>
+                    {item.duration ? (
+                      <Text className="ml-2 text-xs" style={{ color: mutedColor }}>
+                        {fileEngine.formatDuration(item.duration)}
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
       </Animated.View>
 
       {/* Bottom Sheets */}
       <BottomSheet visible={showMenu} onClose={() => setShowMenu(false)}>
-        <ScrollView showsVerticalScrollIndicator={false} className="px-5">
+        <View className="px-5">
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
             onPress={() => {
               setShowMenu(false);
               setShowPlayModeModal(true);
             }}>
-            <Repeat size={20} color={primaryColor} />
+            <Repeat size={20} color={accentColor} />
             <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
               Play Mode
             </Text>
@@ -571,7 +872,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             }}>
             <Subtitles
               size={20}
-              color={subtitlesEnabled ? primaryColor : '#e4e4e7'}
+              color={subtitlesEnabled ? accentColor : mutedColor}
               weight={subtitlesEnabled ? 'fill' : 'regular'}
             />
             <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
@@ -581,19 +882,6 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               {subtitlesEnabled ? 'On' : 'Off'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
-            onPress={() => {
-              setShowMenu(false);
-              setShowEnhancement(true);
-            }}>
-            <Text className="text-lg" style={{ color: primaryColor }}>
-              ✨
-            </Text>
-            <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
-              Enhance Video
-            </Text>
-          </TouchableOpacity>
           <View
             className="my-3 h-px"
             style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}
@@ -601,7 +889,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           <TouchableOpacity
             className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
             onPress={handleShare}>
-            <ShareNetwork size={20} color={primaryColor} />
+            <ShareNetwork size={20} color={accentColor} />
             <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
               Share
             </Text>
@@ -612,7 +900,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               setShowMenu(false);
               setShowInfo(true);
             }}>
-            <Info size={20} color={primaryColor} />
+            <Info size={20} color={accentColor} />
             <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
               Information
             </Text>
@@ -623,7 +911,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             <Trash size={20} color="#ef4444" />
             <Text className="ml-3 text-[15px] text-[#ef4444]">Delete</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </BottomSheet>
 
       <BottomSheet
@@ -636,17 +924,26 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               key={speed}
               className="rounded-xl border px-4 py-3"
               style={[
-                playbackSpeed === speed && { backgroundColor: primaryColor },
+                playbackSpeed === speed && { backgroundColor: accentColor },
                 {
                   borderColor:
-                    playbackSpeed === speed ? primaryColor : isDarkMode ? '#3f3f46' : '#d4d4d8',
+                    playbackSpeed === speed
+                      ? accentColor
+                      : isDarkMode
+                        ? '#3f3f46'
+                        : '#d4d4d8',
                 },
               ]}
               onPress={() => changeSpeed(speed)}>
               <Text
                 className={`text-center text-sm ${playbackSpeed === speed ? 'font-bold' : ''}`}
                 style={{
-                  color: playbackSpeed === speed ? (isDarkMode ? '#0a0a0a' : '#ffffff') : textColor,
+                  color:
+                    playbackSpeed === speed
+                      ? isDarkMode
+                        ? '#0a0a0a'
+                        : '#ffffff'
+                      : textColor,
                 }}>
                 {speed}x
               </Text>
@@ -671,14 +968,14 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             <TouchableOpacity
               key={mode}
               className="mb-2 flex-row items-center gap-3 rounded-xl px-4 py-[14px]"
-              style={playMode === mode ? { backgroundColor: `${primaryColor}15` } : undefined}
+              style={playMode === mode ? { backgroundColor: `${accentColor}15` } : undefined}
               onPress={() => {
                 setPlayMode(mode);
                 setShowPlayModeModal(false);
               }}>
               <Icon
                 size={20}
-                color={playMode === mode ? primaryColor : '#e4e4e7'}
+                color={playMode === mode ? accentColor : mutedColor}
                 weight={playMode === mode ? 'fill' : 'regular'}
               />
               <Text
@@ -689,7 +986,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               {playMode === mode && (
                 <Check
                   size={18}
-                  color={primaryColor}
+                  color={accentColor}
                   weight="bold"
                   style={{ marginLeft: 'auto' }}
                 />
@@ -732,22 +1029,72 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
           </View>
         </View>
       </BottomSheet>
-
-      <VideoEnhancementModal
-        visible={showEnhancement}
-        onClose={() => setShowEnhancement(false)}
-        currentSettings={{
-          enabled: false,
-          qualityTarget: 'original',
-          colorEnhancement: false,
-          sharpening: false,
-          denoise: false,
-          hdr: false,
-        }}
-        onApply={() => {}}
-        fileUri={file.uri}
-        primaryColor={primaryColor}
-      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
+  },
+  scrollContent: {
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+  videoContainer: {
+    alignItems: 'center',
+    paddingHorizontal: SCREEN_WIDTH * 0.04,
+  },
+  videoWrapper: {
+    width: VIDEO_WIDTH,
+    height: VIDEO_HEIGHT,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  video: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlayTouchable: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionsBlur: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  playButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qualityRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 20,
+  },
+  qualityChip: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  upNextItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  upNextThumb: {
+    width: 120,
+    height: 70,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+});

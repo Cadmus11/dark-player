@@ -37,18 +37,18 @@ const EXTENSION_MAP: Record<string, FileType> = {
 };
 
 const ART_COLORS = [
-  '#C2FC4A',
-  '#6c5ce7',
-  '#00cec9',
-  '#e17055',
-  '#fdcb6e',
-  '#74b9ff',
-  '#ff7675',
-  '#55efc4',
-  '#a29bfe',
-  '#fd79a8',
-  '#f39c12',
-  '#27ae60',
+  '#00E5FF',
+  '#3B82F6',
+  '#8B5CF6',
+  '#22D3EE',
+  '#A855F7',
+  '#38BDF8',
+  '#F97316',
+  '#22C55E',
+  '#EF4444',
+  '#FB7185',
+  '#00F5D4',
+  '#00FF66',
 ];
 
 type ScanCallback = (progress: number, stage: string) => void;

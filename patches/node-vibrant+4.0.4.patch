@@ -1,0 +1,30 @@
+diff --git a/node_modules/node-vibrant/browser/package.json b/node_modules/node-vibrant/browser/package.json
+index 361e4d2..17cc196 100644
+--- a/node_modules/node-vibrant/browser/package.json
++++ b/node_modules/node-vibrant/browser/package.json
+@@ -1,25 +1,13 @@
+ {
+ 	"name": "node-vibrant-browser",
+ 	"version": "4.0.1",
+ 	"description": "",
+ 	"type": "module",
+ 	"module": "./../dist/esm/browser.js",
+ 	"main": "./../dist/cjs/browser.cjs",
+ 	"types": "./../dist/cjs/browser.d.cts",
+-	"exports": {
+-		"./package.json": "./package.json",
+-		".": {
+-			"import": {
+-				"types": "./../dist/esm/browser.d.ts",
+-				"default": "./../dist/esm/browser.js"
+-			},
+-			"require": {
+-				"types": "./../dist/cjs/browser.d.cts",
+-				"default": "./../dist/cjs/browser.cjs"
+-			}
+-		}
+-	},
+ 	"author": "crutchcorn",
+ 	"license": "MIT",
+ 	"sideEffects": true
+ }

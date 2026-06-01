@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'nativewind';
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
-import type { ThemeSettings, ColorTheme, ColorThemeGroup, LayoutSize } from '../types';
+import type { ThemeSettings, ColorThemePreset, LayoutSize } from '../types';
+import { THEME_PRESETS } from '../types';
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -10,242 +11,64 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function isColorDark(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return r * 0.299 + g * 0.587 + b * 0.114 < 128;
+}
+
 interface ThemeContextType {
   theme: ThemeSettings;
   updateTheme: (settings: Partial<ThemeSettings>) => Promise<void>;
-  setAccentColor: (color: string) => Promise<void>;
-  setGradient: (colors: string[]) => Promise<void>;
-  setColorTheme: (name: string) => Promise<void>;
-  setDarkMode: (dark: boolean) => Promise<void>;
+  setColorTheme: (key: string) => Promise<void>;
   isDarkMode: boolean;
   textColor: string;
   mutedColor: string;
   cardBg: string;
   borderColor: string;
   primaryColor: string;
+  backgroundColor: string;
   backgroundOverlayColor: string;
   setBackgroundImage: (uri: string) => Promise<void>;
   clearBackgroundImage: () => Promise<void>;
-  setPresetImage: (key: string | null) => Promise<void>;
   setBackgroundBlur: (blur: number) => Promise<void>;
   setBackgroundFit: (fit: 'cover' | 'contain') => Promise<void>;
+  setBackgroundMode: (mode: 'fill' | 'wallpaper' | 'spotlight') => Promise<void>;
+  setBackgroundBrightness: (brightness: number) => Promise<void>;
   setSizeMode: (mode: LayoutSize) => Promise<void>;
   getAccentWithOpacity: (alpha: number) => string;
-  availableColorThemes: ColorTheme[];
-  availableThemeGroups: ColorThemeGroup[];
-  currentColorThemeName: string;
+  currentThemeKey: string;
+  themePresets: ColorThemePreset[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const DARK_THEME: ThemeSettings = {
-  backgroundType: 'solid',
-  backgroundColor: '#06060B',
-  gradientColors: ['#06060B', '#1D1D21', '#0a0a0f'],
+const DEFAULT_THEME: ThemeSettings = {
+  colorThemeKey: 'obsidian',
   backgroundBlur: 20,
   backgroundImageFit: 'cover',
-  primaryColor: '#C2FC4A',
-  accentColor: '#C2FC4A',
+  backgroundMode: 'fill',
+  backgroundBrightness: 50,
   sizeMode: 'medium',
 };
-
-const LIGHT_THEME: ThemeSettings = {
-  backgroundType: 'solid',
-  backgroundColor: '#F0F8FF',
-  gradientColors: ['#F0F8FF', '#E8F0FE', '#D0E0F8'],
-  backgroundBlur: 20,
-  backgroundImageFit: 'cover',
-  primaryColor: '#F97316',
-  accentColor: '#F97316',
-  sizeMode: 'medium',
-};
-
-const AVAILABLE_THEME_GROUPS: ColorThemeGroup[] = [
-  {
-    name: 'Dark',
-    themes: [
-      {
-        name: 'Midnight',
-        group: 'Dark',
-        primary: '#8b5cf6',
-        background: '#0a0a0a',
-        card: '#18181b',
-        border: '#27272a',
-        text: '#ffffff',
-        muted: '#71717a',
-      },
-      {
-        name: 'Slate',
-        group: 'Dark',
-        primary: '#64748b',
-        background: '#0a0a0c',
-        card: '#14141a',
-        border: '#1f1f2a',
-        text: '#ffffff',
-        muted: '#6b6b7b',
-      },
-      {
-        name: 'Obsidian',
-        group: 'Dark',
-        primary: '#14b8a6',
-        background: '#080c0c',
-        card: '#121a1a',
-        border: '#1f2a2a',
-        text: '#ffffff',
-        muted: '#6b8b85',
-      },
-    ],
-  },
-  {
-    name: 'Vibrant',
-    themes: [
-      {
-        name: 'Rose',
-        group: 'Vibrant',
-        primary: '#e11d48',
-        background: '#120a0a',
-        card: '#1e1414',
-        border: '#2e1f1f',
-        text: '#ffffff',
-        muted: '#8b6b6b',
-      },
-      {
-        name: 'Sunset',
-        group: 'Vibrant',
-        primary: '#f472b6',
-        background: '#120a0e',
-        card: '#1e141a',
-        border: '#2e1f26',
-        text: '#ffffff',
-        muted: '#8b6b7b',
-      },
-      {
-        name: 'Amber',
-        group: 'Vibrant',
-        primary: '#f59e0b',
-        background: '#0f0d08',
-        card: '#1a1610',
-        border: '#2a2218',
-        text: '#ffffff',
-        muted: '#8b7b5b',
-      },
-      {
-        name: 'Gold',
-        group: 'Vibrant',
-        primary: '#eab308',
-        background: '#100d06',
-        card: '#1a1608',
-        border: '#2a2208',
-        text: '#ffffff',
-        muted: '#8b7b4b',
-      },
-    ],
-  },
-  {
-    name: 'Nature',
-    themes: [
-      {
-        name: 'Forest',
-        group: 'Nature',
-        primary: '#22c55e',
-        background: '#0a0f0a',
-        card: '#141a14',
-        border: '#1f2a1f',
-        text: '#ffffff',
-        muted: '#6b7b6b',
-      },
-      {
-        name: 'Ocean',
-        group: 'Nature',
-        primary: '#06b6d4',
-        background: '#0a0e12',
-        card: '#141a22',
-        border: '#1f2a36',
-        text: '#ffffff',
-        muted: '#6b7b8b',
-      },
-      {
-        name: 'Emerald',
-        group: 'Nature',
-        primary: '#10b981',
-        background: '#080e0a',
-        card: '#121a14',
-        border: '#1f2a22',
-        text: '#ffffff',
-        muted: '#6b8b75',
-      },
-    ],
-  },
-  {
-    name: 'Soft',
-    themes: [
-      {
-        name: 'Lavender',
-        group: 'Soft',
-        primary: '#a78bfa',
-        background: '#0e0a14',
-        card: '#18142a',
-        border: '#221f36',
-        text: '#ffffff',
-        muted: '#7b6b9b',
-      },
-      {
-        name: 'Coral',
-        group: 'Soft',
-        primary: '#fb7185',
-        background: '#120a0c',
-        card: '#1a1416',
-        border: '#2a1f22',
-        text: '#ffffff',
-        muted: '#8b6b73',
-      },
-    ],
-  },
-  {
-    name: 'Light',
-    themes: [
-      {
-        name: 'Light',
-        group: 'Light',
-        primary: '#F97316',
-        background: '#F0F8FF',
-        card: '#F4F4F5',
-        border: '#D4D4D8',
-        text: '#18181B',
-        muted: '#71717A',
-      },
-      {
-        name: 'Pearl',
-        group: 'Light',
-        primary: '#6366f1',
-        background: '#f8fafc',
-        card: '#f1f5f9',
-        border: '#e2e8f0',
-        text: '#0f172a',
-        muted: '#64748b',
-      },
-    ],
-  },
-];
-
-const AVAILABLE_THEMES: ColorTheme[] = AVAILABLE_THEME_GROUPS.flatMap((g) => g.themes);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { setColorScheme } = useColorScheme();
-  const [theme, setTheme] = useState<ThemeSettings>(DARK_THEME);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [currentColorThemeName, setCurrentColorThemeName] = useState('Midnight');
+  const [theme, setTheme] = useState<ThemeSettings>(DEFAULT_THEME);
+  const [currentThemeKey, setCurrentThemeKey] = useState('obsidian');
 
   useEffect(() => {
     (async () => {
       const settings = await getThemeSettings();
-      if (settings && settings.backgroundType) {
+      if (settings) {
         setTheme(settings);
-        const bg = settings.backgroundColor || '#06060B';
-        const lightBgs = ['#F0F8FF', '#F5F5F5', '#ffffff'];
-        const isLight = lightBgs.some((l) => bg === l) || /^#[FfEeBb].{5}/.test(bg);
-        setIsDarkMode(!isLight);
-        setColorScheme(isLight ? 'light' : 'dark');
+        setCurrentThemeKey(settings.colorThemeKey || 'obsidian');
+        const preset = THEME_PRESETS.find((t) => t.key === (settings.colorThemeKey || 'obsidian'));
+        if (preset) {
+          const dark = isColorDark(preset.background);
+          setColorScheme(dark ? 'dark' : 'light');
+        }
       }
     })();
   }, [setColorScheme]);
@@ -260,63 +83,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     await applyThemeSettings(updated);
   }
 
-  async function setAccentColor(color: string) {
-    await updateTheme({ primaryColor: color, accentColor: color });
-  }
-
-  async function setGradient(colors: string[]) {
-    await updateTheme({
-      backgroundType: 'gradient',
-      gradientColors: colors,
-      backgroundImageUri: undefined,
-      presetImageKey: undefined,
-    });
-  }
-
-  async function setColorTheme(name: string) {
-    const ct = AVAILABLE_THEMES.find((t) => t.name === name);
-    if (!ct) return;
-    setCurrentColorThemeName(ct.name);
-    const isLight = ct.group === 'Light';
-    setIsDarkMode(!isLight);
-    setColorScheme(isLight ? 'light' : 'dark');
-    await applyThemeSettings({
-      ...(isLight ? LIGHT_THEME : DARK_THEME),
-      primaryColor: ct.primary,
-      accentColor: ct.primary,
-      backgroundColor: ct.background,
-    });
+  async function setColorTheme(key: string) {
+    const preset = THEME_PRESETS.find((t) => t.key === key);
+    if (!preset) return;
+    setCurrentThemeKey(preset.key);
+    const dark = isColorDark(preset.background);
+    setColorScheme(dark ? 'dark' : 'light');
+    await applyThemeSettings({ ...theme, colorThemeKey: preset.key });
   }
 
   async function setBackgroundImage(uri: string) {
-    await updateTheme({
-      backgroundImageUri: uri,
-      backgroundType: 'solid',
-      gradientColors: undefined,
-      presetImageKey: undefined,
-    });
+    await updateTheme({ backgroundImageUri: uri });
   }
 
   async function clearBackgroundImage() {
-    await updateTheme({
-      backgroundImageUri: undefined,
-      presetImageKey: undefined,
-      gradientColors: undefined,
-      backgroundBlur: 0,
-    });
-  }
-
-  async function setPresetImage(key: string | null) {
-    if (key) {
-      await updateTheme({
-        presetImageKey: key,
-        backgroundImageUri: undefined,
-        gradientColors: undefined,
-        backgroundBlur: 20,
-      });
-    } else {
-      await updateTheme({ presetImageKey: undefined, gradientColors: undefined });
-    }
+    await updateTheme({ backgroundImageUri: undefined, backgroundBlur: 0 });
   }
 
   async function setBackgroundBlur(blur: number) {
@@ -327,29 +108,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     await updateTheme({ backgroundImageFit: fit });
   }
 
+  async function setBackgroundMode(mode: 'fill' | 'wallpaper' | 'spotlight') {
+    await updateTheme({ backgroundMode: mode });
+  }
+
+  async function setBackgroundBrightness(brightness: number) {
+    await updateTheme({ backgroundBrightness: Math.max(0, Math.min(100, brightness)) });
+  }
+
   async function setSizeMode(mode: LayoutSize) {
     await updateTheme({ sizeMode: mode });
   }
 
-  async function setDarkMode(dark: boolean) {
-    setIsDarkMode(dark);
-    setColorScheme(dark ? 'dark' : 'light');
-    if (dark) {
-      await applyThemeSettings({ ...DARK_THEME, ...theme, backgroundColor: '#06060B' });
-    } else {
-      await applyThemeSettings({ ...LIGHT_THEME, ...theme, backgroundColor: '#F0F8FF' });
-    }
-  }
-
-  const textColor = isDarkMode ? '#ffffff' : '#18181B';
-  const mutedColor = isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#71717A';
-  const cardBg = isDarkMode ? 'rgba(255, 255, 255, 0.06)' : '#F4F4F5';
-  const borderColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : '#D4D4D8';
-  const primaryColor = theme.primaryColor;
-  const backgroundOverlayColor = hexToRgba(theme.primaryColor, 0.7);
+  const preset = THEME_PRESETS.find((t) => t.key === currentThemeKey) || THEME_PRESETS[0];
+  const dark = isColorDark(preset.background);
+  const textColor = preset.text;
+  const mutedColor = hexToRgba(preset.text, 0.5);
+  const cardBg = preset.surface;
+  const borderColor = hexToRgba(preset.text, 0.08);
+  const primaryColor = preset.accent;
+  const backgroundColor = preset.background;
+  const backgroundOverlayColor = hexToRgba(preset.accent, 0.7);
 
   function getAccentWithOpacity(alpha: number): string {
-    return hexToRgba(theme.primaryColor, alpha);
+    return hexToRgba(preset.accent, alpha);
   }
 
   return (
@@ -357,27 +139,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       value={{
         theme,
         updateTheme,
-        setAccentColor,
-        setGradient,
         setColorTheme,
-        setDarkMode,
         setBackgroundImage,
         clearBackgroundImage,
-        setPresetImage,
         setBackgroundBlur,
         setBackgroundFit,
+        setBackgroundMode,
+        setBackgroundBrightness,
         setSizeMode,
-        isDarkMode,
+        isDarkMode: dark,
         textColor,
         mutedColor,
         cardBg,
         borderColor,
         primaryColor,
+        backgroundColor,
         backgroundOverlayColor,
         getAccentWithOpacity,
-        availableColorThemes: AVAILABLE_THEMES,
-        availableThemeGroups: AVAILABLE_THEME_GROUPS,
-        currentColorThemeName,
+        currentThemeKey,
+        themePresets: THEME_PRESETS,
       }}>
       {children}
     </ThemeContext.Provider>

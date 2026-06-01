@@ -1,10 +1,15 @@
 import { useCallback, useMemo } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
 import { fileEngine } from '../engine/FileEngine';
+import { useVideosQuery, useAudioQuery, useMediaScanMutation } from './queries/useMediaQuery';
 import type { SortField, SortDirection, FileItem } from '../types';
 
 export function useMediaFiles() {
   const store = useMediaStore();
+
+  const videosQuery = useVideosQuery();
+  const audioQuery = useAudioQuery();
+  const scanMutation = useMediaScanMutation();
 
   const sortedBy = useCallback((field: SortField, direction: SortDirection, items: FileItem[]) => {
     const arr = [...items];
@@ -45,17 +50,22 @@ export function useMediaFiles() {
   const formatSize = useCallback((bytes?: number) => fileEngine.formatFileSize(bytes), []);
   const formatDuration = useCallback((ms?: number) => fileEngine.formatDuration(ms), []);
 
+  const allFiles = useMemo(
+    () => [...(videosQuery.data ?? store.videos), ...(audioQuery.data ?? store.audio)],
+    [videosQuery.data, audioQuery.data, store.videos, store.audio]
+  );
+
   return {
-    videos: store.videos,
-    audio: store.audio,
-    allFiles: useMemo(() => [...store.videos, ...store.audio], [store.videos, store.audio]),
-    loading: store.loading,
+    videos: videosQuery.data ?? store.videos,
+    audio: audioQuery.data ?? store.audio,
+    allFiles,
+    loading: store.loading || videosQuery.isLoading || audioQuery.isLoading,
     scanProgress: store.scanProgress,
     scanStage: store.scanStage,
     permissionsGranted: store.permissionsGranted,
-    error: store.error,
+    error: store.error || videosQuery.error?.message || audioQuery.error?.message || null,
 
-    scanMedia: store.scanMedia,
+    scanMedia: scanMutation.mutateAsync as unknown as () => Promise<void>,
     loadCache: store.loadCache,
     sortedBy,
     formatSize,

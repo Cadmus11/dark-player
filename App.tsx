@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer, NavigatorScreenParams } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
+import { ColorAwarenessProvider } from './context/ColorAwarenessContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
 import { OverlayProvider } from './services/OverlaySystem';
+import { QueryProvider } from './hooks/queries/QueryProvider';
 import { startHydration } from './services/HydrationService';
 import { lifecycleManager } from './services/LifecycleManager';
 import { notificationService } from './services/NotificationService';
 import { SplashScreen } from './screens/SplashScreen';
-import { HomeScreen } from './screens/HomeScreen';
 import { MusicScreen } from './screens/MusicScreen';
 import { VideosScreen } from './screens/VideosScreen';
+import { PlaylistsScreen } from './screens/PlaylistsScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CategoryScreen } from './screens/CategoryScreen';
@@ -32,9 +36,9 @@ import type { FolderFilterType } from './screens/FolderScreen';
 import './global.css';
 
 export type MainTabParamList = {
-  HomeTab: undefined;
   MusicTab: undefined;
   VideosTab: undefined;
+  PlaylistsTab: undefined;
   SearchTab: undefined;
   SettingsTab: undefined;
 };
@@ -50,7 +54,7 @@ export type RootStackParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function MainTabs() {
   const [showSplash, setShowSplash] = useState(true);
@@ -62,9 +66,9 @@ function MainTabs() {
   return (
     <View className="flex-1 bg-bg-primary dark:bg-dark-bg-primary">
       <Tab.Navigator tabBar={() => null} screenOptions={{ headerShown: false }}>
-        <Tab.Screen name="HomeTab" component={HomeScreen} />
         <Tab.Screen name="MusicTab" component={MusicScreen} />
         <Tab.Screen name="VideosTab" component={VideosScreen} />
+        <Tab.Screen name="PlaylistsTab" component={PlaylistsScreen} />
         <Tab.Screen name="SearchTab" component={SearchScreen} />
         <Tab.Screen name="SettingsTab" component={SettingsScreen} />
       </Tab.Navigator>
@@ -76,7 +80,7 @@ function MainTabs() {
 
 const screenOptions = {
   headerShown: false,
-  cardStyle: { backgroundColor: 'transparent' },
+  contentStyle: { backgroundColor: 'transparent' },
 };
 
 export default function App() {
@@ -92,33 +96,41 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <LanguageProvider>
-          <FontProvider>
-            <ThemeProvider>
-              <OverlayProvider>
-                <NavigationContainer>
-                  <Stack.Navigator screenOptions={screenOptions}>
-                    <Stack.Screen name="MainTabs" component={MainTabs} />
-                    <Stack.Screen name="Category" component={CategoryScreen} />
-                    <Stack.Screen name="FolderList" component={FolderScreen} />
-                    <Stack.Screen name="VideoTop" component={VideoTopScreen} />
-                    <Stack.Screen name="PrivateFolder" component={PrivateFolderScreen} />
-                    <Stack.Screen name="VideoPlayer">
-                      {(props) => (
-                        <PlayerBoundary>
-                          <VideoPlayerScreen {...props} />
-                        </PlayerBoundary>
-                      )}
-                    </Stack.Screen>
-                    <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
-                  </Stack.Navigator>
-                </NavigationContainer>
-              </OverlayProvider>
-            </ThemeProvider>
-          </FontProvider>
-        </LanguageProvider>
-      </ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <BottomSheetModalProvider>
+          <QueryProvider>
+            <ErrorBoundary>
+              <LanguageProvider>
+                <FontProvider>
+                  <ThemeProvider>
+                    <ColorAwarenessProvider>
+                      <OverlayProvider>
+                        <NavigationContainer>
+                          <Stack.Navigator screenOptions={screenOptions}>
+                            <Stack.Screen name="MainTabs" component={MainTabs} />
+                            <Stack.Screen name="Category" component={CategoryScreen} />
+                            <Stack.Screen name="FolderList" component={FolderScreen} />
+                            <Stack.Screen name="VideoTop" component={VideoTopScreen} />
+                            <Stack.Screen name="PrivateFolder" component={PrivateFolderScreen} />
+                            <Stack.Screen name="VideoPlayer">
+                              {(props) => (
+                                <PlayerBoundary>
+                                  <VideoPlayerScreen {...props} />
+                                </PlayerBoundary>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="MusicPlayer" component={MusicPlayerScreen} />
+                          </Stack.Navigator>
+                        </NavigationContainer>
+                      </OverlayProvider>
+                    </ColorAwarenessProvider>
+                  </ThemeProvider>
+                </FontProvider>
+              </LanguageProvider>
+            </ErrorBoundary>
+          </QueryProvider>
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }
