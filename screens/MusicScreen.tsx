@@ -12,6 +12,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Image,
+  Share,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useAppNavigation } from '../hooks/useAppNavigation';
@@ -65,7 +66,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
       const { height } = scrollTrackLayoutRef.current;
       if (height <= 0) return;
       const pct = Math.max(0, Math.min(1, locationY / height));
-      setScrollProgress(pct);
       Animated.timing(thumbAnim, {
         toValue: pct,
         duration: 50,
@@ -100,7 +100,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
       const maxOffset = contentSize.height - layoutMeasurement.height;
       if (maxOffset > 0) {
         const pct = contentOffset.y / maxOffset;
-        setScrollProgress(pct);
         thumbAnim.setValue(pct);
       }
     },

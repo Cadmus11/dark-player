@@ -312,7 +312,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         onPress: async () => {
           const { StorageService: Svc } = await import('../services/StorageService');
           await Svc.addToRecentlyDeleted(file);
-          await StorageService.moveToTrash(file);
+          await Svc.moveToTrash(file);
           navigation.goBack();
         },
       },
