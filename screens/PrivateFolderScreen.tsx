@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, FileItem, PrivateFileEntry } from '../types';
 import { CaretLeft, Lock, LockOpen, Trash, Folder, Fingerprint } from 'phosphor-react-native';
 import { PrivateFolderService } from '../services/PrivateFolderService';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
 import { fileEngine } from '../engine/FileEngine';
-import type { FileItem, PrivateFileEntry } from '../types';
 
 type PrivateFolderProps = NativeStackScreenProps<RootStackParamList, 'PrivateFolder'>;
 

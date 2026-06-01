@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { FileItem } from '../types';
+import { AudioEngine } from '../engine/AudioEngine';
 
 export const NOTIFICATION_CATEGORY = 'media-playback';
 
@@ -58,14 +59,12 @@ export const NowPlayingNotification = {
   },
 
   handleResponse(response: Notifications.NotificationResponse) {
-    const { actionIdentifier, notification } = response;
-    const data = notification.request.content.data as { uri?: string; action?: string };
+    const { actionIdentifier } = response;
 
     if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
       return;
     }
 
-    const { AudioEngine } = require('../engine/AudioEngine');
     const engine = AudioEngine.getInstance();
 
     switch (actionIdentifier) {

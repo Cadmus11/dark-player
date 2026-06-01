@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, FileItem } from '../types';
 import {
   CaretDown,
   Broadcast,
@@ -47,9 +47,6 @@ import {
   Lock,
   LockOpen,
   ArrowsClockwise,
-  FrameCorners,
-  Square,
-  ArrowsOut,
   Subtitles,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -59,7 +56,6 @@ import { NeonSlider } from '../components/NeonSlider';
 import { fileEngine } from '../engine/FileEngine';
 import { videoEngine } from '../engine/VideoEngine';
 import { queueEngine } from '../engine/QueueEngine';
-import type { FileItem, SubtitleEntry } from '../types';
 import { HistoryService } from '../services/History/HistoryService';
 import { BottomSheet } from '../services/OverlaySystem';
 
@@ -72,12 +68,6 @@ const VIDEO_WIDTH = SCREEN_WIDTH * 0.92;
 
 type ContentFit = 'contain' | 'cover' | 'fill';
 
-const CONTENT_FITS: { mode: ContentFit; Icon: any; label: string }[] = [
-  { mode: 'contain', Icon: FrameCorners, label: 'Fit' },
-  { mode: 'cover', Icon: Square, label: 'Fill' },
-  { mode: 'fill', Icon: ArrowsOut, label: 'Stretch' },
-];
-
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 const QUALITY_OPTIONS = ['Auto', '360p', '480p', '720p', '1080p', '4K'];
@@ -86,7 +76,7 @@ type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 
 export function VideoPlayerScreen({ navigation, route }: Props) {
   const { file, isAudioOnly: initialAudioOnly } = route.params;
-  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg, borderColor } = useTheme();
+  const { primaryColor, textColor, mutedColor, isDarkMode, cardBg } = useTheme();
   const { themeColors, canUseArtwork, state: artState } = useColorAwareness();
 
   const player = useVideoPlayer(file.uri);
@@ -170,7 +160,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       ScreenOrientation.unlockAsync().catch(() => {});
       if (autoHideRef.current) clearTimeout(autoHideRef.current);
     };
-  }, [file.uri]);
+  }, [file.uri, file]);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -223,7 +213,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         HistoryService.endPlaySession(file, 'video');
       }
     };
-  }, []);
+  }, [file]);
 
   useEffect(() => {
     showControlsRef.current = showControls;
@@ -320,8 +310,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const { StorageService } = require('../services/StorageService');
-          await StorageService.addToRecentlyDeleted(file);
+          const { StorageService: Svc } = await import('../services/StorageService');
+          await Svc.addToRecentlyDeleted(file);
           await StorageService.moveToTrash(file);
           navigation.goBack();
         },
@@ -661,7 +651,6 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 className="items-center justify-center"
                 onPress={() => {
-                  const qs = queueEngine.getVideoState();
                   queueEngine.toggleShuffle('video');
                 }}
                 activeOpacity={0.6}>

@@ -10,14 +10,12 @@ import {
 import type {
   ThemeSettings,
   FileItem,
-  Playlist,
   RecentlyPlayed,
   SavedSearch,
   RecentlyDeleted,
   PlaybackSettings,
   NotificationSettings,
   SleepTimerSettings,
-  HiddenFilesSettings,
 } from '../types';
 
 const settingsStorage = new MMKV({ id: 'settings' });

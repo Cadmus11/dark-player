@@ -15,7 +15,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, FileItem, LyricsData, MediaMetadata } from '../types';
 import {
   DotsThreeVertical,
   ShuffleAngular,
@@ -53,7 +53,6 @@ import { usePlaybackStore } from '../stores/playbackStore';
 import { useMetadataQuery } from '../hooks/queries/useMetadataQuery';
 import { useArtworkColors } from '../hooks/useArtworkColors';
 import { LyricsService } from '../services/Lyrics/LyricsService';
-import type { FileItem, LyricsData, MediaMetadata } from '../types';
 import { NeonSlider } from '../components/NeonSlider';
 import { ArtworkGlow } from '../components/ArtworkGlow';
 import { EdgeLighting } from '../components/EdgeLighting';
@@ -166,8 +165,6 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [drivingMode, setDrivingMode] = useState(false);
   const [powerSaving, setPowerSaving] = useState(false);
-  const [isScrubbing, setIsScrubbing] = useState(false);
-  const [scrubbingProgress, setScrubbingProgress] = useState(0);
 
   const translateY = useRef(new Animated.Value(0)).current;
   const isAtTop = useRef(true);
@@ -221,7 +218,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     const q = audio.length > 0 ? audio : [file];
     const idx = q.findIndex((f) => f.uri === file.uri);
     playFile(file, q, idx >= 0 ? idx : 0);
-  }, [file, playFile]);
+  }, [file, playFile, audio]);
 
   const currentItem = queue[currentIndex] || file;
   const artworkUri = currentItem?.thumbnail || localArtwork || null;
@@ -522,8 +519,8 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           <NeonSlider
             progress={progress}
             onSeek={seekTo}
-            onSeekStart={() => setIsScrubbing(true)}
-            onSeekEnd={() => setIsScrubbing(false)}
+            onSeekStart={() => {}}
+            onSeekEnd={() => {}}
             width={SCREEN_WIDTH - 128}
             primaryColor={palette.accentColor}
             secondaryColor={palette.secondary}

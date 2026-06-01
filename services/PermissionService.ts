@@ -63,7 +63,7 @@ class PermissionServiceClass {
 
     try {
       this._state.lastChecked = now;
-      const { status, granted, canAskAgain } = await MediaLibrary.getPermissionsAsync();
+      const { status, canAskAgain } = await MediaLibrary.getPermissionsAsync();
       const s: string = status;
 
       if (s === 'granted') {

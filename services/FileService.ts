@@ -150,8 +150,8 @@ export async function readTextFile(uri: string): Promise<string> {
   }
 }
 
-export function parseSRT(srtContent: string): Array<{ start: number; end: number; text: string }> {
-  const entries: Array<{ start: number; end: number; text: string }> = [];
+export function parseSRT(srtContent: string): { start: number; end: number; text: string }[] {
+  const entries: { start: number; end: number; text: string }[] = [];
   const blocks = srtContent.trim().split(/\n\s*\n/);
 
   for (const block of blocks) {

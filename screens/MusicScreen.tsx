@@ -50,7 +50,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
   const selectionMode = selectedUris.size > 0;
-  const [scrollProgress, setScrollProgress] = useState(0);
   const sectionListRef = useRef<SectionList<FileItem, MusicSection>>(null);
   const flatListRef = useRef<any>(null);
   const alphabetRef = useRef<View>(null);
@@ -111,10 +110,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const handleScrollTrackLayout = useCallback((e: LayoutChangeEvent) => {
     const { y, height } = e.nativeEvent.layout;
     scrollTrackLayoutRef.current = { y, height };
-  }, []);
-
-  const toggleDirection = useCallback(() => {
-    setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
   }, []);
 
   const sortedAudio = useMemo(() => {
@@ -192,7 +187,6 @@ export const MusicScreen = React.memo(function MusicScreen() {
         break;
       }
       case 'share': {
-        const { Share } = require('react-native');
         for (const f of files) {
           try {
             await Share.share({ url: f.uri, title: f.name });

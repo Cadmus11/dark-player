@@ -1,13 +1,12 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, FileItem } from '../types';
 import { CaretLeft, Play, Star } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
-import type { FileItem } from '../types';
 
 type VideoTopScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoTop'>;
 
@@ -25,7 +24,6 @@ function scoreVideoQuality(v: FileItem): number {
 export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
   const videos = useMediaStore((s) => s.videos);
   const { textColor, mutedColor, primaryColor, borderColor, isDarkMode } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
 
   const topVideos = useMemo(() => {
     return [...videos]

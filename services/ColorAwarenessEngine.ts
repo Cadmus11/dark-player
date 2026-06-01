@@ -8,13 +8,6 @@ import type {
   EdgeLightingColors,
 } from '../types';
 
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function hexToLuminance(hex: string): number {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -28,13 +21,6 @@ function adjustBrightness(hex: string, amount: number): string {
   const g = Math.min(255, Math.max(0, parseInt(hex.slice(3, 5), 16) + amount));
   const b = Math.min(255, Math.max(0, parseInt(hex.slice(5, 7), 16) + amount));
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
-function isColorDark(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return r * 0.299 + g * 0.587 + b * 0.114 < 128;
 }
 
 function parseHex(color: string | undefined | null, fallback: string): string {

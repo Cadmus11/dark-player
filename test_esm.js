@@ -1,4 +1,3 @@
-import path from 'path';
 import { pathToFileURL } from 'url';
 
 const absPath = 'C:\\Users\\obsid\\Desktop\\dark-player\\metro.config.js';

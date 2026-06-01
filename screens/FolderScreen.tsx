@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList, FolderFilterType } from '../types';
+import type { RootStackParamList, FolderFilterType, FileItem } from '../types';
 import {
   CaretLeft,
   MusicNote,
@@ -22,7 +22,6 @@ import { HistoryService } from '../services/History/HistoryService';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
-import type { FileItem } from '../types';
 
 type FolderScreenProps = NativeStackScreenProps<RootStackParamList, 'FolderList'>;
 

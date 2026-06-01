@@ -20,24 +20,43 @@ import { MiniPlayer } from './components/player/MiniPlayer';
 import { NowPlayingBar } from './components/player/NowPlayingBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PlayerBoundary } from './components/FeatureBoundary';
-import type {
-  MainTabParamList,
-  RootStackParamList,
-} from './types';
+import type { MainTabParamList, RootStackParamList } from './types';
 import './global.css';
 
-const MusicScreen = lazy(() => import('./screens/MusicScreen').then(m => ({ default: m.MusicScreen })));
-const VideosScreen = lazy(() => import('./screens/VideosScreen').then(m => ({ default: m.VideosScreen })));
-const PlaylistsScreen = lazy(() => import('./screens/PlaylistsScreen').then(m => ({ default: m.PlaylistsScreen })));
-const CorePage = lazy(() => import('./screens/CorePage').then(m => ({ default: m.CorePage })));
-const SearchScreen = lazy(() => import('./screens/SearchScreen').then(m => ({ default: m.SearchScreen })));
-const SettingsScreen = lazy(() => import('./screens/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
-const CategoryScreen = lazy(() => import('./screens/CategoryScreen').then(m => ({ default: m.CategoryScreen })));
-const FolderScreen = lazy(() => import('./screens/FolderScreen').then(m => ({ default: m.FolderScreen })));
-const VideoTopScreen = lazy(() => import('./screens/VideoTopScreen').then(m => ({ default: m.VideoTopScreen })));
-const PrivateFolderScreen = lazy(() => import('./screens/PrivateFolderScreen').then(m => ({ default: m.PrivateFolderScreen })));
-const VideoPlayerScreen = lazy(() => import('./screens/VideoPlayerScreen').then(m => ({ default: m.VideoPlayerScreen })));
-const MusicPlayerScreen = lazy(() => import('./screens/MusicPlayerScreen').then(m => ({ default: m.MusicPlayerScreen })));
+const MusicScreen = lazy(() =>
+  import('./screens/MusicScreen').then((m) => ({ default: m.MusicScreen }))
+);
+const VideosScreen = lazy(() =>
+  import('./screens/VideosScreen').then((m) => ({ default: m.VideosScreen }))
+);
+const PlaylistsScreen = lazy(() =>
+  import('./screens/PlaylistsScreen').then((m) => ({ default: m.PlaylistsScreen }))
+);
+const CorePage = lazy(() => import('./screens/CorePage').then((m) => ({ default: m.CorePage })));
+const SearchScreen = lazy(() =>
+  import('./screens/SearchScreen').then((m) => ({ default: m.SearchScreen }))
+);
+const SettingsScreen = lazy(() =>
+  import('./screens/SettingsScreen').then((m) => ({ default: m.SettingsScreen }))
+);
+const CategoryScreen = lazy(() =>
+  import('./screens/CategoryScreen').then((m) => ({ default: m.CategoryScreen }))
+);
+const FolderScreen = lazy(() =>
+  import('./screens/FolderScreen').then((m) => ({ default: m.FolderScreen }))
+);
+const VideoTopScreen = lazy(() =>
+  import('./screens/VideoTopScreen').then((m) => ({ default: m.VideoTopScreen }))
+);
+const PrivateFolderScreen = lazy(() =>
+  import('./screens/PrivateFolderScreen').then((m) => ({ default: m.PrivateFolderScreen }))
+);
+const VideoPlayerScreen = lazy(() =>
+  import('./screens/VideoPlayerScreen').then((m) => ({ default: m.VideoPlayerScreen }))
+);
+const MusicPlayerScreen = lazy(() =>
+  import('./screens/MusicPlayerScreen').then((m) => ({ default: m.MusicPlayerScreen }))
+);
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();

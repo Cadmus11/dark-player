@@ -22,25 +22,6 @@ interface ColorAwarenessContextType {
   canUseArtwork: boolean;
 }
 
-const DEFAULT_STATE: ArtworkColorState = {
-  artworkUri: null,
-  rawPalette: null,
-  theme: {
-    primary: '#6c5ce7',
-    secondary: '#a29bfe',
-    accent: '#6c5ce7',
-    background: '#1a1a2e',
-    surface: '#16213e',
-    textPrimary: '#ffffff',
-    textSecondary: 'rgba(255,255,255,0.7)',
-  },
-  isDark: true,
-  blurStrength: 60,
-  overlayOpacity: 0.3,
-  edgeColors: { left: '#6c5ce7', right: '#a29bfe', bottom: '#6c5ce7' },
-  mood: 'neutral',
-};
-
 const ColorAwarenessContext = createContext<ColorAwarenessContextType | undefined>(undefined);
 
 export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
@@ -69,7 +50,7 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
         genre: undefined,
       });
     }
-  }, [currentFile?.uri]);
+  }, [currentFile?.uri, currentFile]);
 
   const triggerTransition = () => {
     transitionAnim.setValue(0);

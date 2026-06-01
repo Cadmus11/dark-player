@@ -40,35 +40,32 @@ export function NeonSlider({
   const trackRef = useRef<View>(null);
   const trackLayout = useRef({ x: 0, width: 300 });
 
-  const getFraction = (locationX: number) => {
-    const w = trackLayout.current.width || containerWidth || 300;
-    return Math.min(Math.max(locationX / w, 0), 1);
-  };
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (e: GestureResponderEvent) => {
-          trackLayout.current.x = 0;
-          const fraction = getFraction(e.nativeEvent.locationX);
-          onSeek(fraction);
-          onSeekStart?.();
-        },
-        onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
-          const fraction = getFraction(e.nativeEvent.locationX);
-          onSeek(fraction);
-        },
-        onPanResponderRelease: (_e: GestureResponderEvent, _gs: PanResponderGestureState) => {
-          onSeekEnd?.();
-        },
-        onPanResponderTerminate: () => {
-          onSeekEnd?.();
-        },
-      }),
-    [onSeek, onSeekStart, onSeekEnd, containerWidth]
-  );
+  const panResponder = useMemo(() => {
+    const getFraction = (locationX: number) => {
+      const w = trackLayout.current.width || containerWidth || 300;
+      return Math.min(Math.max(locationX / w, 0), 1);
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e: GestureResponderEvent) => {
+        trackLayout.current.x = 0;
+        const fraction = getFraction(e.nativeEvent.locationX);
+        onSeek(fraction);
+        onSeekStart?.();
+      },
+      onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+        const fraction = getFraction(e.nativeEvent.locationX);
+        onSeek(fraction);
+      },
+      onPanResponderRelease: (_e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+        onSeekEnd?.();
+      },
+      onPanResponderTerminate: () => {
+        onSeekEnd?.();
+      },
+    });
+  }, [onSeek, onSeekStart, onSeekEnd, containerWidth]);
 
   return (
     <View

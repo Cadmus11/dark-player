@@ -17,17 +17,6 @@ function compareOptionalNumber(a: number | undefined, b: number | undefined, dir
   return a - b;
 }
 
-function compareNumber(a: number, b: number): number {
-  return a - b;
-}
-
-function compareDate(a: number | undefined, b: number | undefined): number {
-  if (a === undefined && b === undefined) return 0;
-  if (a === undefined) return 1;
-  if (b === undefined) return -1;
-  return a - b;
-}
-
 export const Sorting = {
   sort<T extends SortableItem>(
     items: T[],

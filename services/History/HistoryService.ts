@@ -3,7 +3,6 @@ import type { FileItem, HistoryEntry } from '../../types';
 
 const storage = new MMKV({ id: 'play-history' });
 const HISTORY_KEY = '@play_history';
-const PLAY_SESSIONS_KEY = '@play_sessions';
 const MAX_HISTORY = 200;
 
 interface PlaySession {

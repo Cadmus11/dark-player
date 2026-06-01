@@ -1,5 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useColorAwareness } from '../context/ColorAwarenessContext';
 
 interface GlassCardProps {
   children: ReactNode;
@@ -10,9 +12,6 @@ interface GlassCardProps {
   surfaceColor?: string;
   artworkAware?: boolean;
 }
-
-import { useTheme } from '../context/ThemeContext';
-import { useColorAwareness } from '../context/ColorAwarenessContext';
 
 export function GlassCard({
   children,

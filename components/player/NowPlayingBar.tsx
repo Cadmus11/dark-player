@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Play, Pause, SkipForward, MusicNote, X } from 'phosphor-react-native';
 import { usePlaybackStore } from '../../stores/playbackStore';
 import { useTheme } from '../../context/ThemeContext';

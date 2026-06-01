@@ -40,8 +40,6 @@ import {
   Fingerprint,
   Star,
   ShareNetwork,
-  Sun,
-  Palette,
   Globe,
   GoogleLogo,
   UploadSimple,
@@ -81,10 +79,8 @@ import type {
   SleepTimerSettings,
   RecentlyPlayed,
   RecentlyDeleted,
-  FileItem,
 } from '../types';
-import { THEME_PRESETS, LayoutSize } from '../types';
-import type { ColorThemePreset } from '../types';
+import { LayoutSize } from '../types';
 
 import { PrivateFolderService } from '../services/PrivateFolderService';
 import { MMKV } from 'react-native-mmkv';
@@ -133,7 +129,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     setBackgroundMode,
     setBackgroundBrightness,
     theme,
-    updateTheme,
     setColorTheme,
     setSizeMode,
     isDarkMode,
@@ -142,7 +137,6 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     mutedColor,
     cardBg,
     borderColor,
-    backgroundColor,
     currentThemeKey,
     themePresets,
   } = useTheme();

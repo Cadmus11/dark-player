@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, FileItem, SortField, SortDirection } from '../types';
 import { CaretLeft, VideoCamera, MusicNote, FunnelSimple } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaybackStore } from '../stores/playbackStore';
@@ -12,7 +12,6 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
 import { SortModal } from '../components/SortModal';
 import { Sorting } from '../services/Sorting';
-import type { FileItem, SortField, SortDirection } from '../types';
 
 type CategoryScreenProps = NativeStackScreenProps<RootStackParamList, 'Category'>;
 
@@ -46,9 +45,16 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   }, []);
 
   const sortLabelMap: Record<string, string> = {
-    name: 'Name', date: 'Date', newest: 'Newest', size: 'Size',
-    type: 'Type', duration: 'Duration', artist: 'Artist', album: 'Album',
-    playCount: 'Plays', recentlyPlayed: 'Recent',
+    name: 'Name',
+    date: 'Date',
+    newest: 'Newest',
+    size: 'Size',
+    type: 'Type',
+    duration: 'Duration',
+    artist: 'Artist',
+    album: 'Album',
+    playCount: 'Plays',
+    recentlyPlayed: 'Recent',
   };
   const currentSortLabel = sortLabelMap[sortField] || sortField;
 
@@ -136,7 +142,9 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
             {title}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => setShowSortModal(true)} className="flex-row items-center gap-1">
+        <TouchableOpacity
+          onPress={() => setShowSortModal(true)}
+          className="flex-row items-center gap-1">
           <FunnelSimple size={18} color={primaryColor} weight="bold" />
           <Text className="text-[11px] font-semibold" style={{ color: primaryColor }}>
             {currentSortLabel}
