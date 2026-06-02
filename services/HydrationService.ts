@@ -4,7 +4,6 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { fileEngine } from '../engine/FileEngine';
 import { lifecycleManager } from './LifecycleManager';
 import { permissionService } from './PermissionService';
-import { taskManager } from './Cancellation';
 import { eventBus, AppEvents } from './EventBus';
 import { getQueryClient } from '../hooks/queries/QueryProvider';
 import { queryKeys } from '../hooks/queries/queryKeys';

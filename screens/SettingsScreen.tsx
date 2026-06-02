@@ -154,6 +154,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   useEffect(() => {
     getRecentlyDeleted().then(setRecentlyDeleted);
   }, []);
+  const [storageSnapshot, setStorageSnapshot] = useState<StorageSnapshot | null>(null);
+  const storageAudio = useMediaStore((s) => s.audio);
+  const storageVideo = useMediaStore((s) => s.videos);
+  useEffect(() => {
+    StorageTrackingService.collectSnapshot(storageAudio, storageVideo).then(setStorageSnapshot);
+  }, [storageAudio.length, storageVideo.length]);
   const handleClearRecentlyDeleted = async () => {
     await clearRecentlyDeleted();
     setRecentlyDeleted([]);
@@ -2374,14 +2380,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   );
 
   const renderStorageView = () => {
-    const [snapshot, setSnapshot] = useState<StorageSnapshot | null>(null);
-    const mediaAudio = useMediaStore((s) => s.audio);
-    const mediaVideo = useMediaStore((s) => s.videos);
-
-    useEffect(() => {
-      StorageTrackingService.collectSnapshot(mediaAudio, mediaVideo).then(setSnapshot);
-    }, [mediaAudio.length, mediaVideo.length]);
-
+    const snapshot = storageSnapshot;
     const devUsedPct = snapshot && snapshot.deviceTotal > 0
       ? (snapshot.deviceUsed / snapshot.deviceTotal) * 100
       : 0;
@@ -2497,7 +2496,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <TouchableOpacity
             className="mt-3 self-start rounded-xl px-4 py-2"
             style={{ backgroundColor: `${primaryColor}15` }}
-            onPress={() => StorageTrackingService.collectSnapshot(mediaAudio, mediaVideo).then(setSnapshot)}>
+            onPress={() => StorageTrackingService.collectSnapshot(storageAudio, storageVideo).then(setStorageSnapshot)}>
             <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
               Refresh
             </Text>
