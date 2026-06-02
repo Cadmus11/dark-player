@@ -32,9 +32,12 @@ const HYDRATION_PHASES: HydrationPhase = [
     useMediaStore.getState().setHydrationStage(2);
   },
 
-  // Stage 3: Playback restoration + permission check
+  // Stage 3: Playback restoration + permission request
   async () => {
-    const permStatus = await permissionService.checkMediaLibrary();
+    let permStatus = await permissionService.checkMediaLibrary();
+    if (permStatus !== 'GRANTED' && permStatus !== 'PARTIAL') {
+      permStatus = await permissionService.requestMediaLibrary();
+    }
     if (permStatus === 'GRANTED' || permStatus === 'PARTIAL') {
       useMediaStore.setState({ permissionsGranted: true });
       if (!fileEngine.hasCache()) {

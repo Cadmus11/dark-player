@@ -99,12 +99,27 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   },
 }));
 
-// Subscribe to permission changes
+// Subscribe to permission changes — trigger scan when newly granted
 permissionService.subscribe(() => {
   const granted = permissionService.isGranted();
-  const current = useMediaStore.getState().permissionsGranted;
-  if (current !== granted) {
+  const state = useMediaStore.getState();
+  if (state.permissionsGranted !== granted) {
     useMediaStore.setState({ permissionsGranted: granted });
+    if (granted && !state.loading && !fileEngine.hasCache()) {
+      useMediaStore.getState().scanMedia();
+    }
+  }
+});
+
+// Re-check permissions when app returns to foreground
+eventBus.on(AppEvents.LIFECYCLE_FOREGROUND, async () => {
+  const state = useMediaStore.getState();
+  const prevGranted = state.permissionsGranted;
+  const status = await permissionService.checkMediaLibrary();
+  const nowGranted = permissionService.isGranted();
+  if (!prevGranted && nowGranted && !state.loading) {
+    useMediaStore.setState({ permissionsGranted: true });
+    useMediaStore.getState().scanMedia();
   }
 });
 
