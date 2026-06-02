@@ -159,7 +159,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   const storageVideo = useMediaStore((s) => s.videos);
   useEffect(() => {
     StorageTrackingService.collectSnapshot(storageAudio, storageVideo).then(setStorageSnapshot);
-  }, [storageAudio.length, storageVideo.length]);
+  }, [storageAudio, storageVideo]);
   const handleClearRecentlyDeleted = async () => {
     await clearRecentlyDeleted();
     setRecentlyDeleted([]);
@@ -2381,9 +2381,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
 
   const renderStorageView = () => {
     const snapshot = storageSnapshot;
-    const devUsedPct = snapshot && snapshot.deviceTotal > 0
-      ? (snapshot.deviceUsed / snapshot.deviceTotal) * 100
-      : 0;
+    const devUsedPct =
+      snapshot && snapshot.deviceTotal > 0 ? (snapshot.deviceUsed / snapshot.deviceTotal) * 100 : 0;
     const mediaTotal = (snapshot?.audioSize || 0) + (snapshot?.videoSize || 0);
 
     return (
@@ -2406,8 +2405,19 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           </Text>
           {snapshot && snapshot.deviceTotal > 0 ? (
             <>
-              <View className="mb-2 h-2.5 overflow-hidden rounded-full" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
-                <View style={{ width: `${Math.min(devUsedPct, 100)}%`, height: '100%', backgroundColor: primaryColor, borderRadius: 99 }} />
+              <View
+                className="mb-2 h-2.5 overflow-hidden rounded-full"
+                style={{
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                }}>
+                <View
+                  style={{
+                    width: `${Math.min(devUsedPct, 100)}%`,
+                    height: '100%',
+                    backgroundColor: primaryColor,
+                    borderRadius: 99,
+                  }}
+                />
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-xs" style={{ color: mutedColor }}>
@@ -2439,11 +2449,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           {/* Audio row */}
           <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5">
-              <View className="h-9 w-9 items-center justify-center rounded-[10px]" style={{ backgroundColor: `${primaryColor}15` }}>
+              <View
+                className="h-9 w-9 items-center justify-center rounded-[10px]"
+                style={{ backgroundColor: `${primaryColor}15` }}>
                 <MusicNotes size={16} color={primaryColor} />
               </View>
               <View>
-                <Text className="text-sm font-medium" style={{ color: textColor }}>Audio</Text>
+                <Text className="text-sm font-medium" style={{ color: textColor }}>
+                  Audio
+                </Text>
                 <Text className="text-xs" style={{ color: mutedColor }}>
                   {snapshot?.audioFiles ?? 0} files
                 </Text>
@@ -2457,11 +2471,15 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           {/* Video row */}
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5">
-              <View className="h-9 w-9 items-center justify-center rounded-[10px]" style={{ backgroundColor: `${primaryColor}15` }}>
+              <View
+                className="h-9 w-9 items-center justify-center rounded-[10px]"
+                style={{ backgroundColor: `${primaryColor}15` }}>
                 <VideoCamera size={16} color={primaryColor} />
               </View>
               <View>
-                <Text className="text-sm font-medium" style={{ color: textColor }}>Video</Text>
+                <Text className="text-sm font-medium" style={{ color: textColor }}>
+                  Video
+                </Text>
                 <Text className="text-xs" style={{ color: mutedColor }}>
                   {snapshot?.videoFiles ?? 0} files
                 </Text>
@@ -2475,7 +2493,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           {/* Total */}
           <View className="mt-3 border-t pt-3" style={{ borderColor, borderTopWidth: 1 }}>
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-bold" style={{ color: textColor }}>Total Media</Text>
+              <Text className="text-sm font-bold" style={{ color: textColor }}>
+                Total Media
+              </Text>
               <Text className="text-sm font-bold" style={{ color: primaryColor }}>
                 {StorageTrackingService.formatBytes(mediaTotal)}
               </Text>
@@ -2496,7 +2516,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <TouchableOpacity
             className="mt-3 self-start rounded-xl px-4 py-2"
             style={{ backgroundColor: `${primaryColor}15` }}
-            onPress={() => StorageTrackingService.collectSnapshot(storageAudio, storageVideo).then(setStorageSnapshot)}>
+            onPress={() =>
+              StorageTrackingService.collectSnapshot(storageAudio, storageVideo).then(
+                setStorageSnapshot
+              )
+            }>
             <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
               Refresh
             </Text>

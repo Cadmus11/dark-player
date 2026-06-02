@@ -274,14 +274,11 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
     [player]
   );
 
-  const changeSpeed = useCallback(
-    (speed: number) => {
-      videoEngine.setRate(speed);
-      setPlaybackSpeed(speed);
-      setShowSpeedModal(false);
-    },
-    []
-  );
+  const changeSpeed = useCallback((speed: number) => {
+    videoEngine.setRate(speed);
+    setPlaybackSpeed(speed);
+    setShowSpeedModal(false);
+  }, []);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 

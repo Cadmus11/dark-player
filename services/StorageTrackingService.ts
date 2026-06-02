@@ -53,7 +53,10 @@ function formatBytes(bytes: number): string {
 }
 
 export const StorageTrackingService = {
-  async collectSnapshot(audio: { size?: number }[], video: { size?: number }[]): Promise<StorageSnapshot> {
+  async collectSnapshot(
+    audio: { size?: number }[],
+    video: { size?: number }[]
+  ): Promise<StorageSnapshot> {
     const { total, free } = await getDeviceStorage();
     const audioSize = sumSizes(audio);
     const videoSize = sumSizes(video);
@@ -73,7 +76,10 @@ export const StorageTrackingService = {
     return snapshot;
   },
 
-  async getCachedSnapshot(audio: { size?: number }[], video: { size?: number }[]): Promise<StorageSnapshot> {
+  async getCachedSnapshot(
+    audio: { size?: number }[],
+    video: { size?: number }[]
+  ): Promise<StorageSnapshot> {
     if (_cached && Date.now() - _lastFetch < CACHE_TTL) {
       return _cached;
     }
