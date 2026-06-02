@@ -17,3 +17,5 @@ export { NowPlayingBar } from './player/NowPlayingBar';
 export { DynamicArtworkBackground } from './DynamicArtworkBackground';
 export { ArtworkGlow } from './ArtworkGlow';
 export { EdgeLighting } from './EdgeLighting';
+export { ThemedText } from './ThemedText';
+export { EmptyState } from './EmptyState';

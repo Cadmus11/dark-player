@@ -5,6 +5,7 @@ import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, SortField, SortDirection } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { ThemedText } from '../components/ThemedText';
 import { Sorting } from '../services/Sorting';
 import { SortModal } from '../components/SortModal';
 import FileGrid from '../components/FileGrid';
@@ -50,9 +51,7 @@ export const VideosScreen = React.memo(function VideosScreen() {
   return (
     <ScreenLayout onSortPress={() => setShowSortModal(true)} sortLabel={currentSortLabel}>
       <View className="mb-2 px-4">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
-          Videos
-        </Text>
+        <ThemedText variant="h1">Videos</ThemedText>
       </View>
       <View className="flex-1">
         <SortModal

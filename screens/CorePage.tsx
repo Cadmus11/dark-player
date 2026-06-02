@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import {
   Heart,
@@ -12,6 +12,7 @@ import {
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { ThemedText } from '../components/ThemedText';
 import type { FolderFilterType } from '../types';
 
 interface CoreItem {
@@ -68,43 +69,63 @@ const CORE_ITEMS: CoreItem[] = [
 
 export const CorePage = React.memo(function CorePage() {
   const navigation = useAppNavigation();
-  const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
+  const { primaryColor, isDarkMode, borderColor } = useTheme();
+
+  const cardBg = isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const iconBg = `${primaryColor}12`;
 
   return (
     <ScreenLayout>
-      <View className="mb-4 px-4">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
-          Core
-        </Text>
-        <Text className="mt-1 text-sm" style={{ color: mutedColor }}>
-          Browse your library
-        </Text>
+      <View className="mb-5 px-4">
+        <ThemedText variant="h1">Core</ThemedText>
+        <ThemedText variant="caption" style={{ marginTop: 2 }}>Browse your library</ThemedText>
       </View>
-      <View className="flex-row flex-wrap px-4">
+      <View className="flex-row flex-wrap px-3">
         {CORE_ITEMS.map((item, index) => (
           <TouchableOpacity
             key={item.key}
-            className="mb-3 w-[48%] items-center rounded-[28px] p-5"
-            style={{
-              marginRight: index % 2 === 0 ? 12 : 0,
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-              borderWidth: 1,
-              borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-            }}
+            activeOpacity={0.7}
+            style={[
+              styles.card,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                marginRight: index % 2 === 0 ? 8 : 0,
+              },
+            ]}
             onPress={() =>
               navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })
             }>
-            <View
-              className="mb-3 h-14 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: `${primaryColor}15` }}>
+            <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
               {item.icon(primaryColor)}
             </View>
-            <Text className="text-center text-sm font-semibold" style={{ color: textColor }}>
+            <ThemedText variant="body" style={{ textAlign: 'center', fontWeight: '600' }}>
               {item.label}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         ))}
       </View>
     </ScreenLayout>
   );
+});
+
+const styles = StyleSheet.create({
+  card: {
+    width: '48%',
+    marginBottom: 10,
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
 });

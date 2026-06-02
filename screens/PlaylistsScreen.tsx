@@ -11,11 +11,13 @@ import {
   Platform,
 } from 'react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { Plus, MusicNote } from 'phosphor-react-native';
+import { Plus, MusicNote, Queue } from 'phosphor-react-native';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useExpandedPlaylists } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { ThemedText } from '../components/ThemedText';
+import { EmptyState } from '../components/EmptyState';
 import { GlassIcon } from '../components/GlassIcon';
 import type { Playlist } from '../types';
 
@@ -71,12 +73,13 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
     ]);
   };
 
+  const cardBgColor = isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+
   return (
     <ScreenLayout>
       <View className="mb-3 flex-row items-center justify-between px-4">
-        <Text className="text-lg font-bold tracking-[0.5]" style={{ color: textColor }}>
-          Playlists
-        </Text>
+        <ThemedText variant="h2">Playlists</ThemedText>
         <TouchableOpacity onPress={handleCreatePlaylist}>
           <GlassIcon size={32}>
             <Plus size={16} color={primaryColor} weight="bold" />
@@ -92,67 +95,76 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
             {playlists.map((playlist) => (
               <TouchableOpacity
                 key={playlist.id}
-                className="w-[calc(50%-6px)] items-center rounded-[28px] p-4 shadow-lg"
+                className="w-[calc(50%-6px)] items-center shadow-lg"
                 style={{
+                  borderRadius: 24,
                   borderWidth: 1,
-                  borderColor: borderColor,
-                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  borderColor: cardBorder,
+                  backgroundColor: cardBgColor,
+                  paddingVertical: 20,
+                  paddingHorizontal: 12,
                 }}
                 onPress={() => navigation.navigate('MusicTab')}
                 onLongPress={() => handlePlaylistLongPress(playlist)}>
                 {playlist.coverUri ? (
-                  <RNImage
-                    source={{ uri: playlist.coverUri }}
-                    className="mb-2.5 h-[120px] w-[120px] rounded-xl"
-                  />
+                  <View
+                    style={{
+                      shadowColor: primaryColor,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 12,
+                      elevation: 6,
+                      borderRadius: 16,
+                    }}>
+                    <RNImage
+                      source={{ uri: playlist.coverUri }}
+                      className="mb-3 h-[120px] w-[120px]"
+                      style={{ borderRadius: 16 }}
+                    />
+                  </View>
                 ) : (
                   <View
-                    className="mb-2.5 h-[120px] w-[120px] items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `${primaryColor}15` }}>
-                    <MusicNote size={32} color={primaryColor} weight="bold" />
+                    className="mb-3 h-[120px] w-[120px] items-center justify-center"
+                    style={{
+                      borderRadius: 16,
+                      backgroundColor: `${primaryColor}10`,
+                      borderWidth: 1,
+                      borderColor: `${primaryColor}20`,
+                    }}>
+                    <Queue size={36} color={primaryColor} weight="thin" />
                   </View>
                 )}
-                <Text
-                  className="mb-0.5 text-center text-sm font-semibold"
-                  style={{ color: textColor }}
+                <ThemedText
+                  variant="body"
+                  style={{ textAlign: 'center', fontWeight: '600' }}
                   numberOfLines={1}>
                   {playlist.name}
-                </Text>
-                <Text className="text-[11px]" style={{ color: mutedColor }}>
+                </ThemedText>
+                <ThemedText variant="caption" style={{ marginTop: 2 }}>
                   {playlist.files.length} tracks
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
         ) : (
-          <TouchableOpacity
-            className="mt-10 items-center rounded-[28px] p-8"
-            style={{
-              borderWidth: 1,
-              borderStyle: 'dashed',
-              borderColor: borderColor,
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-            }}
-            onPress={handleCreatePlaylist}>
-            <GlassIcon size={48}>
-              <Plus size={24} color={primaryColor} weight="bold" />
-            </GlassIcon>
-            <Text className="mt-2 text-sm" style={{ color: mutedColor }}>
-              Create your first playlist
-            </Text>
-          </TouchableOpacity>
+          <EmptyState
+            icon={<Queue size={32} color={primaryColor} weight="thin" />}
+            title="No playlists yet"
+            description="Create your first playlist to organize your music"
+            actionLabel="Create Playlist"
+            onAction={handleCreatePlaylist}
+          />
         )}
       </ScrollView>
 
-      {/* Playlist Name Input Modal */}
       <Modal visible={showPlaylistInput} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/70">
           <View
             className="w-[85%] max-w-[360px] rounded-[28px] p-6"
             style={{ backgroundColor: cardBg, borderWidth: 1, borderColor: borderColor }}>
-            <Text className="mb-4 text-center text-lg font-extrabold" style={{ color: textColor }}>
+            <ThemedText variant="h3" style={{ textAlign: 'center', marginBottom: 16 }}>
               New Playlist
-            </Text>
+            </ThemedText>
             <TextInput
               className="mb-5 rounded-xl px-4 py-3"
               style={{

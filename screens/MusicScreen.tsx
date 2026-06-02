@@ -23,6 +23,8 @@ import { usePlaybackStore } from '../stores/playbackStore';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { ThemedText } from '../components/ThemedText';
+import { EmptyState } from '../components/EmptyState';
 import { Sorting } from '../services/Sorting';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
@@ -285,29 +287,30 @@ export const MusicScreen = React.memo(function MusicScreen() {
             )}
           </View>
           <View className="flex-1">
-            <Text
-              className="mb-[3px] text-[15px] font-semibold"
-              style={{ color: isNowPlaying ? primaryColor : textColor }}
+            <ThemedText
+              variant="body"
+              style={{ color: isNowPlaying ? primaryColor : textColor, fontWeight: '600' }}
               numberOfLines={1}>
               {item.name}
-            </Text>
-            <View className="flex-row items-center gap-1.5">
-              <Text
-                className="text-[13px]"
+            </ThemedText>
+            <View className="mt-[2px] flex-row items-center gap-1.5">
+              <ThemedText
+                variant="caption"
                 style={{ color: isNowPlaying ? primaryColor : mutedColor }}
                 numberOfLines={1}>
                 {item.artist || 'Unknown'}
-              </Text>
+              </ThemedText>
               {item.hasLyrics && (
                 <View
                   className="flex-row items-center gap-[3px] rounded-md px-1.5 py-0.5"
                   style={{ backgroundColor: `${primaryColor}20` }}>
                   <Microphone size={10} color={primaryColor} weight="fill" />
-                  <Text
-                    className="text-[9px] font-bold tracking-wider"
-                    style={{ color: primaryColor }}>
+                  <ThemedText
+                    variant="label"
+                    color={primaryColor}
+                    style={{ fontSize: 9 }}>
                     LYRICS
-                  </Text>
+                  </ThemedText>
                 </View>
               )}
             </View>
@@ -334,9 +337,9 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const renderSectionHeader = useCallback(
     (info: { section: MusicSection }) => (
       <View className="mt-1 px-1 py-1.5">
-        <Text className="text-sm font-extrabold tracking-wider" style={{ color: primaryColor }}>
+        <ThemedText variant="label" color={primaryColor}>
           {info.section.title}
-        </Text>
+        </ThemedText>
       </View>
     ),
     [primaryColor]
@@ -359,9 +362,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   return (
     <ScreenLayout onSortPress={() => setShowSortModal(true)} sortLabel={currentSortLabel}>
       <View className="mb-2 px-4">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
-          Music
-        </Text>
+        <ThemedText variant="h1">Music</ThemedText>
       </View>
 
       <View className="flex-1 flex-row">
@@ -417,12 +418,11 @@ export const MusicScreen = React.memo(function MusicScreen() {
               onScroll={handleNonAlphaScroll}
               scrollEventThrottle={16}
               ListEmptyComponent={
-                <View className="items-center justify-center py-[100px]">
-                  <MusicNote size={64} color={mutedColor} />
-                  <Text className="mt-4 text-base" style={{ color: mutedColor }}>
-                    No music found
-                  </Text>
-                </View>
+                <EmptyState
+                  icon={<MusicNote size={32} color={mutedColor} weight="thin" />}
+                  title="No music found"
+                  description="Songs will appear here once your library is scanned"
+                />
               }
             />
             <View
