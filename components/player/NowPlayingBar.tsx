@@ -39,8 +39,18 @@ export function NowPlayingBar() {
         borderTopWidth: 1,
         borderTopColor: canUseArtwork ? themeColors.textSecondary + '18' : borderColor,
       }}>
-      <View style={{ height: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
-        <View style={{ width: `${Math.min(progress * 100, 100)}%`, height: 2, backgroundColor: accentColor }} />
+      <View
+        style={{
+          height: 2,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+        }}>
+        <View
+          style={{
+            width: `${Math.min(progress * 100, 100)}%`,
+            height: 2,
+            backgroundColor: accentColor,
+          }}
+        />
       </View>
       <TouchableOpacity
         className="flex-row items-center gap-3 px-3.5 py-2.5"
@@ -56,7 +66,10 @@ export function NowPlayingBar() {
               elevation: 6,
               borderRadius: 10,
             }}>
-            <Image source={{ uri: currentFile.thumbnail }} className="h-[42] w-[42] rounded-[10px]" />
+            <Image
+              source={{ uri: currentFile.thumbnail }}
+              className="h-[42] w-[42] rounded-[10px]"
+            />
           </View>
         ) : (
           <View
@@ -66,7 +79,10 @@ export function NowPlayingBar() {
           </View>
         )}
         <View className="flex-1">
-          <ThemedText variant="body" style={{ color: txtColor, fontWeight: '600' }} numberOfLines={1}>
+          <ThemedText
+            variant="body"
+            style={{ color: txtColor, fontWeight: '600' }}
+            numberOfLines={1}>
             {currentFile.name}
           </ThemedText>
           <ThemedText variant="caption" style={{ color: muteColor }} numberOfLines={1}>

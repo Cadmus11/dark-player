@@ -42,8 +42,18 @@ export function MiniPlayer() {
         borderTopWidth: 1,
         borderTopColor: canUseArtwork ? themeColors.textSecondary + '18' : borderColor,
       }}>
-      <View style={{ height: 2, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
-        <View style={{ width: `${Math.min(progress * 100, 100)}%`, height: 2, backgroundColor: accentColor }} />
+      <View
+        style={{
+          height: 2,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+        }}>
+        <View
+          style={{
+            width: `${Math.min(progress * 100, 100)}%`,
+            height: 2,
+            backgroundColor: accentColor,
+          }}
+        />
       </View>
       <View className="flex-row items-center gap-2.5 px-3 py-2">
         {currentFile.thumbnail ? (
@@ -56,7 +66,10 @@ export function MiniPlayer() {
           <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: accentColor + '25' }} />
         )}
         <View className="flex-1">
-          <ThemedText variant="body" style={{ color: txtColor, fontWeight: '600', fontSize: 13 }} numberOfLines={1}>
+          <ThemedText
+            variant="body"
+            style={{ color: txtColor, fontWeight: '600', fontSize: 13 }}
+            numberOfLines={1}>
             {currentFile.name}
           </ThemedText>
           <ThemedText variant="caption" style={{ color: muteColor, fontSize: 11 }}>

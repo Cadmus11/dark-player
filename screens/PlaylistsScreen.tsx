@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { Plus, MusicNote, Queue } from 'phosphor-react-native';
+import { Plus, Queue } from 'phosphor-react-native';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useExpandedPlaylists } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';

@@ -69,7 +69,7 @@ const CORE_ITEMS: CoreItem[] = [
 
 export const CorePage = React.memo(function CorePage() {
   const navigation = useAppNavigation();
-  const { primaryColor, isDarkMode, borderColor } = useTheme();
+  const { primaryColor, isDarkMode } = useTheme();
 
   const cardBg = isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
@@ -79,7 +79,9 @@ export const CorePage = React.memo(function CorePage() {
     <ScreenLayout>
       <View className="mb-5 px-4">
         <ThemedText variant="h1">Core</ThemedText>
-        <ThemedText variant="caption" style={{ marginTop: 2 }}>Browse your library</ThemedText>
+        <ThemedText variant="caption" style={{ marginTop: 2 }}>
+          Browse your library
+        </ThemedText>
       </View>
       <View className="flex-row flex-wrap px-3">
         {CORE_ITEMS.map((item, index) => (

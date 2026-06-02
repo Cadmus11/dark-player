@@ -20,9 +20,16 @@ const variantStyles: Record<TextVariant, TextStyle> = {
   muted: { fontSize: 12, fontWeight: '400' },
 };
 
-export function ThemedText({ variant = 'body', color, style, children, ...props }: ThemedTextProps) {
+export function ThemedText({
+  variant = 'body',
+  color,
+  style,
+  children,
+  ...props
+}: ThemedTextProps) {
   const { textColor, mutedColor } = useTheme();
-  const baseColor = color || (variant === 'muted' || variant === 'caption' ? mutedColor : textColor);
+  const baseColor =
+    color || (variant === 'muted' || variant === 'caption' ? mutedColor : textColor);
   return (
     <Text style={[{ color: baseColor }, variantStyles[variant], style]} {...props}>
       {children}

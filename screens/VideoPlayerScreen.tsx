@@ -276,11 +276,11 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
   const changeSpeed = useCallback(
     (speed: number) => {
-      player.playbackRate = speed;
+      videoEngine.setRate(speed);
       setPlaybackSpeed(speed);
       setShowSpeedModal(false);
     },
-    [player]
+    []
   );
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -1038,6 +1038,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    borderRadius: 24,
   },
   overlayTouchable: {
     flex: 1,

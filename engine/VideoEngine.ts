@@ -110,6 +110,9 @@ export class VideoEngine {
     if (player) {
       player.showNowPlayingNotification = true;
       player.staysActiveInBackground = true;
+      if (this._state.playbackSpeed !== 1) {
+        player.playbackRate = this._state.playbackSpeed;
+      }
       this._startStatusPolling();
     } else {
       this._stopStatusPolling();

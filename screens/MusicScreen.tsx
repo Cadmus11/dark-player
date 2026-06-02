@@ -305,10 +305,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
                   className="flex-row items-center gap-[3px] rounded-md px-1.5 py-0.5"
                   style={{ backgroundColor: `${primaryColor}20` }}>
                   <Microphone size={10} color={primaryColor} weight="fill" />
-                  <ThemedText
-                    variant="label"
-                    color={primaryColor}
-                    style={{ fontSize: 9 }}>
+                  <ThemedText variant="label" color={primaryColor} style={{ fontSize: 9 }}>
                     LYRICS
                   </ThemedText>
                 </View>

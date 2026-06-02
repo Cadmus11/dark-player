@@ -115,7 +115,7 @@ permissionService.subscribe(() => {
 eventBus.on(AppEvents.LIFECYCLE_FOREGROUND, async () => {
   const state = useMediaStore.getState();
   const prevGranted = state.permissionsGranted;
-  const status = await permissionService.checkMediaLibrary();
+  await permissionService.checkMediaLibrary();
   const nowGranted = permissionService.isGranted();
   if (!prevGranted && nowGranted && !state.loading) {
     useMediaStore.setState({ permissionsGranted: true });

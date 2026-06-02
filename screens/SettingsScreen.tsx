@@ -47,6 +47,7 @@ import {
   CloudArrowUp,
   CloudArrowDown,
   List,
+  HardDrives,
 } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -83,6 +84,8 @@ import type {
 import { LayoutSize } from '../types';
 
 import { PrivateFolderService } from '../services/PrivateFolderService';
+import { StorageTrackingService } from '../services/StorageTrackingService';
+import type { StorageSnapshot } from '../services/StorageTrackingService';
 import { MMKV } from 'react-native-mmkv';
 import * as DocumentPicker from 'expo-document-picker';
 import Constants from 'expo-constants';
@@ -118,7 +121,8 @@ type ActiveView =
   | 'removeAds'
   | 'privateFolder'
   | 'futureUpdates'
-  | 'backup';
+  | 'backup'
+  | 'storage';
 
 export const SettingsScreen = React.memo(function SettingsScreen() {
   const {
@@ -282,6 +286,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       badge: recentlyDeleted.length > 0 ? String(recentlyDeleted.length) : undefined,
     },
     { id: 'backup', Icon: CloudArrowUp, label: 'Backup & Restore' },
+    { id: 'storage', Icon: HardDrives, label: 'Storage' },
     { id: 'playback', Icon: SlidersHorizontal, label: t('settings.playback') },
     { id: 'notification', Icon: Bell, label: t('settings.notification') },
     { id: 'sleepTimer', Icon: Moon, label: t('settings.sleepTimer') },
@@ -352,6 +357,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             ? 'https://apps.apple.com/app/id12345'
             : 'https://play.google.com/store/apps/details?id=com.lumora.app'
         );
+        break;
+      case 'storage':
+        setActiveView('storage');
         break;
       case 'playtime':
         break;
@@ -2365,6 +2373,140 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     </>
   );
 
+  const renderStorageView = () => {
+    const [snapshot, setSnapshot] = useState<StorageSnapshot | null>(null);
+    const mediaAudio = useMediaStore((s) => s.audio);
+    const mediaVideo = useMediaStore((s) => s.videos);
+
+    useEffect(() => {
+      StorageTrackingService.collectSnapshot(mediaAudio, mediaVideo).then(setSnapshot);
+    }, [mediaAudio.length, mediaVideo.length]);
+
+    const devUsedPct = snapshot && snapshot.deviceTotal > 0
+      ? (snapshot.deviceUsed / snapshot.deviceTotal) * 100
+      : 0;
+    const mediaTotal = (snapshot?.audioSize || 0) + (snapshot?.videoSize || 0);
+
+    return (
+      <>
+        <TouchableOpacity
+          className="mb-5 flex-row items-center gap-2"
+          onPress={() => setActiveView('list')}>
+          <CaretLeft size={20} color={primaryColor} />
+          <Text className="text-lg font-bold" style={{ color: textColor }}>
+            Storage
+          </Text>
+        </TouchableOpacity>
+
+        {/* Device Storage */}
+        <View
+          className="mb-4 rounded-[24px] border p-5"
+          style={{ borderColor, backgroundColor: cardBg }}>
+          <Text className="mb-3 text-sm font-semibold" style={{ color: textColor }}>
+            Device Storage
+          </Text>
+          {snapshot && snapshot.deviceTotal > 0 ? (
+            <>
+              <View className="mb-2 h-2.5 overflow-hidden rounded-full" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                <View style={{ width: `${Math.min(devUsedPct, 100)}%`, height: '100%', backgroundColor: primaryColor, borderRadius: 99 }} />
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-xs" style={{ color: mutedColor }}>
+                  Used: {StorageTrackingService.formatBytes(snapshot.deviceUsed)}
+                </Text>
+                <Text className="text-xs" style={{ color: mutedColor }}>
+                  Free: {StorageTrackingService.formatBytes(snapshot.deviceFree)}
+                </Text>
+              </View>
+              <Text className="mt-1 text-[11px]" style={{ color: mutedColor }}>
+                Total: {StorageTrackingService.formatBytes(snapshot.deviceTotal)}
+              </Text>
+            </>
+          ) : (
+            <Text className="text-xs" style={{ color: mutedColor }}>
+              Device storage info unavailable
+            </Text>
+          )}
+        </View>
+
+        {/* Media Library */}
+        <View
+          className="mb-4 rounded-[24px] border p-5"
+          style={{ borderColor, backgroundColor: cardBg }}>
+          <Text className="mb-3 text-sm font-semibold" style={{ color: textColor }}>
+            Media Library
+          </Text>
+
+          {/* Audio row */}
+          <View className="mb-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2.5">
+              <View className="h-9 w-9 items-center justify-center rounded-[10px]" style={{ backgroundColor: `${primaryColor}15` }}>
+                <MusicNotes size={16} color={primaryColor} />
+              </View>
+              <View>
+                <Text className="text-sm font-medium" style={{ color: textColor }}>Audio</Text>
+                <Text className="text-xs" style={{ color: mutedColor }}>
+                  {snapshot?.audioFiles ?? 0} files
+                </Text>
+              </View>
+            </View>
+            <Text className="text-sm font-semibold" style={{ color: textColor }}>
+              {StorageTrackingService.formatBytes(snapshot?.audioSize ?? 0)}
+            </Text>
+          </View>
+
+          {/* Video row */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2.5">
+              <View className="h-9 w-9 items-center justify-center rounded-[10px]" style={{ backgroundColor: `${primaryColor}15` }}>
+                <VideoCamera size={16} color={primaryColor} />
+              </View>
+              <View>
+                <Text className="text-sm font-medium" style={{ color: textColor }}>Video</Text>
+                <Text className="text-xs" style={{ color: mutedColor }}>
+                  {snapshot?.videoFiles ?? 0} files
+                </Text>
+              </View>
+            </View>
+            <Text className="text-sm font-semibold" style={{ color: textColor }}>
+              {StorageTrackingService.formatBytes(snapshot?.videoSize ?? 0)}
+            </Text>
+          </View>
+
+          {/* Total */}
+          <View className="mt-3 border-t pt-3" style={{ borderColor, borderTopWidth: 1 }}>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-bold" style={{ color: textColor }}>Total Media</Text>
+              <Text className="text-sm font-bold" style={{ color: primaryColor }}>
+                {StorageTrackingService.formatBytes(mediaTotal)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* App Info */}
+        <View
+          className="rounded-[24px] border p-5"
+          style={{ borderColor, backgroundColor: cardBg }}>
+          <Text className="mb-2 text-sm font-semibold" style={{ color: textColor }}>
+            About
+          </Text>
+          <Text className="text-xs" style={{ color: mutedColor }}>
+            Last updated: {snapshot ? new Date(snapshot.timestamp).toLocaleTimeString() : '—'}
+          </Text>
+          <TouchableOpacity
+            className="mt-3 self-start rounded-xl px-4 py-2"
+            style={{ backgroundColor: `${primaryColor}15` }}
+            onPress={() => StorageTrackingService.collectSnapshot(mediaAudio, mediaVideo).then(setSnapshot)}>
+            <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
+              Refresh
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </>
+    );
+  };
+
   const renderActiveView = () => {
     switch (activeView) {
       case 'theme':
@@ -2391,6 +2533,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         return renderSleepTimerView();
       case 'removeAds':
         return renderRemoveAdsView();
+      case 'storage':
+        return renderStorageView();
       case 'futureUpdates':
         return renderFutureUpdatesView();
       default:

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useMediaStore } from '../stores/mediaStore';
 import { useTheme } from '../context/ThemeContext';
