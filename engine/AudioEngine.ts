@@ -7,6 +7,7 @@ import { videoEngine } from './VideoEngine';
 import { equalizerEngine } from './EqualizerEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { NowPlayingNotification } from '../services/NowPlayingNotification';
+import TrackPlayer, { Event, PlaybackState } from '@rntp/player';
 
 const storage = new MMKV({ id: 'audio-engine' });
 const STATE_KEY = '@audio_engine_state';
@@ -45,6 +46,7 @@ export class AudioEngine {
   private _state: AudioEngineState;
   private _listeners: Set<AudioEngineListener> = new Set();
   private _isLoaded = false;
+  private _ready = false;
   private _sleepTimer: SleepTimerState = {
     enabled: false,
     mode: 'off',
@@ -57,6 +59,7 @@ export class AudioEngine {
   private _sleepTimeout: ReturnType<typeof setTimeout> | null = null;
   private _positionCheckInterval: ReturnType<typeof setInterval> | null = null;
   private _busy = false;
+  private _rntpReady = false;
 
   static getInstance(): AudioEngine {
     if (!AudioEngine.instance) {
@@ -67,10 +70,21 @@ export class AudioEngine {
 
   private constructor() {
     this._state = this._loadPersistedState();
+  }
+
+  private _ensureReady() {
+    if (this._ready) return;
+    this._ready = true;
     this._syncFromQueueEngine();
     this._loadSettings();
-    this._initAudio();
     this._subscribeToQueueEngine();
+  }
+
+  private async _ensureInitialized() {
+    this._ensureReady();
+    if (this._isLoaded && this._rntpReady) return;
+    await this._initAudio();
+    if (!this._rntpReady) await this._setupTrackPlayer();
   }
 
   private _subscribeToQueueEngine() {
@@ -157,6 +171,34 @@ export class AudioEngine {
     } catch {}
   }
 
+  private async _setupTrackPlayer() {
+    try {
+      TrackPlayer.setupPlayer();
+      this._rntpReady = true;
+      TrackPlayer.addEventListener(Event.IsPlayingChanged, (ev) => {
+        if (this._rntpReady) {
+          this._state.isPlaying = ev.playing;
+          this._notify();
+        }
+      });
+      TrackPlayer.addEventListener(Event.PlaybackStateChanged, (ev) => {
+        if (this._rntpReady && ev.state === PlaybackState.Ended) {
+          this._handleTrackEnd();
+        }
+      });
+      TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (ev) => {
+        if (this._rntpReady) {
+          this._state.position = ev.position * 1000;
+          this._state.duration = ev.duration * 1000;
+          this._persistState();
+          this._notify();
+        }
+      });
+    } catch {
+      this._rntpReady = false;
+    }
+  }
+
   private _notify() {
     this._listeners.forEach((cb) => cb({ ...this._state }));
   }
@@ -182,14 +224,28 @@ export class AudioEngine {
 
   private _startPositionCheck() {
     this._stopPositionCheck();
+    let lastPersistPos = -1;
+    let lastPersistPlaying: boolean | null = null;
+    let tickCount = 0;
     this._positionCheckInterval = setInterval(() => {
+      tickCount++;
       if (equalizerEngine.isActive()) {
         const eqState = equalizerEngine.getPlaybackState();
         this._state.position = eqState.position;
         this._state.duration = eqState.duration;
         this._state.isPlaying = eqState.isPlaying;
-        this._persistState();
-        this._notify();
+
+        const eqChanged =
+          Math.abs(eqState.position - lastPersistPos) > 500 ||
+          eqState.isPlaying !== lastPersistPlaying;
+        if (eqChanged) {
+          lastPersistPos = eqState.position;
+          lastPersistPlaying = eqState.isPlaying;
+          this._notify();
+        }
+        if (eqChanged || tickCount % 20 === 0) {
+          this._persistState();
+        }
 
         if (
           !eqState.isPlaying &&
@@ -200,15 +256,27 @@ export class AudioEngine {
         }
       } else if (this._player) {
         const prevPlaying = this._state.isPlaying;
-        this._state.position = this._player.currentTime * 1000;
-        this._state.duration = this._player.duration * 1000;
-        this._state.isPlaying = this._player.playing;
-        this._persistState();
-        this._notify();
+        const pos = this._player.currentTime * 1000;
+        const dur = this._player.duration * 1000;
+        const playing = this._player.playing;
+        this._state.position = pos;
+        this._state.duration = dur;
+        this._state.isPlaying = playing;
+
+        const shouldNotify =
+          Math.abs(pos - lastPersistPos) > 500 || playing !== lastPersistPlaying;
+        if (shouldNotify) {
+          lastPersistPos = pos;
+          lastPersistPlaying = playing;
+          this._notify();
+        }
+        if (shouldNotify || tickCount % 20 === 0) {
+          this._persistState();
+        }
 
         if (
           prevPlaying &&
-          !this._player.playing &&
+          !playing &&
           this._player.currentTime > 0 &&
           this._player.duration > 0 &&
           this._player.currentTime >= this._player.duration - 0.5
@@ -261,13 +329,17 @@ export class AudioEngine {
     const { repeat } = this._state;
     if (repeat === 'one') {
       this.seekTo(0);
-      if (this._player) {
+      if (this._rntpReady) {
+        TrackPlayer.play();
+      } else if (this._player) {
         this._player.play();
-        this._state.position = 0;
-        this._state.isPlaying = true;
-        this._persistState();
-        this._notify();
+      } else {
+        return;
       }
+      this._state.position = 0;
+      this._state.isPlaying = true;
+      this._persistState();
+      this._notify();
       return;
     }
     const next = queueEngine.resolveNext('audio');
@@ -294,7 +366,7 @@ export class AudioEngine {
     this._busy = true;
     try {
       videoEngine.stop();
-      if (!this._isLoaded) await this._initAudio();
+      await this._ensureInitialized();
       this._state.position = 0;
       this._state.duration = 0;
       this._persistState();
@@ -307,6 +379,24 @@ export class AudioEngine {
           this._state.isPlaying = true;
           HistoryService.record(file, 0, 'music');
           NowPlayingNotification.show(file, true);
+        } else if (this._rntpReady) {
+          const cleanTitle = file.name.replace(/\.[^.]+$/, '').trim();
+          TrackPlayer.setMediaItems([
+            {
+              mediaId: file.uri,
+              url: file.uri,
+              title: cleanTitle,
+              artist: file.artist,
+              albumTitle: file.album,
+              artworkUrl: file.thumbnail,
+            },
+          ]);
+          if (this._state.playbackSpeed !== 1) {
+            TrackPlayer.setPlaybackSpeed(this._state.playbackSpeed);
+          }
+          TrackPlayer.play();
+          this._state.isPlaying = true;
+          HistoryService.record(file, 0, 'music');
         } else {
           const player = createAudioPlayer({ uri: file.uri });
           this._player = player;
@@ -341,17 +431,18 @@ export class AudioEngine {
         this._state.isPlaying = false;
         this._state.currentFile = null;
         this._state.currentIndex = -1;
-        NowPlayingNotification.dismiss();
+        if (!this._rntpReady) NowPlayingNotification.dismiss();
       }
       this._persistState();
       this._notify();
-      this._startPositionCheck();
+      if (!this._rntpReady) this._startPositionCheck();
     } finally {
       this._busy = false;
     }
   }
 
   async play(file?: FileItem, queue?: FileItem[], startIndex?: number) {
+    await this._ensureInitialized();
     if (file && queue && startIndex !== undefined) {
       this._state.queue = queue;
       this._state.currentIndex = startIndex;
@@ -380,14 +471,18 @@ export class AudioEngine {
       this._stopPositionCheck();
       return;
     }
-    try {
-      this._player?.pause();
-    } catch {}
+    if (this._rntpReady) {
+      TrackPlayer.pause();
+    } else {
+      try {
+        this._player?.pause();
+      } catch {}
+    }
     this._state.isPlaying = false;
     this._persistState();
     this._notify();
-    this._stopPositionCheck();
-    if (this._state.currentFile) {
+    if (!this._rntpReady) this._stopPositionCheck();
+    if (this._state.currentFile && !this._rntpReady) {
       NowPlayingNotification.updatePlayState(false);
     }
   }
@@ -401,14 +496,18 @@ export class AudioEngine {
       this._startPositionCheck();
       return;
     }
-    try {
-      this._player?.play();
-    } catch {}
+    if (this._rntpReady) {
+      TrackPlayer.play();
+    } else {
+      try {
+        this._player?.play();
+      } catch {}
+    }
     this._state.isPlaying = true;
     this._persistState();
     this._notify();
-    this._startPositionCheck();
-    if (this._state.currentFile) {
+    if (!this._rntpReady) this._startPositionCheck();
+    if (this._state.currentFile && !this._rntpReady) {
       NowPlayingNotification.updatePlayState(true);
     }
   }
@@ -425,6 +524,9 @@ export class AudioEngine {
     if (equalizerEngine.isActive()) {
       equalizerEngine.stop();
     }
+    if (this._rntpReady) {
+      TrackPlayer.stop();
+    }
     if (this._player) {
       try {
         this._player.clearLockScreenControls();
@@ -439,7 +541,7 @@ export class AudioEngine {
     this._persistState();
     this._notify();
     this._stopPositionCheck();
-    NowPlayingNotification.dismiss();
+    if (!this._rntpReady) NowPlayingNotification.dismiss();
   }
 
   seekTo(millis: number) {
@@ -447,26 +549,35 @@ export class AudioEngine {
       equalizerEngine.seekTo(millis);
       return;
     }
-    try {
-      this._player?.seekTo(Math.max(0, millis) / 1000);
-    } catch {}
+    if (this._rntpReady) {
+      TrackPlayer.seekTo(millis / 1000);
+    } else {
+      try {
+        this._player?.seekTo(Math.max(0, millis) / 1000);
+      } catch {}
+    }
   }
 
   setRate(rate: number) {
     this._state.playbackSpeed = rate;
     if (!equalizerEngine.isActive()) {
-      try {
-        if (this._player) {
-          this._player.playbackRate = rate;
-          this._player.shouldCorrectPitch = true;
-        }
-      } catch {}
+      if (this._rntpReady) {
+        TrackPlayer.setPlaybackSpeed(rate);
+      } else {
+        try {
+          if (this._player) {
+            this._player.playbackRate = rate;
+            this._player.shouldCorrectPitch = true;
+          }
+        } catch {}
+      }
     }
     this._persistState();
     this._notify();
   }
 
   setRepeat(mode: RepeatMode) {
+    this._ensureReady();
     this._state.repeat = mode;
     queueEngine.setRepeat(mode, 'audio');
     this._persistState();
@@ -474,6 +585,7 @@ export class AudioEngine {
   }
 
   cycleRepeat() {
+    this._ensureReady();
     queueEngine.cycleRepeat('audio');
     this._state.repeat = queueEngine.getAudioState().repeat;
     this._persistState();
@@ -481,6 +593,7 @@ export class AudioEngine {
   }
 
   toggleShuffle() {
+    this._ensureReady();
     queueEngine.toggleShuffle('audio');
     this._state.shuffle = queueEngine.getAudioState().shuffle;
     this._persistState();
@@ -488,6 +601,7 @@ export class AudioEngine {
   }
 
   setQueue(queue: FileItem[], startIndex = 0) {
+    this._ensureReady();
     this._state.queue = queue;
     this._state.currentIndex = startIndex;
     queueEngine.setAudioQueue(queue, startIndex);
@@ -496,6 +610,7 @@ export class AudioEngine {
   }
 
   skipToNext() {
+    this._ensureReady();
     const next = queueEngine.resolveNext('audio');
     if (next !== null) {
       queueEngine.setAudioIndex(next);
@@ -504,6 +619,7 @@ export class AudioEngine {
   }
 
   skipToPrevious() {
+    this._ensureReady();
     const prev = queueEngine.resolvePrevious('audio');
     if (prev !== null) {
       queueEngine.setAudioIndex(prev);
@@ -519,12 +635,12 @@ export class AudioEngine {
     this.skipToPrevious();
   }
 
-  // Sleep Timer
   enableSleepTimer(
     mode: 'minutes' | 'endOfTrack' | 'endOfQueue',
     minutes?: number,
     trackCount?: number
   ) {
+    this._ensureReady();
     this._sleepTimer.enabled = true;
     this._sleepTimer.mode = mode;
     if (mode === 'minutes') {
@@ -551,7 +667,6 @@ export class AudioEngine {
     return { ...this._sleepTimer };
   }
 
-  // Crossfade
   setCrossfade(enabled: boolean, duration: number) {
     this._crossfade.enabled = enabled;
     this._crossfade.duration = Math.max(1, Math.min(10, duration));
@@ -562,12 +677,15 @@ export class AudioEngine {
     return { ...this._crossfade };
   }
 
-  // Engine info
   getPlayCount(): { file: FileItem; count: number }[] {
     return HistoryService.getMostPlayed(20);
   }
 
   cleanup() {
+    if (this._rntpReady) {
+      TrackPlayer.destroy();
+      this._rntpReady = false;
+    }
     if (this._player) {
       try {
         this._player.clearLockScreenControls();

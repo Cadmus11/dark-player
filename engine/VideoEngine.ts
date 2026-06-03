@@ -90,9 +90,9 @@ export class VideoEngine {
   }
 
   private _notify() {
-    const snapshot = JSON.stringify(this._state);
-    if (snapshot === this._lastNotifiedState) return;
-    this._lastNotifiedState = snapshot;
+    const key = `${this._state.position}|${this._state.duration}|${this._state.isPlaying}|${this._state.isReady}|${this._state.error}|${this._state.currentSubtitle}`;
+    if (key === this._lastNotifiedState) return;
+    this._lastNotifiedState = key;
     this._listeners.forEach((cb) => cb({ ...this._state }));
   }
 

@@ -84,6 +84,34 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
   return btoa(binary);
 }
 
+const MAX_METADATA_READ_BYTES = 2 * 1024 * 1024; // 2MB — metadata headers are within this
+
+async function readFileBase64(uri: string): Promise<string> {
+  // Try partial read first (faster for large files, metadata is in the header)
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists && info.size && info.size > MAX_METADATA_READ_BYTES) {
+      // For files > 2MB, attempt to read first 2MB via fetch Range request
+      const resp = await fetch(uri, {
+        headers: { Range: `bytes=0-${MAX_METADATA_READ_BYTES - 1}` },
+      });
+      if (resp.ok && resp.status === 206) {
+        const blob = await resp.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    }
+  } catch {}
+  // Fallback to full file read
+  return FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+}
+
 export const MetadataService = {
   async extract(uri: string, name: string): Promise<MediaMetadata> {
     const cached = await this.getCached(uri);
@@ -95,9 +123,7 @@ export const MetadataService = {
     const metadata: MediaMetadata = {};
 
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readFileBase64(uri);
       const buffer = base64ToUint8Array(base64);
       const mimeType = getMimeType(uri);
       const data = await parseBuffer(buffer, mimeType || 'audio/mpeg');
@@ -160,9 +186,15 @@ export const MetadataService = {
     onProgress?: (done: number, total: number) => void
   ) {
     const total = files.length;
-    for (let i = 0; i < total; i++) {
-      await this.extract(files[i].uri, files[i].name);
-      onProgress?.(i + 1, total);
+    const CONCURRENCY = 3;
+    let done = 0;
+    for (let start = 0; start < total; start += CONCURRENCY) {
+      const batch = files.slice(start, start + CONCURRENCY);
+      await Promise.allSettled(
+        batch.map((f) => this.extract(f.uri, f.name))
+      );
+      done += batch.length;
+      onProgress?.(done, total);
     }
   },
 

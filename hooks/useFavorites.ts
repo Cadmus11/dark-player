@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { StorageService } from '../services/StorageService';
 import { useFavoritesQuery } from './queries/useStorageQueries';
@@ -20,7 +20,10 @@ export function useFavorites(allFiles: FileItem[]) {
 
   const isFavorite = useCallback((uri: string) => favoriteUris.includes(uri), [favoriteUris]);
 
-  const favoriteFiles = allFiles.filter((f) => favoriteUris.includes(f.uri));
+  const favoriteFiles = useMemo(
+    () => allFiles.filter((f) => favoriteUris.includes(f.uri)),
+    [allFiles, favoriteUris]
+  );
 
   return { favoriteUris, favoriteFiles, toggleFavorite, isFavorite };
 }

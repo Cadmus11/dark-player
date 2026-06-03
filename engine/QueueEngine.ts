@@ -72,6 +72,7 @@ export class QueueEngine {
   }
 
   setAudioQueue(queue: FileItem[], startIndex = 0) {
+    if (this._audioQueue.queue === queue && this._audioQueue.currentIndex === startIndex) return;
     this._audioQueue.queue = queue;
     this._audioQueue.currentIndex = startIndex;
     this._audioQueue.shuffledOrder = [];
@@ -81,6 +82,7 @@ export class QueueEngine {
   }
 
   setVideoQueue(queue: FileItem[], startIndex = 0) {
+    if (this._videoQueue.queue === queue && this._videoQueue.currentIndex === startIndex) return;
     this._videoQueue.queue = queue;
     this._videoQueue.currentIndex = startIndex;
     this._videoQueue.shuffledOrder = [];

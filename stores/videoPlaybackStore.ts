@@ -132,25 +132,25 @@ export const useVideoPlaybackStore = create<VideoPlaybackStoreState>((set) => ({
   reset: () => set(initialState),
 }));
 
-let _lastVideoState = '';
+let _lastVideoKey = '';
+let _lastVideoTick = 0;
 videoEngine.subscribe(() => {
   const s = videoEngine.getState();
-  PlaybackTicker.updatePosition(s.position, s.duration);
-  const snapshot = JSON.stringify([
-    s.currentFile?.uri,
-    s.isPlaying,
-    s.position,
-    s.duration,
-    s.playbackSpeed,
-    s.contentFit,
-    s.subtitlesEnabled,
-    s.currentSubtitle,
-    s.isFullscreen,
-    s.isReady,
-    s.error,
-  ]);
-  if (snapshot === _lastVideoState) return;
-  _lastVideoState = snapshot;
+  const now = Date.now();
+  const tickKey = `${s.currentFile?.uri}|${s.isPlaying}|${s.playbackSpeed}|${s.contentFit}|${s.subtitlesEnabled}|${s.isFullscreen}|${s.isReady}|${s.error}`;
+  const isTickUpdate = tickKey === _lastVideoKey && now - _lastVideoTick < 300;
+  if (isTickUpdate) {
+    PlaybackTicker.updatePosition(s.position, s.duration);
+    if (Math.abs(s.position - useVideoPlaybackStore.getState().position) > 50) {
+      useVideoPlaybackStore.setState({
+        position: s.position,
+        duration: s.duration,
+      });
+    }
+    return;
+  }
+  _lastVideoKey = tickKey;
+  _lastVideoTick = now;
   useVideoPlaybackStore.setState({
     currentFile: s.currentFile,
     isPlaying: s.isPlaying,

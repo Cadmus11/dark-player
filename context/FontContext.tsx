@@ -51,13 +51,19 @@ const FontContext = createContext<FontContextType | undefined>(undefined);
 
 const STORAGE_KEY = '@lumora_font';
 
+let _fontsLoadingStarted = false;
+
 export function FontProvider({ children }: { children: ReactNode }) {
   const [fontKey, setFontKey] = useState('system');
   const [fontsLoaded] = useState(true);
+  const fontLoadRef = React.useRef(false);
 
   useEffect(() => {
     loadFont();
-    loadCustomFonts();
+    if (!_fontsLoadingStarted) {
+      _fontsLoadingStarted = true;
+      loadCustomFonts();
+    }
   }, []);
 
   async function loadCustomFonts() {

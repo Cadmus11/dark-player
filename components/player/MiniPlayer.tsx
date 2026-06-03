@@ -11,15 +11,13 @@ export function MiniPlayer() {
   const navigation = useAppNavigation();
   const { textColor, mutedColor, primaryColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
-  const currentFile = usePlaybackStore((s) => s.currentFile);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const source = usePlaybackStore((s) => s.source);
-  const progress = usePlaybackStore((s) => s.progress);
-  const pause = usePlaybackStore((s) => s.pause);
-  const resume = usePlaybackStore((s) => s.resume);
-  const stop = usePlaybackStore((s) => s.stop);
+  const state = usePlaybackStore((s) => {
+    if (s.source !== 'video' || !s.currentFile) return null;
+    return { currentFile: s.currentFile, isPlaying: s.isPlaying, progress: s.progress, pause: s.pause, resume: s.resume, stop: s.stop };
+  });
 
-  if (!currentFile || source !== 'video') return null;
+  if (!state) return null;
+  const { currentFile, isPlaying, progress, pause, resume, stop } = state;
 
   const handleClose = () => stop();
 

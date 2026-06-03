@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, StatusBar } from 'react-native';
+import { useMediaStore } from '../stores/mediaStore';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -7,21 +8,47 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onFinish }: SplashScreenProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const finishedRef = useRef(false);
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.delay(1500),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onFinish());
+    const done = () => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+      onFinish?.();
+    };
+
+    const unsub = useMediaStore.subscribe((s) => {
+      if (s.hydrationStage >= 2) {
+        unsub();
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(done);
+      }
+    });
+
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+
+    const forceTimeout = setTimeout(() => {
+      unsub();
+      if (!finishedRef.current) {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(done);
+      }
+    }, 4000);
+
+    return () => {
+      unsub();
+      clearTimeout(forceTimeout);
+    };
   }, [fadeAnim, onFinish]);
 
   return (

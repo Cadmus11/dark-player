@@ -6,7 +6,6 @@ import { permissionService } from '../services/PermissionService';
 import { CancellationToken, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
 import { getInfoAsync } from 'expo-file-system/legacy';
-import { getExpectedArtworkPath } from '../services/Metadata/MetadataService';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -208,6 +207,36 @@ export class FileEngine {
     }
   }
 
+  /** Batch-resolve missing file sizes with limited concurrency */
+  private async _resolveMissingSizes(
+    assets: { uri: string; fileSize?: number }[],
+    token: CancellationToken
+  ): Promise<Map<string, number>> {
+    const missing = assets
+      .map((a) => a.uri)
+      .filter((_, i) => !assets[i].fileSize);
+    const result = new Map<string, number>();
+    if (missing.length === 0) return result;
+
+    const CONCURRENCY = 5;
+    for (let start = 0; start < missing.length; start += CONCURRENCY) {
+      token.throwIfCancelled();
+      const batch = missing.slice(start, start + CONCURRENCY);
+      const settled = await Promise.allSettled(
+        batch.map(async (uri) => {
+          const info = await getInfoAsync(uri);
+          return { uri, size: info.exists ? info.size : undefined };
+        })
+      );
+      for (const s of settled) {
+        if (s.status === 'fulfilled' && s.value.size) {
+          result.set(s.value.uri, s.value.size);
+        }
+      }
+    }
+    return result;
+  }
+
   private async _getMediaFiles(
     type: 'video' | 'audio',
     token: CancellationToken
@@ -222,30 +251,23 @@ export class FileEngine {
 
       token.throwIfCancelled();
 
-      const items: FileItem[] = [];
-      for (const asset of assets) {
-        token.throwIfCancelled();
-        let size = (asset as any).fileSize ?? undefined;
-        if (!size) {
-          try {
-            const info = await getInfoAsync(asset.uri);
-            if (info.exists) size = info.size;
-          } catch {}
-        }
-        const thumbnail = type === 'video' ? asset.uri : await this._getAudioThumbnail(asset.uri);
-        items.push({
+      const missingSizes = await this._resolveMissingSizes(assets, token);
+
+      const items: FileItem[] = assets.map((asset) => {
+        const size = (asset as any).fileSize ?? missingSizes.get(asset.uri);
+        return {
           uri: asset.uri,
           name: asset.filename,
           type,
           assetId: asset.id,
           modifiedAt: asset.modificationTime * 1000,
           createdAt: asset.creationTime * 1000,
-          thumbnail,
+          thumbnail: type === 'video' ? asset.uri : undefined,
           duration: asset.duration ? asset.duration * 1000 : undefined,
           artColor: this.getArtColor(asset.filename),
           size,
-        });
-      }
+        };
+      });
       return items;
     } catch (e) {
       if (isCancelled(e)) throw e;
@@ -253,16 +275,6 @@ export class FileEngine {
     }
   }
 
-  private async _getAudioThumbnail(uri: string): Promise<string | undefined> {
-    try {
-      const artworkPath = getExpectedArtworkPath(uri);
-      const info = await getInfoAsync(artworkPath);
-      if (info.exists) {
-        return artworkPath;
-      }
-    } catch {}
-    return undefined;
-  }
 
   async requestPermissions(): Promise<boolean> {
     await permissionService.requestMediaLibrary();

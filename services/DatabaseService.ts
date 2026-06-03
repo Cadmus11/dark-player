@@ -24,6 +24,11 @@ async function getDb(): Promise<SQLite.SQLiteDatabase> {
 }
 
 export const DatabaseService = {
+  /** Pre-warm the DB connection early so metadata extraction isn't blocked */
+  async prewarm(): Promise<void> {
+    await getDb();
+  },
+
   async cacheMetadata(uri: string, metadata: MediaMetadata): Promise<void> {
     const d = await getDb();
     await d.runAsync(

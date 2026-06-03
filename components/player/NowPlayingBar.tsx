@@ -11,16 +11,13 @@ export function NowPlayingBar() {
   const navigation = useAppNavigation();
   const { textColor, mutedColor, cardBg, borderColor, primaryColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
-  const currentFile = usePlaybackStore((s) => s.currentFile);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const source = usePlaybackStore((s) => s.source);
-  const progress = usePlaybackStore((s) => s.progress);
-  const pause = usePlaybackStore((s) => s.pause);
-  const resume = usePlaybackStore((s) => s.resume);
-  const next = usePlaybackStore((s) => s.next);
-  const stop = usePlaybackStore((s) => s.stop);
+  const state = usePlaybackStore((s) => {
+    if (s.source !== 'music' || !s.currentFile) return null;
+    return { currentFile: s.currentFile, isPlaying: s.isPlaying, progress: s.progress, pause: s.pause, resume: s.resume, next: s.next, stop: s.stop };
+  });
 
-  if (!currentFile || source !== 'music') return null;
+  if (!state) return null;
+  const { currentFile, isPlaying, progress, pause, resume, next, stop } = state;
 
   const handleOpenPlayer = () => {
     navigation.navigate('MusicPlayer', { file: currentFile });

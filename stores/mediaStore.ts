@@ -22,6 +22,7 @@ interface MediaStoreState {
   setPermissionsGranted: (granted: boolean) => void;
   setLoading: (loading: boolean) => void;
   setHydrationStage: (stage: number) => void;
+  scanIfGranted: () => Promise<void>;
   getFilteredAudio: (settings: HiddenFilesSettings) => FileItem[];
   getHiddenAudio: (settings: HiddenFilesSettings) => FileItem[];
 }
@@ -45,7 +46,6 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
       audio: cached.audio,
       loading: false,
       permissionsGranted: permissionService.isGranted(),
-      hydrationStage: 2,
     });
   },
 
@@ -80,6 +80,19 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   setPermissionsGranted: (granted) => set({ permissionsGranted: granted }),
 
   setLoading: (loading) => set({ loading }),
+
+  scanIfGranted: async () => {
+    let permStatus = await permissionService.checkMediaLibrary();
+    if (permStatus !== 'GRANTED' && permStatus !== 'PARTIAL') {
+      permStatus = await permissionService.requestMediaLibrary();
+    }
+    if (permStatus === 'GRANTED' || permStatus === 'PARTIAL') {
+      useMediaStore.setState({ permissionsGranted: true });
+      if (!fileEngine.hasCache()) {
+        await useMediaStore.getState().scanMedia();
+      }
+    }
+  },
 
   getFilteredAudio: (hiddenCfg) => {
     const state = get();
@@ -128,17 +141,17 @@ eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
   const state = useMediaStore.getState();
   let updated = false;
 
-  const updateThumbnail = (files: FileItem[]): FileItem[] =>
-    files.map((f) => {
-      if (f.uri === uri && f.thumbnail !== artworkPath) {
-        updated = true;
-        return { ...f, thumbnail: artworkPath };
-      }
-      return f;
-    });
+  const updateOne = (files: FileItem[]): FileItem[] => {
+    const idx = files.findIndex((f) => f.uri === uri && f.thumbnail !== artworkPath);
+    if (idx === -1) return files;
+    updated = true;
+    const copy = files.slice();
+    copy[idx] = { ...copy[idx], thumbnail: artworkPath };
+    return copy;
+  };
 
-  const audio = updateThumbnail(state.audio);
-  const videos = updateThumbnail(state.videos);
+  const audio = updateOne(state.audio);
+  const videos = updateOne(state.videos);
 
   if (updated) {
     useMediaStore.setState({ audio, videos });

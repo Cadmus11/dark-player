@@ -42,7 +42,9 @@ export class NotificationService {
     }
 
     const perm = await Notifications.getPermissionsAsync();
-    if ((perm as any).status !== 'granted') {
+    if (perm.granted) return;
+    const canRequest = (perm as any).canAskAgain !== false;
+    if (canRequest) {
       await Notifications.requestPermissionsAsync();
     }
 

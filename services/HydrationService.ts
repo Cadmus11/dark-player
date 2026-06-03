@@ -2,36 +2,37 @@ import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { fileEngine } from '../engine/FileEngine';
-import { lifecycleManager } from './LifecycleManager';
 import { permissionService } from './PermissionService';
 import { eventBus, AppEvents } from './EventBus';
+import { DatabaseService } from './DatabaseService';
 import { getQueryClient } from '../hooks/queries/QueryProvider';
 import { queryKeys } from '../hooks/queries/queryKeys';
 
 type HydrationPhase = (() => Promise<void>)[];
 
 const HYDRATION_PHASES: HydrationPhase = [
-  // Stage 1: Theme, shell UI, navigation - synchronous
+  // Stage 1: Settings, cached media, playlists — all parallel
   async () => {
-    useSettingsStore.getState().load();
+    await Promise.all([
+      (async () => {
+        useSettingsStore.getState().load();
+      })(),
+      (async () => {
+        if (fileEngine.hasCache()) {
+          useMediaStore.getState().loadCache();
+          const cached = fileEngine.loadFromCache();
+          const qc = getQueryClient();
+          qc.setQueryData(queryKeys.media.videos(), cached.videos);
+          qc.setQueryData(queryKeys.media.audio(), cached.audio);
+        }
+        usePlaylistStore.getState().load();
+      })(),
+      DatabaseService.prewarm().catch(() => {}),
+    ]);
     useMediaStore.getState().setHydrationStage(1);
   },
 
-  // Stage 2: Cached media + playlists
-  async () => {
-    const mediaState = useMediaStore.getState();
-    if (fileEngine.hasCache()) {
-      mediaState.loadCache();
-      const cached = fileEngine.loadFromCache();
-      const qc = getQueryClient();
-      qc.setQueryData(queryKeys.media.videos(), cached.videos);
-      qc.setQueryData(queryKeys.media.audio(), cached.audio);
-    }
-    usePlaylistStore.getState().load();
-    useMediaStore.getState().setHydrationStage(2);
-  },
-
-  // Stage 3: Playback restoration + permission request + initial scan
+  // Stage 2: Permission check + initial scan (if no cache)
   async () => {
     let permStatus = await permissionService.checkMediaLibrary();
     if (permStatus !== 'GRANTED' && permStatus !== 'PARTIAL') {
@@ -43,22 +44,28 @@ const HYDRATION_PHASES: HydrationPhase = [
         await useMediaStore.getState().scanMedia();
       }
     }
-    useMediaStore.getState().setHydrationStage(3);
+    useMediaStore.getState().setHydrationStage(2);
   },
 
-  // Stage 4: Background scan if needed (skips if already loading)
+  // Stage 3: Background scan if stale cache (fast, non-blocking if cached)
   async () => {
     const store = useMediaStore.getState();
     if (!store.loading && fileEngine.shouldRescan() && permissionService.isGranted()) {
       useMediaStore.getState().scanMedia();
     }
-    useMediaStore.getState().setHydrationStage(4);
+    useMediaStore.getState().setHydrationStage(3);
   },
 
-  // Stage 5: Artwork preloading, recommendations (deferred)
+  // Stage 4: Deferred — artwork preloading, recommendations (after idle)
   async () => {
-    await new Promise((r) => setTimeout(r, 2000));
-    useMediaStore.getState().setHydrationStage(5);
+    await new Promise<void>((resolve) => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => resolve(), { timeout: 3000 });
+      } else {
+        setTimeout(resolve, 500);
+      }
+    });
+    useMediaStore.getState().setHydrationStage(4);
   },
 ];
 
@@ -68,7 +75,6 @@ export function startHydration(): Promise<void> {
   if (_hydrationPromise) return _hydrationPromise;
 
   _hydrationPromise = (async () => {
-    lifecycleManager.initialize();
     for (let i = 0; i < HYDRATION_PHASES.length; i++) {
       try {
         await HYDRATION_PHASES[i]();
@@ -85,5 +91,5 @@ export function useHydrationStage(): number {
 }
 
 export function isFullyHydrated(): boolean {
-  return useMediaStore.getState().hydrationStage >= 5;
+  return useMediaStore.getState().hydrationStage >= 4;
 }

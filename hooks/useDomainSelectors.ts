@@ -64,8 +64,17 @@ export function useFileCounts(): { videos: number; audio: number; total: number 
   );
 }
 
-export function useExpandedPlaylists(): Playlist[] {
+function useFilesByUri(): Map<string, FileItem> {
   const allFiles = useAllFiles();
+  return useMemo(() => {
+    const map = new Map<string, FileItem>();
+    for (const f of allFiles) map.set(f.uri, f);
+    return map;
+  }, [allFiles]);
+}
+
+export function useExpandedPlaylists(): Playlist[] {
+  const filesByUri = useFilesByUri();
   const { data: playlists } = usePlaylistsQuery();
 
   return useMemo(
@@ -73,17 +82,17 @@ export function useExpandedPlaylists(): Playlist[] {
       (playlists ?? []).map((p: PlaylistData) => ({
         id: p.id,
         name: p.name,
-        files: allFiles.filter((f) => p.songIds.includes(f.uri)),
+        files: p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[],
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
         coverUri: p.artwork,
       })),
-    [playlists, allFiles]
+    [playlists, filesByUri]
   );
 }
 
 export function usePlaylistById(id: string): Playlist | undefined {
-  const allFiles = useAllFiles();
+  const filesByUri = useFilesByUri();
   const playlists = usePlaylistStore((s) => s.playlists);
 
   return useMemo(() => {
@@ -92,12 +101,12 @@ export function usePlaylistById(id: string): Playlist | undefined {
     return {
       id: p.id,
       name: p.name,
-      files: allFiles.filter((f) => p.songIds.includes(f.uri)),
+      files: p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[],
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
       coverUri: p.artwork,
     };
-  }, [id, playlists, allFiles]);
+  }, [id, playlists, filesByUri]);
 }
 
 export function useFavoriteFiles(): FileItem[] {
@@ -114,10 +123,11 @@ export function useRecentFiles(): FileItem[] {
   const allFiles = useAllFiles();
   const { data: recentFiles = [] } = useRecentFilesQuery();
 
-  return useMemo(
-    () => recentFiles.filter((f) => allFiles.some((af) => af.uri === f.uri)),
-    [recentFiles, allFiles]
-  );
+  return useMemo(() => {
+    const uriSet = new Set<string>();
+    for (const f of allFiles) uriSet.add(f.uri);
+    return recentFiles.filter((f) => uriSet.has(f.uri));
+  }, [recentFiles, allFiles]);
 }
 
 export function useRecentlyPlayed(): RecentlyPlayed[] {

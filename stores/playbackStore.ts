@@ -153,25 +153,29 @@ export const usePlaybackStore = create<PlaybackStoreState>((set) => ({
 }));
 
 // Subscribe to engine with throttled tick updates
-let _lastEngineState = '';
+let _lastEngineSnapshot = '';
+let _lastTick = 0;
 audioEngine.subscribe(() => {
   const s = audioEngine.getState();
-  PlaybackTicker.updatePosition(s.position, s.duration);
+  const now = Date.now();
 
   const store = usePlaybackStore.getState();
   if (store.source === 'music') {
-    const snapshot = JSON.stringify([
-      s.currentFile?.uri,
-      s.isPlaying,
-      s.position,
-      s.duration,
-      s.currentIndex,
-      s.shuffle,
-      s.repeat,
-      s.playbackSpeed,
-    ]);
-    if (snapshot === _lastEngineState) return;
-    _lastEngineState = snapshot;
+    const quickKey = `${s.currentFile?.uri}|${s.isPlaying}|${s.currentIndex}|${s.shuffle}|${s.repeat}|${s.playbackSpeed}`;
+    const isTickUpdate = quickKey === _lastEngineSnapshot && now - _lastTick < 300;
+    if (isTickUpdate) {
+      PlaybackTicker.updatePosition(s.position, s.duration);
+      if (Math.abs(store.position - s.position) > 50) {
+        usePlaybackStore.setState({
+          position: s.position,
+          duration: s.duration,
+          progress: s.duration > 0 ? s.position / s.duration : 0,
+        });
+      }
+      return;
+    }
+    _lastEngineSnapshot = quickKey;
+    _lastTick = now;
     usePlaybackStore.setState({
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,
