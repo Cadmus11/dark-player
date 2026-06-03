@@ -212,9 +212,7 @@ export class FileEngine {
     assets: { uri: string; fileSize?: number }[],
     token: CancellationToken
   ): Promise<Map<string, number>> {
-    const missing = assets
-      .map((a) => a.uri)
-      .filter((_, i) => !assets[i].fileSize);
+    const missing = assets.map((a) => a.uri).filter((_, i) => !assets[i].fileSize);
     const result = new Map<string, number>();
     if (missing.length === 0) return result;
 
@@ -274,7 +272,6 @@ export class FileEngine {
       return [];
     }
   }
-
 
   async requestPermissions(): Promise<boolean> {
     await permissionService.requestMediaLibrary();

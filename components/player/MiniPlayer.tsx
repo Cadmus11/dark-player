@@ -13,7 +13,14 @@ export function MiniPlayer() {
   const { canUseArtwork, themeColors } = useColorAwareness();
   const state = usePlaybackStore((s) => {
     if (s.source !== 'video' || !s.currentFile) return null;
-    return { currentFile: s.currentFile, isPlaying: s.isPlaying, progress: s.progress, pause: s.pause, resume: s.resume, stop: s.stop };
+    return {
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      progress: s.progress,
+      pause: s.pause,
+      resume: s.resume,
+      stop: s.stop,
+    };
   });
 
   if (!state) return null;

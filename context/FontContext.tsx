@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 
@@ -56,7 +56,6 @@ let _fontsLoadingStarted = false;
 export function FontProvider({ children }: { children: ReactNode }) {
   const [fontKey, setFontKey] = useState('system');
   const [fontsLoaded] = useState(true);
-  const fontLoadRef = React.useRef(false);
 
   useEffect(() => {
     loadFont();

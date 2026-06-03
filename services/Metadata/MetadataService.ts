@@ -190,9 +190,7 @@ export const MetadataService = {
     let done = 0;
     for (let start = 0; start < total; start += CONCURRENCY) {
       const batch = files.slice(start, start + CONCURRENCY);
-      await Promise.allSettled(
-        batch.map((f) => this.extract(f.uri, f.name))
-      );
+      await Promise.allSettled(batch.map((f) => this.extract(f.uri, f.name)));
       done += batch.length;
       onProgress?.(done, total);
     }

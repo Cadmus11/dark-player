@@ -263,8 +263,7 @@ export class AudioEngine {
         this._state.duration = dur;
         this._state.isPlaying = playing;
 
-        const shouldNotify =
-          Math.abs(pos - lastPersistPos) > 500 || playing !== lastPersistPlaying;
+        const shouldNotify = Math.abs(pos - lastPersistPos) > 500 || playing !== lastPersistPlaying;
         if (shouldNotify) {
           lastPersistPos = pos;
           lastPersistPlaying = playing;

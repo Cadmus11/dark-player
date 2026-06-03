@@ -13,7 +13,15 @@ export function NowPlayingBar() {
   const { canUseArtwork, themeColors } = useColorAwareness();
   const state = usePlaybackStore((s) => {
     if (s.source !== 'music' || !s.currentFile) return null;
-    return { currentFile: s.currentFile, isPlaying: s.isPlaying, progress: s.progress, pause: s.pause, resume: s.resume, next: s.next, stop: s.stop };
+    return {
+      currentFile: s.currentFile,
+      isPlaying: s.isPlaying,
+      progress: s.progress,
+      pause: s.pause,
+      resume: s.resume,
+      next: s.next,
+      stop: s.stop,
+    };
   });
 
   if (!state) return null;
