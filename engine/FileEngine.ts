@@ -241,11 +241,24 @@ export class FileEngine {
   ): Promise<FileItem[]> {
     try {
       const mediaType = type === 'audio' ? 'audio' : 'video';
-      const { assets } = await MediaLibrary.getAssetsAsync({
-        mediaType,
-        first: 2000,
-        sortBy: ['creationTime'],
-      });
+      const PAGE_SIZE = 200;
+      const MAX_PAGES = 50;
+      const assets: MediaLibrary.Asset[] = [];
+      let after: string | undefined;
+      for (let page = 0; page < MAX_PAGES; page++) {
+        token.throwIfCancelled();
+        const pageInfo: MediaLibrary.PagedInfo<MediaLibrary.Asset> =
+          await MediaLibrary.getAssetsAsync({
+            mediaType,
+            first: PAGE_SIZE,
+            sortBy: ['creationTime'],
+            ...(after ? { after } : {}),
+          });
+        if (pageInfo.assets.length === 0) break;
+        assets.push(...pageInfo.assets);
+        if (!pageInfo.hasNextPage) break;
+        after = pageInfo.endCursor;
+      }
 
       token.throwIfCancelled();
 
@@ -268,6 +281,7 @@ export class FileEngine {
       });
 
       if (type === 'audio') {
+        const itemsByUri = new Map(items.map((it) => [it.uri, it]));
         const LRC_BATCH = 20;
         for (let i = 0; i < items.length; i += LRC_BATCH) {
           token.throwIfCancelled();
@@ -281,7 +295,7 @@ export class FileEngine {
           );
           for (const r of results) {
             if (r.status === 'fulfilled' && r.value.exists) {
-              const item = items.find((it) => it.uri === r.value.uri);
+              const item = itemsByUri.get(r.value.uri);
               if (item) item.hasLyrics = true;
             }
           }

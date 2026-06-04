@@ -1,26 +1,19 @@
-import React from "react";
-import { View, TouchableOpacity, Image } from "react-native";
-import { X, Play, Pause, ArrowsOut } from "phosphor-react-native";
-import { usePlaybackStore } from "../../stores/playbackStore";
-import { useTheme } from "../../context/ThemeContext";
-import { useColorAwareness } from "../../context/ColorAwarenessContext";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
-import { ThemedText } from "../ThemedText";
-import { hapticMedium, hapticLight } from "../../utils/haptics";
+import React from 'react';
+import { View, TouchableOpacity, Image } from 'react-native';
+import { X, Play, Pause, ArrowsOut } from 'phosphor-react-native';
+import { usePlaybackStore } from '../../stores/playbackStore';
+import { useTheme } from '../../context/ThemeContext';
+import { useColorAwareness } from '../../context/ColorAwarenessContext';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
+import { ThemedText } from '../ThemedText';
+import { hapticMedium, hapticLight } from '../../utils/haptics';
 
 export const MiniPlayer = React.memo(function MiniPlayer() {
   const navigation = useAppNavigation();
-  const {
-    textColor,
-    mutedColor,
-    primaryColor,
-    cardBg,
-    borderColor,
-    isDarkMode,
-  } = useTheme();
+  const { textColor, mutedColor, primaryColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
   const state = usePlaybackStore((s) => {
-    if (s.source !== "video" || !s.currentFile) return null;
+    if (s.source !== 'video' || !s.currentFile) return null;
     return {
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,
@@ -38,7 +31,7 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
 
   const handleExpand = () => {
     if (currentFile) {
-      navigation.navigate("VideoPlayer", {
+      navigation.navigate('VideoPlayer', {
         file: currentFile,
         isAudioOnly: false,
       });
@@ -56,19 +49,13 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
       style={{
         backgroundColor: bgColor,
         borderTopWidth: 1,
-        borderTopColor: canUseArtwork
-          ? themeColors.textSecondary + "18"
-          : borderColor,
-      }}
-    >
+        borderTopColor: canUseArtwork ? themeColors.textSecondary + '18' : borderColor,
+      }}>
       <View
         style={{
           height: 2,
-          backgroundColor: isDarkMode
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(0,0,0,0.04)",
-        }}
-      >
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+        }}>
         <View
           style={{
             width: `${Math.min(progress * 100, 100)}%`,
@@ -82,26 +69,19 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
           <Image
             source={{ uri: currentFile.thumbnail }}
             className="h-10 w-10 rounded-lg"
-            style={{ borderWidth: 1, borderColor: accentColor + "40" }}
+            style={{ borderWidth: 1, borderColor: accentColor + '40' }}
           />
         ) : (
-          <View
-            className="h-10 w-10 rounded-lg"
-            style={{ backgroundColor: accentColor + "25" }}
-          />
+          <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: accentColor + '25' }} />
         )}
         <View className="flex-1">
           <ThemedText
             variant="body"
-            style={{ color: txtColor, fontWeight: "600", fontSize: 13 }}
-            numberOfLines={1}
-          >
+            style={{ color: txtColor, fontWeight: '600', fontSize: 13 }}
+            numberOfLines={1}>
             {currentFile.name}
           </ThemedText>
-          <ThemedText
-            variant="caption"
-            style={{ color: muteColor, fontSize: 11 }}
-          >
+          <ThemedText variant="caption" style={{ color: muteColor, fontSize: 11 }}>
             Video Mini Player
           </ThemedText>
         </View>
@@ -113,9 +93,8 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
             if (isPlaying) pause();
             else resume();
           }}
-          accessibilityLabel={isPlaying ? "Pause video" : "Play video"}
-          accessibilityRole="button"
-        >
+          accessibilityLabel={isPlaying ? 'Pause video' : 'Play video'}
+          accessibilityRole="button">
           {isPlaying ? (
             <Pause size={18} color={accentColor} weight="fill" />
           ) : (
@@ -129,8 +108,7 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
             handleExpand();
           }}
           accessibilityLabel="Expand video player"
-          accessibilityRole="button"
-        >
+          accessibilityRole="button">
           <ArrowsOut size={18} color={txtColor} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -140,8 +118,7 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
             handleClose();
           }}
           accessibilityLabel="Close mini player"
-          accessibilityRole="button"
-        >
+          accessibilityRole="button">
           <X size={18} color={muteColor} />
         </TouchableOpacity>
       </View>

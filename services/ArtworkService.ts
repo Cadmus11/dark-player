@@ -129,7 +129,6 @@ class ArtworkServiceClass {
   }
 
   private _cacheInMemory(fileUri: string, dataUri: string): void {
-    this._evictIfNeeded();
     const estimatedSize = dataUri.length * 2;
     this._memoryCache.set(fileUri, {
       dataUri,
@@ -145,16 +144,19 @@ class ArtworkServiceClass {
       this._memoryCache.size > this._maxCacheSize ||
       this._currentBytes > this._maxMemoryBytes
     ) {
-      let oldest: { key: string; time: number } | null = null;
+      if (this._memoryCache.size === 0) break;
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
       for (const [key, entry] of this._memoryCache) {
-        if (!oldest || entry.cachedAt < oldest.time) {
-          oldest = { key, time: entry.cachedAt };
+        if (entry.cachedAt < oldestTime) {
+          oldestTime = entry.cachedAt;
+          oldestKey = key;
         }
       }
-      if (!oldest) break;
-      const evicted = this._memoryCache.get(oldest.key);
+      if (oldestKey === null) break;
+      const evicted = this._memoryCache.get(oldestKey);
       if (evicted) this._currentBytes -= evicted.size;
-      this._memoryCache.delete(oldest.key);
+      this._memoryCache.delete(oldestKey);
     }
   }
 
@@ -199,11 +201,23 @@ class ArtworkServiceClass {
   }
 
   preload(uris: string[]): void {
-    for (const uri of uris) {
-      if (!this._memoryCache.has(uri) && !this._pendingLoads.has(uri)) {
-        this.getArtwork(uri);
+    const PRELOAD_CONCURRENCY = 4;
+    let inflight = 0;
+    let cursor = 0;
+    const queue = uris.filter((uri) => !this._memoryCache.has(uri) && !this._pendingLoads.has(uri));
+    if (queue.length === 0) return;
+
+    const launchNext = () => {
+      while (inflight < PRELOAD_CONCURRENCY && cursor < queue.length) {
+        const uri = queue[cursor++];
+        inflight++;
+        this.getArtwork(uri).finally(() => {
+          inflight--;
+          if (cursor < queue.length) launchNext();
+        });
       }
-    }
+    };
+    launchNext();
   }
 
   invalidate(fileUri: string): void {

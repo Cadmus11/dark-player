@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { FlashList } from "@shopify/flash-list";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { RootStackParamList, FolderFilterType, FileItem } from "../types";
+import React, { useMemo } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList, FolderFilterType, FileItem } from '../types';
 import {
   CaretLeft,
   MusicNote,
@@ -16,21 +16,18 @@ import {
   VinylRecord,
   User,
   Folder,
-} from "phosphor-react-native";
-import { useMediaStore } from "../stores/mediaStore";
-import { useRecentlyPlayed } from "../hooks/useDomainSelectors";
-import { useFavorites } from "../hooks/useFavorites";
-import { usePlaybackStore } from "../stores/playbackStore";
-import { useTheme } from "../context/ThemeContext";
-import { HistoryService } from "../services/History/HistoryService";
-import { formatDuration, formatFileSize } from "../services/FileService";
-import { ScreenLayout } from "../components/ScreenLayout";
-import { FileIcon } from "../components/FileIcon";
+} from 'phosphor-react-native';
+import { useMediaStore } from '../stores/mediaStore';
+import { useRecentlyPlayed } from '../hooks/useDomainSelectors';
+import { useFavorites } from '../hooks/useFavorites';
+import { usePlaybackStore } from '../stores/playbackStore';
+import { useTheme } from '../context/ThemeContext';
+import { HistoryService } from '../services/History/HistoryService';
+import { formatDuration, formatFileSize } from '../services/FileService';
+import { ScreenLayout } from '../components/ScreenLayout';
+import { FileIcon } from '../components/FileIcon';
 
-type FolderScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  "FolderList"
->;
+type FolderScreenProps = NativeStackScreenProps<RootStackParamList, 'FolderList'>;
 
 const FILTER_ICONS: Record<FolderFilterType, React.ElementType> = {
   recent: Play,
@@ -102,30 +99,30 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
 
   const files = useMemo(() => {
     switch (filterType) {
-      case "recent":
+      case 'recent':
         return recentlyPlayed.map((r) => r.file).slice(0, 50);
-      case "mostPlayed":
+      case 'mostPlayed':
         return HistoryService.getMostPlayed(50).map((e) => e.file);
-      case "random": {
+      case 'random': {
         const shuffled = [...audio].sort(() => Math.random() - 0.5);
         return shuffled.slice(0, 50);
       }
-      case "favorites":
+      case 'favorites':
         return allFiles.filter((f) => favoriteUris.includes(f.uri));
-      case "duplicates":
+      case 'duplicates':
         return findDuplicates(allFiles);
-      case "unused":
+      case 'unused':
         return getUnusedFiles(allFiles);
-      case "largeFiles":
+      case 'largeFiles':
         return allFiles
           .filter((f) => (f.size || 0) >= LARGE_FILE_BYTES)
           .sort((a, b) => (b.size || 0) - (a.size || 0));
-      case "lyrics":
+      case 'lyrics':
         return allFiles.filter((f) => f.hasLyrics);
-      case "albums": {
+      case 'albums': {
         const albumMap = new Map<string, FileItem[]>();
         for (const f of allFiles) {
-          const album = f.album || "Unknown Album";
+          const album = f.album || 'Unknown Album';
           if (!albumMap.has(album)) albumMap.set(album, []);
           albumMap.get(album)!.push(f);
         }
@@ -133,10 +130,10 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([, tracks]) => tracks[0]);
       }
-      case "artists": {
+      case 'artists': {
         const artistMap = new Map<string, FileItem[]>();
         for (const f of allFiles) {
-          const artist = f.artist || "Unknown Artist";
+          const artist = f.artist || 'Unknown Artist';
           if (!artistMap.has(artist)) artistMap.set(artist, []);
           artistMap.get(artist)!.push(f);
         }
@@ -144,11 +141,11 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([, tracks]) => tracks[0]);
       }
-      case "folders": {
+      case 'folders': {
         const folderMap = new Map<string, FileItem[]>();
         for (const f of allFiles) {
-          const parts = f.uri.split("/");
-          const folder = parts.slice(0, -1).join("/") || "/";
+          const parts = f.uri.split('/');
+          const folder = parts.slice(0, -1).join('/') || '/';
           if (!folderMap.has(folder)) folderMap.set(folder, []);
           folderMap.get(folder)!.push(f);
         }
@@ -162,38 +159,38 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
   }, [filterType, recentlyPlayed, audio, allFiles, favoriteUris]);
 
   const navigateToFile = (file: FileItem) => {
-    if (file.type === "video") navigation.navigate("VideoPlayer", { file });
-    else navigation.navigate("MusicPlayer", { file });
+    if (file.type === 'video') navigation.navigate('VideoPlayer', { file });
+    else navigation.navigate('MusicPlayer', { file });
   };
 
   const groupCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    if (filterType === "albums") {
+    if (filterType === 'albums') {
       const albumCounts = new Map<string, number>();
       for (const f of allFiles) {
-        const key = f.album || "Unknown Album";
+        const key = f.album || 'Unknown Album';
         albumCounts.set(key, (albumCounts.get(key) || 0) + 1);
       }
       for (const f of allFiles) {
-        counts.set(f.uri, albumCounts.get(f.album || "Unknown Album") || 0);
+        counts.set(f.uri, albumCounts.get(f.album || 'Unknown Album') || 0);
       }
-    } else if (filterType === "artists") {
+    } else if (filterType === 'artists') {
       const artistCounts = new Map<string, number>();
       for (const f of allFiles) {
-        const key = f.artist || "Unknown Artist";
+        const key = f.artist || 'Unknown Artist';
         artistCounts.set(key, (artistCounts.get(key) || 0) + 1);
       }
       for (const f of allFiles) {
-        counts.set(f.uri, artistCounts.get(f.artist || "Unknown Artist") || 0);
+        counts.set(f.uri, artistCounts.get(f.artist || 'Unknown Artist') || 0);
       }
-    } else if (filterType === "folders") {
+    } else if (filterType === 'folders') {
       const folderCounts = new Map<string, number>();
       for (const f of allFiles) {
-        const folder = f.uri.split("/").slice(0, -1).join("/") || "/";
+        const folder = f.uri.split('/').slice(0, -1).join('/') || '/';
         folderCounts.set(folder, (folderCounts.get(folder) || 0) + 1);
       }
       for (const f of allFiles) {
-        const folder = f.uri.split("/").slice(0, -1).join("/") || "/";
+        const folder = f.uri.split('/').slice(0, -1).join('/') || '/';
         counts.set(f.uri, folderCounts.get(folder) || 0);
       }
     }
@@ -205,13 +202,13 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
   };
 
   const getSubtitle = (file: FileItem): string => {
-    if (filterType === "albums") return file.album || "Unknown Album";
-    if (filterType === "artists") return file.artist || "Unknown Artist";
-    if (filterType === "folders") {
-      const parts = file.uri.split("/");
-      return parts.slice(0, -1).join("/").split("/").pop() || "/";
+    if (filterType === 'albums') return file.album || 'Unknown Album';
+    if (filterType === 'artists') return file.artist || 'Unknown Artist';
+    if (filterType === 'folders') {
+      const parts = file.uri.split('/');
+      return parts.slice(0, -1).join('/').split('/').pop() || '/';
     }
-    return "";
+    return '';
   };
 
   const renderListItem = ({ item }: { item: FileItem }) => {
@@ -224,9 +221,7 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
         style={[
           {
             borderBottomWidth: 1,
-            borderBottomColor: isDarkMode
-              ? "rgba(255,255,255,0.05)"
-              : "rgba(0,0,0,0.05)",
+            borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
           },
           isNowPlaying && {
             backgroundColor: `${primaryColor}08`,
@@ -235,28 +230,23 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
             paddingLeft: 12,
           },
         ]}
-        onPress={() => navigateToFile(item)}
-      >
+        onPress={() => navigateToFile(item)}>
         <View className="flex-1 flex-row items-center">
           <View
             className="mr-3 h-11 w-11 items-center justify-center rounded-xl"
             style={[
               {
-                backgroundColor: isDarkMode
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(0,0,0,0.05)",
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
               },
               isNowPlaying && { borderWidth: 1.5, borderColor: primaryColor },
-            ]}
-          >
+            ]}>
             <FileIcon type={item.type} size={22} />
           </View>
           <View className="flex-1">
             <Text
               className="mb-1 text-[15px]"
               style={{ color: isNowPlaying ? primaryColor : textColor }}
-              numberOfLines={1}
-            >
+              numberOfLines={1}>
               {item.name}
             </Text>
             <View className="flex-row items-center">
@@ -264,15 +254,13 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
                 <Text
                   className="text-xs"
                   style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                  numberOfLines={1}
-                >
+                  numberOfLines={1}>
                   {subtitle}
                 </Text>
               ) : item.size ? (
                 <Text
                   className="text-xs"
-                  style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                >
+                  style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
                   {formatFileSize(item.size)}
                 </Text>
               ) : null}
@@ -280,14 +268,12 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
                 <>
                   <Text
                     className="mx-1.5 text-xs"
-                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                  >
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
                     •
                   </Text>
                   <Text
                     className="text-xs"
-                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                  >
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
                     {formatDuration(item.duration)}
                   </Text>
                 </>
@@ -296,21 +282,19 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
                 <>
                   <Text
                     className="mx-1.5 text-xs"
-                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                  >
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
                     •
                   </Text>
                   <Text className="text-xs" style={{ color: primaryColor }}>
-                    {groupCount} {groupCount === 1 ? "track" : "tracks"}
+                    {groupCount} {groupCount === 1 ? 'track' : 'tracks'}
                   </Text>
                 </>
               )}
-              {filterType === "duplicates" && (
+              {filterType === 'duplicates' && (
                 <>
                   <Text
                     className="mx-1.5 text-xs"
-                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                  >
+                    style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
                     •
                   </Text>
                   <Text className="text-xs" style={{ color: primaryColor }}>
@@ -321,10 +305,7 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
             </View>
           </View>
         </View>
-        <Text
-          className="text-xl"
-          style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-        >
+        <Text className="text-xl" style={{ color: isNowPlaying ? primaryColor : mutedColor }}>
           ›
         </Text>
       </TouchableOpacity>
@@ -339,11 +320,8 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
         </TouchableOpacity>
         <View className="flex-row items-center">
           <FolderIcon size={20} color={textColor} />
-          <Text
-            className="ml-1 text-xl font-semibold"
-            style={{ color: textColor }}
-          >
-            {" "}
+          <Text className="ml-1 text-xl font-semibold" style={{ color: textColor }}>
+            {' '}
             {title}
           </Text>
         </View>
@@ -352,9 +330,7 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
       <FlashList
         data={files}
         renderItem={renderListItem}
-        keyExtractor={(item: FileItem) =>
-          item.uri + (filterType === "duplicates" ? "_dup" : "")
-        }
+        keyExtractor={(item: FileItem) => item.uri + (filterType === 'duplicates' ? '_dup' : '')}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={

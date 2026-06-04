@@ -71,19 +71,31 @@ function getMimeType(uri: string): string | undefined {
 
 function base64ToUint8Array(base64: string): Uint8Array {
   const binaryStr = atob(base64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
+  const len = binaryStr.length;
+  const bytes = new Uint8Array(len);
+  const CHUNK = 0x8000;
+  for (let i = 0; i < len; i += CHUNK) {
+    const end = Math.min(i + CHUNK, len);
+    for (let j = i; j < end; j++) {
+      bytes[j] = binaryStr.charCodeAt(j);
+    }
   }
   return bytes;
 }
 
 function uint8ArrayToBase64(uint8Array: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
+  const len = uint8Array.length;
+  const CHUNK = 0x8000;
+  const parts: string[] = [];
+  for (let i = 0; i < len; i += CHUNK) {
+    parts.push(
+      String.fromCharCode.apply(
+        null,
+        uint8Array.subarray(i, Math.min(i + CHUNK, len)) as unknown as number[]
+      )
+    );
   }
-  return btoa(binary);
+  return btoa(parts.join(''));
 }
 
 const MAX_METADATA_READ_BYTES = 2 * 1024 * 1024; // 2MB — metadata headers are within this

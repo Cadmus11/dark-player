@@ -139,28 +139,35 @@ eventBus.on(AppEvents.LIFECYCLE_FOREGROUND, async () => {
 // Subscribe to artwork loading to update thumbnails in real-time
 eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
   const state = useMediaStore.getState();
-  let updated = false;
-
-  const updateOne = (files: FileItem[]): FileItem[] => {
-    const idx = files.findIndex((f) => f.uri === uri && f.thumbnail !== artworkPath);
-    if (idx === -1) return files;
-    updated = true;
-    const copy = files.slice();
-    copy[idx] = { ...copy[idx], thumbnail: artworkPath };
-    return copy;
+  const findInArray = (files: FileItem[]): number => {
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].uri === uri) return i;
+    }
+    return -1;
   };
 
-  const audio = updateOne(state.audio);
-  const videos = updateOne(state.videos);
+  const audioIdx = findInArray(state.audio);
+  const videoIdx = findInArray(state.videos);
+  const inAudio = audioIdx !== -1 && state.audio[audioIdx].thumbnail !== artworkPath;
+  const inVideo = videoIdx !== -1 && state.videos[videoIdx].thumbnail !== artworkPath;
 
-  if (updated) {
-    useMediaStore.setState({ audio, videos });
-    fileEngine.setThumbnail(uri, artworkPath);
-    const playbackState = usePlaybackStore.getState();
-    if (playbackState.currentFile?.uri === uri) {
-      usePlaybackStore.setState({
-        currentFile: { ...playbackState.currentFile, thumbnail: artworkPath },
-      });
-    }
+  if (!inAudio && !inVideo) return;
+
+  if (inAudio) {
+    const audio = state.audio.slice();
+    audio[audioIdx] = { ...audio[audioIdx], thumbnail: artworkPath };
+    useMediaStore.setState({ audio });
+  }
+  if (inVideo) {
+    const videos = state.videos.slice();
+    videos[videoIdx] = { ...videos[videoIdx], thumbnail: artworkPath };
+    useMediaStore.setState({ videos });
+  }
+  fileEngine.setThumbnail(uri, artworkPath);
+  const playbackState = usePlaybackStore.getState();
+  if (playbackState.currentFile?.uri === uri) {
+    usePlaybackStore.setState({
+      currentFile: { ...playbackState.currentFile, thumbnail: artworkPath },
+    });
   }
 });
