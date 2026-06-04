@@ -57,7 +57,10 @@ export function GlassButton({
 
   return (
     <TouchableOpacity
-      onPress={() => { hapticLight(); onPress(); }}
+      onPress={() => {
+        hapticLight();
+        onPress();
+      }}
       disabled={disabled}
       className="flex-row items-center justify-center"
       accessibilityLabel={title}

@@ -618,14 +618,22 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
 
   const renderControls = () => (
     <View className="mb-6 flex-row items-center justify-center gap-6">
-      <TouchableOpacity onPress={toggleShuffle} className="h-10 w-10 items-center justify-center" accessibilityLabel="Toggle shuffle" accessibilityRole="button">
+      <TouchableOpacity
+        onPress={toggleShuffle}
+        className="h-10 w-10 items-center justify-center"
+        accessibilityLabel="Toggle shuffle"
+        accessibilityRole="button">
         <ShuffleAngular
           size={20}
           color={shuffle ? palette.accentColor : dynamicMutedColor}
           weight={shuffle ? 'fill' : 'regular'}
         />
       </TouchableOpacity>
-      <TouchableOpacity onPress={handlePrev} className="h-12 w-12 items-center justify-center" accessibilityLabel="Previous track" accessibilityRole="button">
+      <TouchableOpacity
+        onPress={handlePrev}
+        className="h-12 w-12 items-center justify-center"
+        accessibilityLabel="Previous track"
+        accessibilityRole="button">
         <SkipBack size={26} color={dynamicTextColor} weight="fill" />
       </TouchableOpacity>
       <TouchableOpacity
@@ -650,10 +658,18 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           <Play size={34} color={buttonIconColor} weight="fill" />
         )}
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleNext} className="h-12 w-12 items-center justify-center" accessibilityLabel="Next track" accessibilityRole="button">
+      <TouchableOpacity
+        onPress={handleNext}
+        className="h-12 w-12 items-center justify-center"
+        accessibilityLabel="Next track"
+        accessibilityRole="button">
         <SkipForward size={26} color={dynamicTextColor} weight="fill" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={cycleRepeat} className="h-10 w-10 items-center justify-center" accessibilityLabel="Toggle repeat" accessibilityRole="button">
+      <TouchableOpacity
+        onPress={cycleRepeat}
+        className="h-10 w-10 items-center justify-center"
+        accessibilityLabel="Toggle repeat"
+        accessibilityRole="button">
         {repeat === 'one' ? (
           <RepeatOnce size={20} color={palette.accentColor} weight="fill" />
         ) : repeat === 'all' ? (
@@ -681,16 +697,28 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           {action.icon === 'lyrics' ? (
             <Image
               source={require('../assets/lyrics.png')}
-              style={{ width: 16, height: 16, tintColor: action.active ? palette.accentColor : dynamicMutedColor }}
+              style={{
+                width: 16,
+                height: 16,
+                tintColor: action.active ? palette.accentColor : dynamicMutedColor,
+              }}
             />
-          ) : (() => {
-            const Icon = action.icon as React.ComponentType<{ size: number; color: string; weight: string }>;
-            return <Icon
-              size={16}
-              color={action.active ? palette.accentColor : dynamicMutedColor}
-              weight={action.active ? 'fill' : 'regular'}
-            />;
-          })()}
+          ) : (
+            (() => {
+              const Icon = action.icon as React.ComponentType<{
+                size: number;
+                color: string;
+                weight: string;
+              }>;
+              return (
+                <Icon
+                  size={16}
+                  color={action.active ? palette.accentColor : dynamicMutedColor}
+                  weight={action.active ? 'fill' : 'regular'}
+                />
+              );
+            })()
+          )}
           <Text
             style={{
               color: action.active ? palette.accentColor : dynamicMutedColor,

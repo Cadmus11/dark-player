@@ -51,7 +51,9 @@ export class QueueEngine {
     try {
       const data = storage.getString(key);
       if (data) return JSON.parse(data);
-    } catch (e) { console.warn('[QueueEngine]', e); }
+    } catch (e) {
+      console.warn('[QueueEngine]', e);
+    }
     return { queue: [], currentIndex: -1, repeat: 'none', shuffle: false, shuffledOrder: [] };
   }
 

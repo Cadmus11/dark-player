@@ -1565,10 +1565,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           className="mb-1 flex-row items-center gap-2.5 rounded-xl px-3 py-[14]"
           style={sleepTimerSettings.mode === 'off' && { backgroundColor: `${primaryColor}15` }}
           onPress={() => updateSleepTimerSetting('mode', 'off')}>
-          <Timer
-            size={20}
-            color={sleepTimerSettings.mode === 'off' ? primaryColor : mutedColor}
-          />
+          <Timer size={20} color={sleepTimerSettings.mode === 'off' ? primaryColor : mutedColor} />
           <Text
             className="flex-1 text-[15px]"
             style={
@@ -1627,9 +1624,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           onPress={() => updateSleepTimerSetting('mode', 'endOfTrack')}>
           <MusicNotes
             size={20}
-            color={
-              sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : mutedColor
-            }
+            color={sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : mutedColor}
           />
           <Text
             className="flex-1 text-[15px]"
@@ -1651,9 +1646,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           onPress={() => updateSleepTimerSetting('mode', 'endOfQueue')}>
           <MusicNotes
             size={20}
-            color={
-              sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : mutedColor
-            }
+            color={sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : mutedColor}
           />
           <Text
             className="flex-1 text-[15px]"
@@ -1915,7 +1908,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 setGoogleClientIdInput(googleClientId);
                 setShowClientIdModal(true);
               }}>
-              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>Set Client ID</Text>
+              <Text
+                className="text-sm font-bold"
+                style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
+                Set Client ID
+              </Text>
             </TouchableOpacity>
           </View>
         ) : googleDrive.isConnected ? (
@@ -1949,7 +1946,9 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               onPress={googleDrive.signIn}
               disabled={googleDrive.loading}>
               <GoogleLogo size={20} color={isDarkMode ? '#18181b' : '#ffffff'} />
-              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
+              <Text
+                className="text-sm font-bold"
+                style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
                 {googleDrive.loading ? 'Connecting...' : 'Connect to Google Drive'}
               </Text>
             </TouchableOpacity>
@@ -2379,7 +2378,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   new MMKV({ id: 'settings' }).set('@google_client_id', googleClientIdInput);
                   setShowClientIdModal(false);
                 }}>
-                <Text className="text-[15px] font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>Save</Text>
+                <Text
+                  className="text-[15px] font-bold"
+                  style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
+                  Save
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -81,28 +81,44 @@ export async function collectBackupData(): Promise<BackupData> {
 
   try {
     if (themeRaw) theme = JSON.parse(themeRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (favoritesRaw) favorites = JSON.parse(favoritesRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (recentlyPlayedRaw) recentlyPlayed = JSON.parse(recentlyPlayedRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (searchHistoryRaw) searchHistory = JSON.parse(searchHistoryRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (recentlyDeletedRaw) recentlyDeleted = JSON.parse(recentlyDeletedRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (notificationsRaw) notificationSettings = JSON.parse(notificationsRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (playlistsRaw) playlists = JSON.parse(playlistsRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
   try {
     if (privateRaw) privateFiles = JSON.parse(privateRaw);
-  } catch (e) { console.warn('[BackupService]', e); }
+  } catch (e) {
+    console.warn('[BackupService]', e);
+  }
 
   return {
     version: '1.0',
@@ -191,7 +207,9 @@ export async function getLocalBackups(): Promise<
           const content = await readAsStringAsync(path);
           const parsed = JSON.parse(content);
           results.push({ name: file, path, createdAt: parsed.createdAt || 0 });
-        } catch (e) { console.warn('[BackupService]', e); }
+        } catch (e) {
+          console.warn('[BackupService]', e);
+        }
       }
     }
     return results.sort((a, b) => b.createdAt - a.createdAt);

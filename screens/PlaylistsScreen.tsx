@@ -206,7 +206,9 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
                 className="flex-1 items-center rounded-xl py-3"
                 style={{ backgroundColor: primaryColor }}
                 onPress={handlePlaylistCreateConfirm}>
-                <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
+                <Text
+                  className="text-sm font-bold"
+                  style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
                   Create
                 </Text>
               </TouchableOpacity>

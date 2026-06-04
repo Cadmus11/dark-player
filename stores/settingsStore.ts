@@ -122,6 +122,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       if (layout) set({ layoutMode: layout as LayoutMode });
       const size = storage.getString(KEYS.layoutSize);
       if (size) set({ layoutSize: size as LayoutSize });
-    } catch (e) { console.warn('[settingsStore]', e); }
+    } catch (e) {
+      console.warn('[settingsStore]', e);
+    }
   },
 }));

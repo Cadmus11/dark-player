@@ -52,7 +52,9 @@ export const LyricsService = {
         this.cache(lyricsData);
         return lyricsData;
       }
-    } catch (e) { console.warn('[LyricsService]', e); }
+    } catch (e) {
+      console.warn('[LyricsService]', e);
+    }
 
     return {
       songId,
@@ -90,7 +92,9 @@ export const LyricsService = {
         this.cache(lyricsData);
         return lyricsData;
       }
-    } catch (e) { console.warn('[LyricsService]', e); }
+    } catch (e) {
+      console.warn('[LyricsService]', e);
+    }
     return null;
   },
 

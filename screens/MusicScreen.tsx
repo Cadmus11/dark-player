@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -13,35 +13,35 @@ import {
   NativeScrollEvent,
   Image,
   Share,
-} from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { useAppNavigation } from '../hooks/useAppNavigation';
-import { Microphone, CheckCircle } from 'phosphor-react-native';
-import { useVisibleAudio } from '../hooks/useVisibleAudio';
-import { usePlaylistStore } from '../stores/playlistStore';
-import { usePlaybackStore } from '../stores/playbackStore';
-import { useTheme } from '../context/ThemeContext';
-import type { FileItem, SortField, SortDirection, FileAction } from '../types';
-import { ScreenLayout } from '../components/ScreenLayout';
-import { ThemedText } from '../components/ThemedText';
-import { EmptyState } from '../components/EmptyState';
-import { Sorting } from '../services/Sorting';
-import { SelectionBar } from '../components/SelectionBar';
-import { StorageService } from '../services/StorageService';
-import { SortModal } from '../components/SortModal';
-import { SkeletonRow } from '../components/SkeletonLoader';
-import { useMediaStore } from '../stores/mediaStore';
+} from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import { useAppNavigation } from "../hooks/useAppNavigation";
+import { Microphone, CheckCircle } from "phosphor-react-native";
+import { useVisibleAudio } from "../hooks/useVisibleAudio";
+import { usePlaylistStore } from "../stores/playlistStore";
+import { usePlaybackStore } from "../stores/playbackStore";
+import { useTheme } from "../context/ThemeContext";
+import type { FileItem, SortField, SortDirection, FileAction } from "../types";
+import { ScreenLayout } from "../components/ScreenLayout";
+import { ThemedText } from "../components/ThemedText";
+import { EmptyState } from "../components/EmptyState";
+import { Sorting } from "../services/Sorting";
+import { SelectionBar } from "../components/SelectionBar";
+import { StorageService } from "../services/StorageService";
+import { SortModal } from "../components/SortModal";
+import { SkeletonRow } from "../components/SkeletonLoader";
+import { useMediaStore } from "../stores/mediaStore";
 
 interface MusicSection {
   title: string;
   data: FileItem[];
 }
 
-const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const ALPHABET = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function getLetter(name: string): string {
   const char = name.charAt(0).toUpperCase();
-  return /[A-Z]/.test(char) ? char : '#';
+  return /[A-Z]/.test(char) ? char : "#";
 }
 
 export const MusicScreen = React.memo(function MusicScreen() {
@@ -50,8 +50,8 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const loading = useMediaStore((s) => s.loading);
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showSortModal, setShowSortModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedUris, setSelectedUris] = useState<Set<string>>(new Set());
@@ -60,7 +60,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const flatListRef = useRef<any>(null);
   const alphabetRef = useRef<View>(null);
   const alphabetLayoutRef = useRef({ x: 0, y: 0, height: 0 });
-  const isAlphaSort = sortField === 'name';
+  const isAlphaSort = sortField === "name";
   const scrollTrackRef = useRef<View>(null);
   const scrollTrackLayoutRef = useRef({ y: 0, height: 0 });
   const thumbAnim = useRef(new Animated.Value(0)).current;
@@ -80,10 +80,14 @@ export const MusicScreen = React.memo(function MusicScreen() {
       const total = items.length;
       if (total > 0 && flatListRef.current) {
         const index = Math.floor(pct * (total - 1));
-        flatListRef.current.scrollToIndex({ index, viewPosition: 0, animated: false });
+        flatListRef.current.scrollToIndex({
+          index,
+          viewPosition: 0,
+          animated: false,
+        });
       }
     },
-    [thumbAnim]
+    [thumbAnim],
   );
 
   const scrollThumbPanResponder = useRef(
@@ -96,7 +100,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
       onPanResponderMove: (evt) => {
         handleScrollTrackTouch(evt.nativeEvent.locationY);
       },
-    })
+    }),
   ).current;
 
   const handleNonAlphaScroll = useCallback(
@@ -108,7 +112,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
         thumbAnim.setValue(pct);
       }
     },
-    [thumbAnim]
+    [thumbAnim],
   );
 
   const handleScrollTrackLayout = useCallback((e: LayoutChangeEvent) => {
@@ -123,7 +127,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   }, [audio, sortField, sortDirection]);
 
   const sections = useMemo(() => {
-    if (sortField !== 'name') return [] as MusicSection[];
+    if (sortField !== "name") return [] as MusicSection[];
     const map = new Map<string, FileItem[]>();
     for (const item of sortedAudio) {
       const letter = getLetter(item.name);
@@ -144,9 +148,9 @@ export const MusicScreen = React.memo(function MusicScreen() {
         setSelectedUris(next);
         return;
       }
-      navigation.navigate('MusicPlayer', { file });
+      navigation.navigate("MusicPlayer", { file });
     },
-    [navigation, selectionMode, selectedUris]
+    [navigation, selectionMode, selectedUris],
   );
 
   const handleLongPress = useCallback(
@@ -155,78 +159,91 @@ export const MusicScreen = React.memo(function MusicScreen() {
       next.add(file.uri);
       setSelectedUris(next);
     },
-    [selectedUris]
+    [selectedUris],
   );
 
   const selectedFiles = useMemo(
     () => sortedAudio.filter((f) => selectedUris.has(f.uri)),
-    [sortedAudio, selectedUris]
+    [sortedAudio, selectedUris],
   );
 
-  const handleSelectionAction = useCallback(async (action: FileAction, files: FileItem[]) => {
-    switch (action) {
-      case 'addToPlaylist': {
-        const store = usePlaylistStore.getState();
-        const existing = store.playlists[0];
-        if (existing) {
-          for (const f of files) {
-            store.addSongs(existing.id, [f]);
+  const handleSelectionAction = useCallback(
+    async (action: FileAction, files: FileItem[]) => {
+      switch (action) {
+        case "addToPlaylist": {
+          const store = usePlaylistStore.getState();
+          const existing = store.playlists[0];
+          if (existing) {
+            for (const f of files) {
+              store.addSongs(existing.id, [f]);
+            }
+          } else {
+            const pl = store.create(
+              `Playlist ${new Date().toLocaleDateString()}`,
+            );
+            for (const f of files) {
+              store.addSongs(pl.id, [f]);
+            }
           }
-        } else {
-          const pl = store.create(`Playlist ${new Date().toLocaleDateString()}`);
-          for (const f of files) {
-            store.addSongs(pl.id, [f]);
-          }
-        }
-        setSelectedUris(new Set());
-        break;
-      }
-      case 'playNext': {
-        const audioEngine = (await import('../engine/AudioEngine')).audioEngine;
-        if (files.length > 0) {
-          audioEngine.setQueue([...files, ...audioEngine.getState().queue], 0);
-          audioEngine.play(files[0]);
-        }
-        setSelectedUris(new Set());
-        break;
-      }
-      case 'share': {
-        for (const f of files) {
-          try {
-            await Share.share({ url: f.uri, title: f.name });
-          } catch {}
-        }
-        setSelectedUris(new Set());
-        break;
-      }
-      case 'hide': {
-        setSelectedUris(new Set());
-        break;
-      }
-      case 'moveToPrivate': {
-        const { PrivateFolderService } = await import('../services/PrivateFolderService');
-        const exists = await PrivateFolderService.isSetup();
-        if (!exists) {
-          Alert.alert('Private Folder', 'Create a Private Folder in Settings first.');
+          setSelectedUris(new Set());
           break;
         }
-        const moved = await PrivateFolderService.addFiles(files);
-        Alert.alert(
-          'Private Folder',
-          `${moved} of ${files.length} file${files.length !== 1 ? 's' : ''} moved.`
-        );
-        setSelectedUris(new Set());
-        break;
-      }
-      case 'delete':
-        for (const f of files) {
-          await StorageService.addToRecentlyDeleted(f);
-          await StorageService.moveToTrash(f);
+        case "playNext": {
+          const audioEngine = (await import("../engine/AudioEngine"))
+            .audioEngine;
+          if (files.length > 0) {
+            audioEngine.setQueue(
+              [...files, ...audioEngine.getState().queue],
+              0,
+            );
+            audioEngine.play(files[0]);
+          }
+          setSelectedUris(new Set());
+          break;
         }
-        setSelectedUris(new Set());
-        break;
-    }
-  }, []);
+        case "share": {
+          for (const f of files) {
+            try {
+              await Share.share({ url: f.uri, title: f.name });
+            } catch {}
+          }
+          setSelectedUris(new Set());
+          break;
+        }
+        case "hide": {
+          setSelectedUris(new Set());
+          break;
+        }
+        case "moveToPrivate": {
+          const { PrivateFolderService } =
+            await import("../services/PrivateFolderService");
+          const exists = await PrivateFolderService.isSetup();
+          if (!exists) {
+            Alert.alert(
+              "Private Folder",
+              "Create a Private Folder in Settings first.",
+            );
+            break;
+          }
+          const moved = await PrivateFolderService.addFiles(files);
+          Alert.alert(
+            "Private Folder",
+            `${moved} of ${files.length} file${files.length !== 1 ? "s" : ""} moved.`,
+          );
+          setSelectedUris(new Set());
+          break;
+        }
+        case "delete":
+          for (const f of files) {
+            await StorageService.addToRecentlyDeleted(f);
+            await StorageService.moveToTrash(f);
+          }
+          setSelectedUris(new Set());
+          break;
+      }
+    },
+    [],
+  );
 
   const handleAlphabetLayout = (e: LayoutChangeEvent) => {
     const { x, y, height } = e.nativeEvent.layout;
@@ -239,7 +256,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
       const { height } = alphabetLayoutRef.current;
       const index = Math.min(
         Math.floor((locationY / height) * ALPHABET.length),
-        ALPHABET.length - 1
+        ALPHABET.length - 1,
       );
       const letter = ALPHABET[index];
       setSelectedSection(letter);
@@ -252,7 +269,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
         });
       }
     },
-    [sections]
+    [sections],
   );
 
   const renderFileItem = useCallback(
@@ -264,54 +281,78 @@ export const MusicScreen = React.memo(function MusicScreen() {
         <TouchableOpacity
           className="flex-row items-center gap-3 px-4 py-2.5"
           style={[
-            isSelected && { backgroundColor: `${primaryColor}10`, borderRadius: 8 },
+            isSelected && {
+              backgroundColor: `${primaryColor}10`,
+              borderRadius: 8,
+            },
             isNowPlaying && {
               backgroundColor: `${primaryColor}08`,
               borderRadius: 8,
               borderLeftWidth: 3,
               borderLeftColor: primaryColor,
-              paddingLeft: 13,
+              paddingLeft: 12,
             },
           ]}
           onPress={() => navigateToFile(item)}
           onLongPress={() => handleLongPress(item)}
-          delayLongPress={400}>
-          {isSelected && <CheckCircle size={18} color={primaryColor} weight="fill" />}
+          delayLongPress={400}
+        >
+          {isSelected && (
+            <CheckCircle size={18} color={primaryColor} weight="fill" />
+          )}
           <View
             className="h-11 w-11 items-center justify-center overflow-hidden rounded-xl"
             style={[
               { backgroundColor: `${itemColor}20` },
               isNowPlaying && { borderWidth: 1.5, borderColor: primaryColor },
-            ]}>
+            ]}
+          >
             {item.thumbnail ? (
-              <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />
+              <Image
+                source={{ uri: item.thumbnail }}
+                className="h-11 w-11 rounded-xl"
+              />
             ) : (
               <Image
-                source={require('../assets/note.png')}
-                style={{ width: 22, height: 22, tintColor: isNowPlaying ? primaryColor : itemColor }}
+                source={require("../assets/note.png")}
+                style={{
+                  width: 22,
+                  height: 22,
+                  tintColor: isNowPlaying ? primaryColor : itemColor,
+                }}
               />
             )}
           </View>
           <View className="flex-1">
             <ThemedText
               variant="body"
-              style={{ color: isNowPlaying ? primaryColor : textColor, fontWeight: '600' }}
-              numberOfLines={1}>
+              style={{
+                color: isNowPlaying ? primaryColor : textColor,
+                fontWeight: "600",
+              }}
+              numberOfLines={1}
+            >
               {item.name}
             </ThemedText>
             <View className="mt-[2px] flex-row items-center gap-1.5">
               <ThemedText
                 variant="caption"
                 style={{ color: isNowPlaying ? primaryColor : mutedColor }}
-                numberOfLines={1}>
-                {item.artist || 'Unknown'}
+                numberOfLines={1}
+              >
+                {item.artist || "Unknown"}
               </ThemedText>
               {item.hasLyrics && (
                 <View
                   className="flex-row items-center gap-[3px] rounded-md px-1.5 py-0.5"
-                  style={{ backgroundColor: `${primaryColor}20` }}>
+                  style={{ backgroundColor: `${primaryColor}20` }}
+                >
                   <Microphone size={10} color={primaryColor} weight="fill" />
-                  <ThemedText variant="label" color={primaryColor} style={{ fontSize: 9 }}>
+                  <ThemedText
+                    variant="label"
+                    color={primaryColor}
+                    style={{ fontSize: 9 }}
+                  >
                     LYRICS
                   </ThemedText>
                 </View>
@@ -329,13 +370,16 @@ export const MusicScreen = React.memo(function MusicScreen() {
       textColor,
       mutedColor,
       currentFile,
-    ]
+    ],
   );
 
-  const handleSortSelect = useCallback((field: SortField, direction: SortDirection) => {
-    setSortField(field);
-    setSortDirection(direction);
-  }, []);
+  const handleSortSelect = useCallback(
+    (field: SortField, direction: SortDirection) => {
+      setSortField(field);
+      setSortDirection(direction);
+    },
+    [],
+  );
 
   const renderSectionHeader = useCallback(
     (info: { section: MusicSection }) => (
@@ -345,25 +389,28 @@ export const MusicScreen = React.memo(function MusicScreen() {
         </ThemedText>
       </View>
     ),
-    [primaryColor]
+    [primaryColor],
   );
 
   const sortLabelMap: Record<string, string> = {
-    name: 'Name',
-    date: 'Date',
-    newest: 'Newest',
-    size: 'Size',
-    type: 'Type',
-    duration: 'Duration',
-    artist: 'Artist',
-    album: 'Album',
-    playCount: 'Plays',
-    recentlyPlayed: 'Recent',
+    name: "Name",
+    date: "Date",
+    newest: "Newest",
+    size: "Size",
+    type: "Type",
+    duration: "Duration",
+    artist: "Artist",
+    album: "Album",
+    playCount: "Plays",
+    recentlyPlayed: "Recent",
   };
   const currentSortLabel = sortLabelMap[sortField] || sortField;
 
   return (
-    <ScreenLayout onSortPress={() => setShowSortModal(true)} sortLabel={currentSortLabel}>
+    <ScreenLayout
+      onSortPress={() => setShowSortModal(true)}
+      sortLabel={currentSortLabel}
+    >
       <View className="mb-2 px-4">
         <ThemedText variant="h1">Music</ThemedText>
       </View>
@@ -384,7 +431,10 @@ export const MusicScreen = React.memo(function MusicScreen() {
               renderItem={renderFileItem}
               renderSectionHeader={renderSectionHeader}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 120,
+              }}
               windowSize={7}
               maxToRenderPerBatch={10}
               removeClippedSubviews
@@ -399,17 +449,22 @@ export const MusicScreen = React.memo(function MusicScreen() {
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
               onResponderGrant={handleAlphabetTouch}
-              onResponderMove={handleAlphabetTouch}>
+              onResponderMove={handleAlphabetTouch}
+            >
               {ALPHABET.map((letter) => (
                 <Text
                   key={letter}
                   className="text-center text-[9px] font-semibold leading-[13px]"
                   style={[
-                    selectedSection === letter && { color: primaryColor, fontWeight: '800' },
+                    selectedSection === letter && {
+                      color: primaryColor,
+                      fontWeight: "800",
+                    },
                     sections.some((s) => s.title === letter)
                       ? { color: textColor }
                       : { color: mutedColor },
-                  ]}>
+                  ]}
+                >
                   {letter}
                 </Text>
               ))}
@@ -422,13 +477,21 @@ export const MusicScreen = React.memo(function MusicScreen() {
               data={sortedAudio}
               renderItem={renderFileItem}
               keyExtractor={(item: FileItem) => item.uri}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 120,
+              }}
               showsVerticalScrollIndicator={false}
               onScroll={handleNonAlphaScroll}
               scrollEventThrottle={16}
               ListEmptyComponent={
                 <EmptyState
-                  icon={<Image source={require('../assets/note.png')} style={{ width: 32, height: 32, tintColor: mutedColor }} />}
+                  icon={
+                    <Image
+                      source={require("../assets/note.png")}
+                      style={{ width: 32, height: 32, tintColor: mutedColor }}
+                    />
+                  }
                   title="No music found"
                   description="Songs will appear here once your library is scanned"
                 />
@@ -438,7 +501,9 @@ export const MusicScreen = React.memo(function MusicScreen() {
               ref={scrollTrackRef}
               className="absolute bottom-2 right-0.5 top-2 w-3 items-center justify-start rounded-md"
               style={{
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                backgroundColor: isDarkMode
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.04)",
               }}
               onLayout={(e) => {
                 handleScrollTrackLayout(e);
@@ -447,7 +512,8 @@ export const MusicScreen = React.memo(function MusicScreen() {
                   height: e.nativeEvent.layout.height,
                 };
               }}
-              {...scrollThumbPanResponder.panHandlers}>
+              {...scrollThumbPanResponder.panHandlers}
+            >
               <Animated.View
                 className="h-10 w-1 rounded-sm opacity-70"
                 style={{
@@ -457,7 +523,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
                       translateY: thumbAnim.interpolate({
                         inputRange: [0, 1],
                         outputRange: [0, 200],
-                        extrapolate: 'clamp',
+                        extrapolate: "clamp",
                       }),
                     },
                   ],

@@ -30,7 +30,12 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
         </TouchableOpacity>
         <View className="flex-row items-center gap-4">
           {onSortPress && (
-            <TouchableOpacity onPress={() => { hapticLight(); onSortPress(); }} className="flex-row items-center gap-1"
+            <TouchableOpacity
+              onPress={() => {
+                hapticLight();
+                onSortPress();
+              }}
+              className="flex-row items-center gap-1"
               accessibilityLabel={`Sort by ${sortLabel || 'current'}`}
               accessibilityRole="button">
               <FunnelSimple size={18} color={primaryColor} weight="bold" />
@@ -42,12 +47,20 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
               <CaretDown size={10} color={primaryColor} weight="bold" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => { hapticLight(); navigation.navigate('SearchTab'); }}
+          <TouchableOpacity
+            onPress={() => {
+              hapticLight();
+              navigation.navigate('SearchTab');
+            }}
             accessibilityLabel="Search"
             accessibilityRole="button">
             <MagnifyingGlass size={20} color={textColor} weight="bold" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { hapticLight(); navigation.navigate('SettingsTab'); }}
+          <TouchableOpacity
+            onPress={() => {
+              hapticLight();
+              navigation.navigate('SettingsTab');
+            }}
             accessibilityLabel="Settings"
             accessibilityRole="button">
             <Gear size={20} color={textColor} weight="bold" />

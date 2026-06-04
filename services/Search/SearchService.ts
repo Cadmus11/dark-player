@@ -17,7 +17,9 @@ function loadIndex() {
   try {
     const data = storage.getString(INDEX_KEY);
     if (data) searchIndex = JSON.parse(data);
-  } catch (e) { console.warn('[SearchService]', e); }
+  } catch (e) {
+    console.warn('[SearchService]', e);
+  }
   searchIndexLoaded = true;
 }
 

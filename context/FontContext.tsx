@@ -68,7 +68,9 @@ export function FontProvider({ children }: { children: ReactNode }) {
   async function loadCustomFonts() {
     try {
       await Font.loadAsync(CUSTOM_FONT_MAP);
-    } catch (e) { console.warn('[FontContext]', e); }
+    } catch (e) {
+      console.warn('[FontContext]', e);
+    }
   }
 
   async function loadFont() {
@@ -77,14 +79,18 @@ export function FontProvider({ children }: { children: ReactNode }) {
       if (stored) {
         setFontKey(stored);
       }
-    } catch (e) { console.warn('[FontContext]', e); }
+    } catch (e) {
+      console.warn('[FontContext]', e);
+    }
   }
 
   async function setFont(key: string) {
     setFontKey(key);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, key);
-    } catch (e) { console.warn('[FontContext]', e); }
+    } catch (e) {
+      console.warn('[FontContext]', e);
+    }
   }
 
   const option = FONT_OPTIONS.find((o) => o.key === fontKey) || FONT_OPTIONS[0];

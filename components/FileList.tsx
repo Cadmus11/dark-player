@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,16 @@ import {
   Image,
   NativeSyntheticEvent,
   NativeScrollEvent,
-} from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import type { FileItem, FileType } from '../types';
-import { MusicNote, VideoCamera, MicrophoneStage, CheckCircle } from 'phosphor-react-native';
-import { formatFileSize, formatDuration } from '../services/FileService';
+} from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { FileItem, FileType } from "../types";
+import {
+  MusicNote,
+  VideoCamera,
+  MicrophoneStage,
+  CheckCircle,
+} from "phosphor-react-native";
+import { formatFileSize, formatDuration } from "../services/FileService";
 
 interface FileListProps {
   data: FileItem[];
@@ -30,8 +35,16 @@ interface FileListProps {
   onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
-function FileTypeIcon({ type, size, color }: { type?: FileType; size: number; color: string }) {
-  const Icon = type === 'video' ? VideoCamera : MusicNote;
+function FileTypeIcon({
+  type,
+  size,
+  color,
+}: {
+  type?: FileType;
+  size: number;
+  color: string;
+}) {
+  const Icon = type === "video" ? VideoCamera : MusicNote;
   return <Icon size={size} color={color} weight="fill" />;
 }
 
@@ -61,14 +74,22 @@ const ListItem = memo(function ListItem({
   return (
     <TouchableOpacity
       className="flex-row items-center gap-3 px-1 py-2.5"
-      style={isSelected ? { backgroundColor: `${primaryColor}10`, borderRadius: 10 } : undefined}
+      style={
+        isSelected
+          ? { backgroundColor: `${primaryColor}10`, borderRadius: 10 }
+          : undefined
+      }
       onPress={() => onPress(item)}
       onLongPress={() => onLongPress?.(item)}
-      delayLongPress={400}>
+      delayLongPress={400}
+      accessibilityLabel={item.name}
+      accessibilityRole="button"
+    >
       {isSelected && (
         <View
           className="h-[22] w-[22] items-center justify-center rounded-full"
-          style={{ backgroundColor: primaryColor }}>
+          style={{ backgroundColor: primaryColor }}
+        >
           <CheckCircle size={18} color="#ffffff" weight="fill" />
         </View>
       )}
@@ -78,10 +99,16 @@ const ListItem = memo(function ListItem({
         <View
           className="h-11 w-11 items-center justify-center rounded-xl"
           style={{
-            backgroundColor: item.artColor ? `${item.artColor}20` : 'rgba(255, 255, 255, 0.06)',
-          }}>
+            backgroundColor: item.artColor
+              ? `${item.artColor}20`
+              : "rgba(255, 255, 255, 0.06)",
+          }}
+        >
           {item.thumbnail ? (
-            <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />
+            <Image
+              source={{ uri: item.thumbnail }}
+              className="h-11 w-11 rounded-xl"
+            />
           ) : (
             <FileTypeIcon type={item.type} size={20} color={primaryColor} />
           )}
@@ -91,7 +118,8 @@ const ListItem = memo(function ListItem({
         <Text
           className="mb-0.5 text-sm font-semibold"
           style={{ color: textColor }}
-          numberOfLines={1}>
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
         {renderMeta ? (
@@ -99,7 +127,10 @@ const ListItem = memo(function ListItem({
         ) : (
           <View className="flex-row items-center gap-1">
             {item.artist && (
-              <Text className="text-xs font-medium" style={{ color: primaryColor }}>
+              <Text
+                className="text-xs font-medium"
+                style={{ color: primaryColor }}
+              >
                 {item.artist}
               </Text>
             )}
@@ -126,7 +157,8 @@ const ListItem = memo(function ListItem({
       {item.hasLyrics && (
         <View
           className="mr-1 h-5 w-5 items-center justify-center rounded-md"
-          style={{ backgroundColor: `${primaryColor}20` }}>
+          style={{ backgroundColor: `${primaryColor}20` }}
+        >
           <MicrophoneStage size={12} color={primaryColor} weight="bold" />
         </View>
       )}
@@ -147,7 +179,7 @@ function FileList({
   primaryColor,
   textColor,
   mutedColor,
-  emptyMessage = 'No items found',
+  emptyMessage = "No items found",
   renderLeft,
   renderRight,
   renderMeta,
@@ -196,19 +228,22 @@ function FileList({
       selectionMode,
       selectedUris,
       onSelectionChange,
-    ]
+    ],
   );
 
   const renderEmpty = useCallback(
     () => (
       <View className="items-center justify-center py-[100]">
-        <Image source={require('../assets/note.png')} style={{ width: 64, height: 64, tintColor: mutedColor }} />
+        <Image
+          source={require("../assets/note.png")}
+          style={{ width: 64, height: 64, tintColor: mutedColor }}
+        />
         <Text className="mt-4 text-base" style={{ color: mutedColor }}>
           {emptyMessage}
         </Text>
       </View>
     ),
-    [mutedColor, emptyMessage]
+    [mutedColor, emptyMessage],
   );
 
   return (

@@ -60,7 +60,10 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
       </View>
       <TouchableOpacity
         className="flex-row items-center gap-3 px-3.5 py-2.5"
-        onPress={() => { hapticLight(); handleOpenPlayer(); }}
+        onPress={() => {
+          hapticLight();
+          handleOpenPlayer();
+        }}
         activeOpacity={0.8}
         accessibilityLabel={`Now playing: ${currentFile.name}. Open player.`}
         accessibilityRole="button">
@@ -103,7 +106,11 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
           style={{ backgroundColor: `${accentColor}15` }}
-          onPress={() => { hapticMedium(); if (isPlaying) pause(); else resume(); }}
+          onPress={() => {
+            hapticMedium();
+            if (isPlaying) pause();
+            else resume();
+          }}
           hitSlop={12}
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           accessibilityRole="button">
@@ -115,7 +122,10 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
         </TouchableOpacity>
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
-          onPress={() => { hapticLight(); next(); }}
+          onPress={() => {
+            hapticLight();
+            next();
+          }}
           hitSlop={12}
           accessibilityLabel="Next track"
           accessibilityRole="button">
@@ -123,7 +133,10 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
         </TouchableOpacity>
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
-          onPress={() => { hapticMedium(); stop(); }}
+          onPress={() => {
+            hapticMedium();
+            stop();
+          }}
           hitSlop={12}
           accessibilityLabel="Stop playback"
           accessibilityRole="button">

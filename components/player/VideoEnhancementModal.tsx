@@ -113,7 +113,11 @@ export function VideoEnhancementModal({
                     className="min-w-[45%] flex-1 items-center gap-1 rounded-xl border p-3.5"
                     style={{
                       borderColor: isSelected ? primaryColor : themeBorderColor,
-                      backgroundColor: isSelected ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                      backgroundColor: isSelected
+                        ? `${primaryColor}12`
+                        : isDarkMode
+                          ? 'rgba(255,255,255,0.04)'
+                          : 'rgba(0,0,0,0.03)',
                     }}
                     onPress={() => setQualityTarget(opt.target)}>
                     <ImageSquare
@@ -144,7 +148,11 @@ export function VideoEnhancementModal({
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
                   borderColor: settings.colorEnhancement ? primaryColor : themeBorderColor,
-                  backgroundColor: settings.colorEnhancement ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  backgroundColor: settings.colorEnhancement
+                    ? `${primaryColor}12`
+                    : isDarkMode
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('colorEnhancement')}>
                 <PaintBrush
@@ -166,7 +174,11 @@ export function VideoEnhancementModal({
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
                   borderColor: settings.sharpening ? primaryColor : themeBorderColor,
-                  backgroundColor: settings.sharpening ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  backgroundColor: settings.sharpening
+                    ? `${primaryColor}12`
+                    : isDarkMode
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('sharpening')}>
                 <Sparkle
@@ -188,7 +200,11 @@ export function VideoEnhancementModal({
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
                   borderColor: settings.denoise ? primaryColor : themeBorderColor,
-                  backgroundColor: settings.denoise ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  backgroundColor: settings.denoise
+                    ? `${primaryColor}12`
+                    : isDarkMode
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('denoise')}>
                 <Waveform
@@ -210,7 +226,11 @@ export function VideoEnhancementModal({
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
                   borderColor: settings.hdr ? primaryColor : themeBorderColor,
-                  backgroundColor: settings.hdr ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  backgroundColor: settings.hdr
+                    ? `${primaryColor}12`
+                    : isDarkMode
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('hdr')}>
                 <SunDim
@@ -231,7 +251,13 @@ export function VideoEnhancementModal({
 
             <TouchableOpacity
               className="mb-2.5 mt-5 flex-row items-center justify-center gap-2 rounded-xl py-3.5"
-              style={{ backgroundColor: hasEnhancements ? primaryColor : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+              style={{
+                backgroundColor: hasEnhancements
+                  ? primaryColor
+                  : isDarkMode
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'rgba(0,0,0,0.06)',
+              }}
               onPress={handleApply}
               disabled={isProcessing || !hasEnhancements}>
               {isProcessing ? (

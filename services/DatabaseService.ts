@@ -47,7 +47,9 @@ export const DatabaseService = {
       if (row) {
         return JSON.parse(row.metadata);
       }
-    } catch (e) { console.warn('[DatabaseService]', e); }
+    } catch (e) {
+      console.warn('[DatabaseService]', e);
+    }
     return null;
   },
 
@@ -74,7 +76,9 @@ export const DatabaseService = {
       if (row) {
         return row.file_path;
       }
-    } catch (e) { console.warn('[DatabaseService]', e); }
+    } catch (e) {
+      console.warn('[DatabaseService]', e);
+    }
     return null;
   },
 

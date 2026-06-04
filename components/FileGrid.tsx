@@ -1,9 +1,9 @@
-import React, { memo, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
-import type { FileItem, LayoutSize, FileType } from '../types';
-import { MusicNote, VideoCamera, Play } from 'phosphor-react-native';
-import { formatDuration } from '../services/FileService';
-import { useTheme } from '../context/ThemeContext';
+import React, { memo, useCallback, useMemo } from "react";
+import { View, Text, FlatList, TouchableOpacity, Image } from "react-native";
+import type { FileItem, LayoutSize, FileType } from "../types";
+import { MusicNote, VideoCamera, Play } from "phosphor-react-native";
+import { formatDuration } from "../services/FileService";
+import { useTheme } from "../context/ThemeContext";
 
 interface FileGridProps {
   data: FileItem[];
@@ -20,8 +20,16 @@ interface FileGridProps {
   renderSubtitle?: (item: FileItem) => React.ReactNode;
 }
 
-function FileTypeIcon({ type, size, color }: { type?: FileType; size: number; color: string }) {
-  const Icon = type === 'video' ? VideoCamera : MusicNote;
+function FileTypeIcon({
+  type,
+  size,
+  color,
+}: {
+  type?: FileType;
+  size: number;
+  color: string;
+}) {
+  const Icon = type === "video" ? VideoCamera : MusicNote;
   return <Icon size={size} color={color} weight="fill" />;
 }
 
@@ -54,7 +62,10 @@ const GridItem = memo(function GridItem({
     <TouchableOpacity
       className="flex-1 px-1"
       style={{ maxWidth: `${100 / columns}%` } as any}
-      onPress={() => onPress(item)}>
+      onPress={() => onPress(item)}
+      accessibilityLabel={item.name}
+      accessibilityRole="button"
+    >
       <View
         className="mb-2 w-full items-center justify-center rounded-xl"
         style={{
@@ -62,11 +73,15 @@ const GridItem = memo(function GridItem({
           backgroundColor: item.artColor
             ? `${item.artColor}20`
             : isDarkMode
-              ? 'rgba(255,255,255,0.06)'
-              : 'rgba(0,0,0,0.04)',
-        }}>
+              ? "rgba(255,255,255,0.06)"
+              : "rgba(0,0,0,0.04)",
+        }}
+      >
         {item.thumbnail ? (
-          <Image source={{ uri: item.thumbnail }} className="h-full w-full rounded-xl" />
+          <Image
+            source={{ uri: item.thumbnail }}
+            className="h-full w-full rounded-xl"
+          />
         ) : (
           <FileTypeIcon type={item.type} size={32} color={primaryColor} />
         )}
@@ -84,7 +99,8 @@ const GridItem = memo(function GridItem({
         <Text
           className="mb-0.5 text-xs font-semibold"
           style={{ color: textColor }}
-          numberOfLines={1}>
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
       )}
@@ -92,7 +108,11 @@ const GridItem = memo(function GridItem({
         (renderSubtitle
           ? renderSubtitle(item)
           : item.artist && (
-              <Text className="text-[11px]" style={{ color: mutedColor }} numberOfLines={1}>
+              <Text
+                className="text-[11px]"
+                style={{ color: mutedColor }}
+                numberOfLines={1}
+              >
                 {item.artist}
               </Text>
             ))}
@@ -106,7 +126,7 @@ function FileGrid({
   primaryColor,
   textColor,
   mutedColor,
-  emptyMessage = 'No items found',
+  emptyMessage = "No items found",
   columns,
   layoutSize: sizeProp,
   fileType,
@@ -119,15 +139,15 @@ function FileGrid({
 
   const colCount = useMemo(() => {
     if (columns) return columns;
-    if (sizeMode === 'small') return 4;
-    if (sizeMode === 'big') return fileType === 'video' ? 1 : 2;
-    if (fileType === 'video') return 3;
+    if (sizeMode === "small") return 4;
+    if (sizeMode === "big") return fileType === "video" ? 1 : 2;
+    if (fileType === "video") return 3;
     return 3;
   }, [columns, sizeMode, fileType]);
 
   const itemAspect = useMemo(() => {
-    if (sizeMode === 'small') return 0.8;
-    if (sizeMode === 'big' && fileType === 'video') return 0.6;
+    if (sizeMode === "small") return 0.8;
+    if (sizeMode === "big" && fileType === "video") return 0.6;
     return 1;
   }, [sizeMode, fileType]);
   const keyExtractor = useCallback((item: FileItem) => item.uri, []);
@@ -159,19 +179,22 @@ function FileGrid({
       hideName,
       renderOverlay,
       renderSubtitle,
-    ]
+    ],
   );
 
   const renderEmpty = useCallback(
     () => (
       <View className="items-center justify-center py-[100]">
-        <Image source={require('../assets/note.png')} style={{ width: 64, height: 64, tintColor: mutedColor }} />
+        <Image
+          source={require("../assets/note.png")}
+          style={{ width: 64, height: 64, tintColor: mutedColor }}
+        />
         <Text className="mt-4 text-base" style={{ color: mutedColor }}>
           {emptyMessage}
         </Text>
       </View>
     ),
-    [mutedColor, emptyMessage]
+    [mutedColor, emptyMessage],
   );
 
   return (
@@ -180,7 +203,7 @@ function FileGrid({
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       numColumns={colCount}
-      columnWrapperStyle={{ justifyContent: 'flex-start' }}
+      columnWrapperStyle={{ justifyContent: "flex-start" }}
       contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmpty}

@@ -126,7 +126,9 @@ export const NowPlayingNotification = {
     isPlaying = false;
     try {
       await Notifications.cancelScheduledNotificationAsync(NOTIFICATION_ID);
-    } catch (e) { console.warn('[NowPlayingNotification]', e); }
+    } catch (e) {
+      console.warn('[NowPlayingNotification]', e);
+    }
   },
 
   cleanup() {

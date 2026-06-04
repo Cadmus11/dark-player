@@ -86,7 +86,9 @@ export class EqualizerEngine {
           gains: parsed.gains || [...DEFAULT_SETTINGS.gains],
         };
       }
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
     return { ...DEFAULT_SETTINGS, gains: [...DEFAULT_SETTINGS.gains] };
   }
 
@@ -129,7 +131,9 @@ export class EqualizerEngine {
     this._filters.forEach((f) => {
       try {
         f.disconnect();
-      } catch (e) { console.warn('[EqualizerEngine]', e); }
+      } catch (e) {
+        console.warn('[EqualizerEngine]', e);
+      }
     });
     this._filters = [];
 
@@ -234,7 +238,9 @@ export class EqualizerEngine {
         try {
           this._source.stop();
           this._source.disconnect();
-        } catch (e) { console.warn('[EqualizerEngine]', e); }
+        } catch (e) {
+          console.warn('[EqualizerEngine]', e);
+        }
         this._source = null;
       }
 
@@ -250,7 +256,9 @@ export class EqualizerEngine {
       this._playbackState.position = 0;
       this._notify();
       this._startPositionCheck();
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
   }
 
   pause() {
@@ -261,7 +269,9 @@ export class EqualizerEngine {
     try {
       this._source.stop();
       this._source.disconnect();
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
     this._source = null;
     this._playbackState.isPlaying = false;
     this._stopPositionCheck();
@@ -287,7 +297,9 @@ export class EqualizerEngine {
         try {
           this._source.stop();
           this._source.disconnect();
-        } catch (e) { console.warn('[EqualizerEngine]', e); }
+        } catch (e) {
+          console.warn('[EqualizerEngine]', e);
+        }
         this._source = null;
       }
 
@@ -300,7 +312,9 @@ export class EqualizerEngine {
       this._playbackState.isPlaying = true;
       this._notify();
       this._startPositionCheck();
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
   }
 
   stop() {
@@ -309,7 +323,9 @@ export class EqualizerEngine {
         this._source.stop();
         this._source.disconnect();
       }
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
     this._source = null;
     this._pauseOffset = 0;
     this._lastKnownPosition = 0;
@@ -332,7 +348,9 @@ export class EqualizerEngine {
         try {
           this._source.stop();
           this._source.disconnect();
-        } catch (e) { console.warn('[EqualizerEngine]', e); }
+        } catch (e) {
+          console.warn('[EqualizerEngine]', e);
+        }
         this._source = null;
       }
 
@@ -361,7 +379,9 @@ export class EqualizerEngine {
         this._startPositionCheck();
       }
       this._notify();
-    } catch (e) { console.warn('[EqualizerEngine]', e); }
+    } catch (e) {
+      console.warn('[EqualizerEngine]', e);
+    }
   }
 
   private _startPositionCheck() {
@@ -417,13 +437,17 @@ export class EqualizerEngine {
     if (this._masterGain) {
       try {
         this._masterGain.disconnect();
-      } catch (e) { console.warn('[EqualizerEngine]', e); }
+      } catch (e) {
+        console.warn('[EqualizerEngine]', e);
+      }
       this._masterGain = null;
     }
     this._filters.forEach((f) => {
       try {
         f.disconnect();
-      } catch (e) { console.warn('[EqualizerEngine]', e); }
+      } catch (e) {
+        console.warn('[EqualizerEngine]', e);
+      }
     });
     this._filters = [];
     this._cachedBuffer = null;
@@ -431,7 +455,9 @@ export class EqualizerEngine {
     if (this._audioContext) {
       try {
         this._audioContext.close();
-      } catch (e) { console.warn('[EqualizerEngine]', e); }
+      } catch (e) {
+        console.warn('[EqualizerEngine]', e);
+      }
       this._audioContext = null;
       this._contextReady = false;
     }
