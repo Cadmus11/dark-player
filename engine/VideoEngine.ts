@@ -72,7 +72,7 @@ export class VideoEngine {
         const parsed = JSON.parse(data);
         return { ...this._defaultState(), ...parsed };
       }
-    } catch {}
+    } catch (e) { console.warn('[VideoEngine]', e); }
     return this._defaultState();
   }
 
@@ -180,7 +180,7 @@ export class VideoEngine {
           this._notify();
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[VideoEngine]', e); }
   }
 
   private _updateSubtitle() {
@@ -206,7 +206,7 @@ export class VideoEngine {
       this._player.pause();
       this._state.isPlaying = false;
       this._notify();
-    } catch {}
+    } catch (e) { console.warn('[VideoEngine]', e); }
   }
 
   togglePlayback() {
@@ -217,7 +217,7 @@ export class VideoEngine {
       } else {
         this._player.play();
       }
-    } catch {}
+    } catch (e) { console.warn('[VideoEngine]', e); }
   }
 
   seekTo(percentage: number) {

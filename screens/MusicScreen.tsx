@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useAppNavigation } from '../hooks/useAppNavigation';
-import { MusicNote, Microphone, CheckCircle } from 'phosphor-react-native';
+import { Microphone, CheckCircle } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { usePlaybackStore } from '../stores/playbackStore';
@@ -29,6 +29,8 @@ import { Sorting } from '../services/Sorting';
 import { SelectionBar } from '../components/SelectionBar';
 import { StorageService } from '../services/StorageService';
 import { SortModal } from '../components/SortModal';
+import { SkeletonRow } from '../components/SkeletonLoader';
+import { useMediaStore } from '../stores/mediaStore';
 
 interface MusicSection {
   title: string;
@@ -47,6 +49,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
+  const loading = useMediaStore((s) => s.loading);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -283,7 +286,10 @@ export const MusicScreen = React.memo(function MusicScreen() {
             {item.thumbnail ? (
               <Image source={{ uri: item.thumbnail }} className="h-11 w-11 rounded-xl" />
             ) : (
-              <MusicNote size={22} color={isNowPlaying ? primaryColor : itemColor} weight="fill" />
+              <Image
+                source={require('../assets/note.png')}
+                style={{ width: 22, height: 22, tintColor: isNowPlaying ? primaryColor : itemColor }}
+              />
             )}
           </View>
           <View className="flex-1">
@@ -363,7 +369,13 @@ export const MusicScreen = React.memo(function MusicScreen() {
       </View>
 
       <View className="flex-1 flex-row">
-        {isAlphaSort && sections.length > 0 ? (
+        {loading && audio.length === 0 ? (
+          <View className="flex-1 px-4 pt-2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
+          </View>
+        ) : isAlphaSort && sections.length > 0 ? (
           <>
             <SectionList
               ref={sectionListRef}
@@ -416,7 +428,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
               scrollEventThrottle={16}
               ListEmptyComponent={
                 <EmptyState
-                  icon={<MusicNote size={32} color={mutedColor} weight="thin" />}
+                  icon={<Image source={require('../assets/note.png')} style={{ width: 32, height: 32, tintColor: mutedColor }} />}
                   title="No music found"
                   description="Songs will appear here once your library is scanned"
                 />

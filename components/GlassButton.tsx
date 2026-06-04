@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, type ViewStyle } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { hapticLight } from '../utils/haptics';
 
 interface GlassButtonProps {
   title: string;
@@ -22,6 +23,17 @@ export function GlassButton({
   disabled,
 }: GlassButtonProps) {
   const { primaryColor, isDarkMode, textColor } = useTheme();
+
+  const isPrimaryDark = (() => {
+    const hex = primaryColor.replace('#', '');
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return r * 0.299 + g * 0.587 + b * 0.114 < 128;
+  })();
+
+  const neonTextColor = isPrimaryDark ? '#ffffff' : '#000000';
+
   const sizeStyles = {
     sm: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14 },
     md: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 18 },
@@ -45,9 +57,12 @@ export function GlassButton({
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={() => { hapticLight(); onPress(); }}
       disabled={disabled}
       className="flex-row items-center justify-center"
+      accessibilityLabel={title}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       style={[
         {
           borderWidth: 1,
@@ -66,7 +81,7 @@ export function GlassButton({
       {icon && (
         <Text
           className="mr-2 text-lg"
-          style={variant === 'neon' ? { color: '#000000' } : undefined}>
+          style={variant === 'neon' ? { color: neonTextColor } : undefined}>
           {icon}
         </Text>
       )}
@@ -76,7 +91,7 @@ export function GlassButton({
           size === 'sm' && { fontSize: 13 },
           size === 'lg' && { fontSize: 17 },
           variant === 'glass' && { color: textColor },
-          variant === 'neon' && { color: '#000000', fontWeight: '700' },
+          variant === 'neon' && { color: neonTextColor, fontWeight: '700' },
           variant === 'ghost' && { color: primaryColor },
         ]}>
         {title}

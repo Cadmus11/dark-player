@@ -79,14 +79,17 @@ export function useExpandedPlaylists(): Playlist[] {
 
   return useMemo(
     () =>
-      (playlists ?? []).map((p: PlaylistData) => ({
-        id: p.id,
-        name: p.name,
-        files: p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[],
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        coverUri: p.artwork,
-      })),
+      (playlists ?? []).map((p: PlaylistData) => {
+        const files = p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[];
+        return {
+          id: p.id,
+          name: p.name,
+          files,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          coverUri: files[0]?.thumbnail || p.artwork,
+        };
+      }),
     [playlists, filesByUri]
   );
 }
@@ -98,13 +101,14 @@ export function usePlaylistById(id: string): Playlist | undefined {
   return useMemo(() => {
     const p = playlists.find((pl) => pl.id === id);
     if (!p) return undefined;
+    const files = p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[];
     return {
       id: p.id,
       name: p.name,
-      files: p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[],
+      files,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
-      coverUri: p.artwork,
+      coverUri: files[0]?.thumbnail || p.artwork,
     };
   }, [id, playlists, filesByUri]);
 }

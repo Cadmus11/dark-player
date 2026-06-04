@@ -3,6 +3,7 @@ import { TouchableOpacity, View } from 'react-native';
 import { GridFour, ListDashes } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import type { LayoutMode } from '../types';
+import { hapticSelection } from '../utils/haptics';
 
 interface LayoutToggleProps {
   mode: LayoutMode;
@@ -20,9 +21,12 @@ export default function LayoutToggle({ mode, onChange, primaryColor }: LayoutTog
       className="flex-row gap-0.5 rounded-[10px] p-1"
       style={{ backgroundColor: isDarkMode ? '#27272a' : '#e4e4e7' }}>
       <TouchableOpacity
-        onPress={() => onChange('grid')}
+        onPress={() => { hapticSelection(); onChange('grid'); }}
         className="h-8 w-8 items-center justify-center rounded-lg"
-        style={isActive('grid') ? { backgroundColor: pc } : undefined}>
+        style={isActive('grid') ? { backgroundColor: pc } : undefined}
+        accessibilityLabel="Grid view"
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isActive('grid') }}>
         <GridFour
           size={18}
           weight="bold"
@@ -30,9 +34,12 @@ export default function LayoutToggle({ mode, onChange, primaryColor }: LayoutTog
         />
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => onChange('list')}
+        onPress={() => { hapticSelection(); onChange('list'); }}
         className="h-8 w-8 items-center justify-center rounded-lg"
-        style={isActive('list') ? { backgroundColor: pc } : undefined}>
+        style={isActive('list') ? { backgroundColor: pc } : undefined}
+        accessibilityLabel="List view"
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isActive('list') }}>
         <ListDashes
           size={18}
           weight="bold"

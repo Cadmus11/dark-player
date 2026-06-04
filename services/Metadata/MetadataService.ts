@@ -23,7 +23,7 @@ async function ensureArtworkDir() {
     if (!info.exists) {
       await FileSystem.makeDirectoryAsync(ARTWORK_DIR, { intermediates: true });
     }
-  } catch {}
+  } catch (e) { console.warn('[MetadataService]', e); }
 }
 
 function parseArtistTitle(filename: string): { artist?: string; title: string } {
@@ -105,7 +105,7 @@ async function readFileBase64(uri: string): Promise<string> {
         });
       }
     }
-  } catch {}
+  } catch (e) { console.warn('[MetadataService]', e); }
   // Fallback to full file read
   return FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -166,10 +166,10 @@ export const MetadataService = {
             });
             metadata.artwork = artworkPath;
             eventBus.emit(AppEvents.ARTWORK_LOADED, uri, artworkPath);
-          } catch {}
+          } catch (e) { console.warn('[MetadataService]', e); }
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[MetadataService]', e); }
 
     if (!metadata.title) {
       const parsed = parseArtistTitle(name);
@@ -212,7 +212,7 @@ export const MetadataService = {
   async clearCache() {
     try {
       await FileSystem.deleteAsync(ARTWORK_DIR, { idempotent: true });
-    } catch {}
+    } catch (e) { console.warn('[MetadataService]', e); }
     await DatabaseService.clearMetadataCache();
   },
 };

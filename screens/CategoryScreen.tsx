@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, FileItem, SortField, SortDirection } from '../types';
@@ -25,6 +25,7 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
   const { type, title, icon } = route.params;
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
+  const loading = useMediaStore((s) => s.loading);
   const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
   const currentFile = usePlaybackStore((s) => s.currentFile);
   const [sortField, setSortField] = useState<SortField>('name');
@@ -169,12 +170,21 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View className="items-center justify-center py-[100]">
-            <CategoryIcon size={64} color={mutedColor} />
-            <Text className="mt-4 text-base" style={{ color: mutedColor }}>
-              No {title.toLowerCase()} found
-            </Text>
-          </View>
+          loading ? (
+            <View className="items-center justify-center py-[100]">
+              <ActivityIndicator size="large" color={primaryColor} />
+              <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+                Loading {title.toLowerCase()}...
+              </Text>
+            </View>
+          ) : (
+            <View className="items-center justify-center py-[100]">
+              <CategoryIcon size={64} color={mutedColor} />
+              <Text className="mt-4 text-base" style={{ color: mutedColor }}>
+                No {title.toLowerCase()} found
+              </Text>
+            </View>
+          )
         }
       />
     </ScreenLayout>

@@ -35,8 +35,13 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    let prev = colorAwarenessEngine.getState();
     const unsub = colorAwarenessEngine.subscribe(() => {
-      setState({ ...colorAwarenessEngine.getState() });
+      const next = colorAwarenessEngine.getState();
+      if (next.artworkUri !== prev.artworkUri || next.theme?.primary !== prev.theme?.primary) {
+        setState({ ...next });
+        prev = next;
+      }
     });
     return unsub;
   }, []);

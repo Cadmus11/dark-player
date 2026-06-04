@@ -165,7 +165,7 @@ function FileGrid({
   const renderEmpty = useCallback(
     () => (
       <View className="items-center justify-center py-[100]">
-        <MusicNote size={64} color={mutedColor} />
+        <Image source={require('../assets/note.png')} style={{ width: 64, height: 64, tintColor: mutedColor }} />
         <Text className="mt-4 text-base" style={{ color: mutedColor }}>
           {emptyMessage}
         </Text>
@@ -181,7 +181,7 @@ function FileGrid({
       keyExtractor={keyExtractor}
       numColumns={colCount}
       columnWrapperStyle={{ justifyContent: 'flex-start' }}
-      contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 120 }}
+      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
       ListEmptyComponent={renderEmpty}
       removeClippedSubviews

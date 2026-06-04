@@ -27,7 +27,7 @@ const HYDRATION_PHASES: HydrationPhase = [
         }
         usePlaylistStore.getState().load();
       })(),
-      DatabaseService.prewarm().catch(() => {}),
+      DatabaseService.prewarm().catch((e) => { console.warn('[HydrationService]', e); }),
     ]);
     useMediaStore.getState().setHydrationStage(1);
   },
@@ -79,7 +79,7 @@ export function startHydration(): Promise<void> {
       try {
         await HYDRATION_PHASES[i]();
         eventBus.emit(AppEvents.HYDRATION_PHASE, i + 1);
-      } catch {}
+      } catch (e) { console.warn('[HydrationService]', e); }
     }
   })();
 

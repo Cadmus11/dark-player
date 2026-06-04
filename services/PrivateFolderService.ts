@@ -158,7 +158,7 @@ export const PrivateFolderService = {
       try {
         const info = await getInfoAsync(f.uri);
         if (info.exists) totalSize += info.size;
-      } catch {}
+      } catch (e) { console.warn('[PrivateFolderService]', e); }
     }
     return { fileCount: files.length, totalSize };
   },

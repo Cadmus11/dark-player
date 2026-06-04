@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, FileItem, PrivateFileEntry } from '../types';
@@ -137,7 +137,11 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
         <View className="w-10" />
       </View>
 
-      {loading ? null : !unlocked ? (
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={primaryColor} />
+        </View>
+      ) : !unlocked ? (
         <View className="flex-1 items-center justify-center px-8">
           <Lock size={48} color={mutedColor} />
           <Text className="mb-6 mt-4 text-center text-base" style={{ color: mutedColor }}>

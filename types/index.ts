@@ -21,6 +21,8 @@ export interface FileItem {
   artColor?: string;
   artist?: string;
   album?: string;
+  genre?: string;
+  year?: number;
   assetId?: string;
 }
 
@@ -314,7 +316,11 @@ export type FolderFilterType =
   | 'favorites'
   | 'duplicates'
   | 'unused'
-  | 'largeFiles';
+  | 'largeFiles'
+  | 'lyrics'
+  | 'albums'
+  | 'artists'
+  | 'folders';
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;

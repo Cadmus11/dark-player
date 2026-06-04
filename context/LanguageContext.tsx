@@ -27,14 +27,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       if (stored) {
         setLanguageState(stored as LanguageCode);
       }
-    } catch {}
+    } catch (e) { console.warn('[LanguageContext]', e); }
   }
 
   async function setLanguage(code: LanguageCode) {
     setLanguageState(code);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, code);
-    } catch {}
+    } catch (e) { console.warn('[LanguageContext]', e); }
   }
 
   function t(key: string, values?: Record<string, string | number>): string {

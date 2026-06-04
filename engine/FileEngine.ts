@@ -266,6 +266,27 @@ export class FileEngine {
           size,
         };
       });
+
+      if (type === 'audio') {
+        const LRC_BATCH = 20;
+        for (let i = 0; i < items.length; i += LRC_BATCH) {
+          token.throwIfCancelled();
+          const batch = items.slice(i, i + LRC_BATCH);
+          const results = await Promise.allSettled(
+            batch.map(async (item) => {
+              const lrcPath = item.uri.replace(/\.[^.]+$/, '.lrc');
+              const info = await getInfoAsync(lrcPath);
+              return { uri: item.uri, exists: info.exists };
+            })
+          );
+          for (const r of results) {
+            if (r.status === 'fulfilled' && r.value.exists) {
+              const item = items.find((it) => it.uri === r.value.uri);
+              if (item) item.hasLyrics = true;
+            }
+          }
+        }
+      }
       return items;
     } catch (e) {
       if (isCancelled(e)) throw e;

@@ -1,6 +1,8 @@
 import React, { Component, type ReactNode, type ErrorInfo } from 'react';
 import { View, Text, TouchableOpacity, Appearance } from 'react-native';
 import { WarningCircle } from 'phosphor-react-native';
+import { THEME_PRESETS } from '../types';
+import { getThemeSettings } from '../services/StorageService';
 
 interface FeatureBoundaryProps {
   children: ReactNode;
@@ -12,15 +14,24 @@ interface FeatureBoundaryProps {
 interface FeatureBoundaryState {
   hasError: boolean;
   error: Error | null;
+  accentColor: string;
 }
 
 export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoundaryState> {
   constructor(props: FeatureBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, accentColor: '#8B5CF6' };
   }
 
-  static getDerivedStateFromError(error: Error): FeatureBoundaryState {
+  async componentDidMount() {
+    try {
+      const settings = await getThemeSettings();
+      const preset = THEME_PRESETS.find((t) => t.key === (settings?.colorThemeKey || 'obsidian'));
+      if (preset) this.setState({ accentColor: preset.accent });
+    } catch {}
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<FeatureBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -53,7 +64,7 @@ export class FeatureBoundary extends Component<FeatureBoundaryProps, FeatureBoun
           </Text>
           <TouchableOpacity
             className="rounded-xl px-4 py-2"
-            style={{ backgroundColor: '#8B5CF6' }}
+            style={{ backgroundColor: this.state.accentColor }}
             onPress={this.handleRetry}>
             <Text className="text-xs font-bold" style={{ color: isDark ? '#18181b' : '#ffffff' }}>
               Retry

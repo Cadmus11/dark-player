@@ -82,6 +82,7 @@ import type {
   RecentlyDeleted,
 } from '../types';
 import { LayoutSize } from '../types';
+import { audioEngine } from '../engine/AudioEngine';
 
 import { PrivateFolderService } from '../services/PrivateFolderService';
 import { StorageTrackingService } from '../services/StorageTrackingService';
@@ -246,9 +247,11 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
   }
 
   async function loadSettings() {
-    const pb = await getPlaybackSettings();
-    const nt = await getNotificationSettings();
-    const st = await getSleepTimerSettings();
+    const [pb, nt, st] = await Promise.all([
+      getPlaybackSettings(),
+      getNotificationSettings(),
+      getSleepTimerSettings(),
+    ]);
     setPlaybackSettingsState(pb);
     setNotificationSettingsState(nt);
     setSleepTimerSettingsState(st);
@@ -376,6 +379,12 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
     const updated = { ...playbackSettings, [key]: value };
     setPlaybackSettingsState(updated);
     await savePlaybackSettings(updated);
+    if (key === 'crossFade' || key === 'crossFadeDuration') {
+      audioEngine.setCrossfade(
+        key === 'crossFade' ? value : playbackSettings.crossFade,
+        key === 'crossFadeDuration' ? value : playbackSettings.crossFadeDuration
+      );
+    }
   };
 
   const updateNotificationSetting = async (key: keyof NotificationSettings, value: boolean) => {
@@ -856,7 +865,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             <View
               className="flex-row items-center gap-2.5 border-b px-2 py-[10]"
               style={{ borderBottomColor: borderColor }}>
-              <MusicNotes size={18} color="rgba(255,255,255,0.5)" />
+              <MusicNotes size={18} color={mutedColor} />
               <View className="flex-1">
                 <Text className="text-sm " style={{ color: textColor }} numberOfLines={1}>
                   {item.name}
@@ -914,7 +923,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             <View
               className="flex-row items-center gap-2.5 border-b px-2 py-[10]"
               style={{ borderBottomColor: borderColor, flexWrap: 'wrap' }}>
-              <Trash size={18} color="rgba(255,255,255,0.5)" />
+              <Trash size={18} color={mutedColor} />
               <View className="flex-1">
                 <Text className="text-sm " style={{ color: textColor }} numberOfLines={1}>
                   {item.file.name}
@@ -1256,7 +1265,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   key={pf.uri}
                   className="flex-row items-center gap-2.5 border-b px-2 py-[10]"
                   style={{ borderBottomColor: borderColor }}>
-                  <Folder size={18} color="rgba(255,255,255,0.5)" />
+                  <Folder size={18} color={mutedColor} />
                   <View className="flex-1">
                     <Text className="text-sm " style={{ color: textColor }} numberOfLines={1}>
                       {pf.name}
@@ -1558,7 +1567,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           onPress={() => updateSleepTimerSetting('mode', 'off')}>
           <Timer
             size={20}
-            color={sleepTimerSettings.mode === 'off' ? primaryColor : 'rgba(255,255,255,0.6)'}
+            color={sleepTimerSettings.mode === 'off' ? primaryColor : mutedColor}
           />
           <Text
             className="flex-1 text-[15px]"
@@ -1576,7 +1585,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           onPress={() => updateSleepTimerSetting('mode', 'minutes')}>
           <Timer
             size={20}
-            color={sleepTimerSettings.mode === 'minutes' ? primaryColor : 'rgba(255,255,255,0.6)'}
+            color={sleepTimerSettings.mode === 'minutes' ? primaryColor : mutedColor}
           />
           <Text
             className="flex-1 text-[15px]"
@@ -1619,7 +1628,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <MusicNotes
             size={20}
             color={
-              sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : 'rgba(255,255,255,0.6)'
+              sleepTimerSettings.mode === 'endOfTrack' ? primaryColor : mutedColor
             }
           />
           <Text
@@ -1643,7 +1652,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
           <MusicNotes
             size={20}
             color={
-              sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : 'rgba(255,255,255,0.6)'
+              sleepTimerSettings.mode === 'endOfQueue' ? primaryColor : mutedColor
             }
           />
           <Text
@@ -1702,7 +1711,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
         <View className="items-center gap-3 py-8">
           <ShieldCheck
             size={64}
-            color={adsRemoved ? primaryColor : 'rgba(255,255,255,0.2)'}
+            color={adsRemoved ? primaryColor : mutedColor}
             weight={adsRemoved ? 'fill' : 'regular'}
           />
           <Text
@@ -1906,7 +1915,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                 setGoogleClientIdInput(googleClientId);
                 setShowClientIdModal(true);
               }}>
-              <Text className="text-sm font-bold text-[#18181b]">Set Client ID</Text>
+              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>Set Client ID</Text>
             </TouchableOpacity>
           </View>
         ) : googleDrive.isConnected ? (
@@ -1939,8 +1948,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               style={{ backgroundColor: primaryColor }}
               onPress={googleDrive.signIn}
               disabled={googleDrive.loading}>
-              <GoogleLogo size={20} color="#18181b" />
-              <Text className="text-sm font-bold text-[#18181b]">
+              <GoogleLogo size={20} color={isDarkMode ? '#18181b' : '#ffffff'} />
+              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
                 {googleDrive.loading ? 'Connecting...' : 'Connect to Google Drive'}
               </Text>
             </TouchableOpacity>
@@ -2370,7 +2379,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   new MMKV({ id: 'settings' }).set('@google_client_id', googleClientIdInput);
                   setShowClientIdModal(false);
                 }}>
-                <Text className="text-[15px] font-bold text-[#18181b]">Save</Text>
+                <Text className="text-[15px] font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>

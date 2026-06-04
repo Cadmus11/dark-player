@@ -4,6 +4,7 @@ import { MagnifyingGlass, Gear, FunnelSimple, CaretDown } from 'phosphor-react-n
 import { useTheme } from '../context/ThemeContext';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Navbar } from './Navbar';
+import { hapticLight } from '../utils/haptics';
 
 interface TopBarProps {
   onSortPress?: () => void;
@@ -29,7 +30,9 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
         </TouchableOpacity>
         <View className="flex-row items-center gap-4">
           {onSortPress && (
-            <TouchableOpacity onPress={onSortPress} className="flex-row items-center gap-1">
+            <TouchableOpacity onPress={() => { hapticLight(); onSortPress(); }} className="flex-row items-center gap-1"
+              accessibilityLabel={`Sort by ${sortLabel || 'current'}`}
+              accessibilityRole="button">
               <FunnelSimple size={18} color={primaryColor} weight="bold" />
               {sortLabel && (
                 <Text className="text-[11px] font-semibold" style={{ color: primaryColor }}>
@@ -39,10 +42,14 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
               <CaretDown size={10} color={primaryColor} weight="bold" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => navigation.navigate('SearchTab')}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.navigate('SearchTab'); }}
+            accessibilityLabel="Search"
+            accessibilityRole="button">
             <MagnifyingGlass size={20} color={textColor} weight="bold" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('SettingsTab')}>
+          <TouchableOpacity onPress={() => { hapticLight(); navigation.navigate('SettingsTab'); }}
+            accessibilityLabel="Settings"
+            accessibilityRole="button">
             <Gear size={20} color={textColor} weight="bold" />
           </TouchableOpacity>
         </View>

@@ -115,7 +115,7 @@ export class AudioEngine {
         if (parsed.sleepTimer) this._sleepTimer = { ...this._sleepTimer, ...parsed.sleepTimer };
         if (parsed.crossfade) this._crossfade = { ...this._crossfade, ...parsed.crossfade };
       }
-    } catch {}
+    } catch (e) { console.warn('[AudioEngine]', e); }
   }
 
   private _saveSettings() {
@@ -129,7 +129,7 @@ export class AudioEngine {
     try {
       const data = storage.getString(STATE_KEY);
       if (data) return JSON.parse(data);
-    } catch {}
+    } catch (e) { console.warn('[AudioEngine]', e); }
     return {
       currentFile: null,
       queue: [],
@@ -168,7 +168,7 @@ export class AudioEngine {
       });
       this._isLoaded = true;
       NowPlayingNotification.setupChannel();
-    } catch {}
+    } catch (e) { console.warn('[AudioEngine]', e); }
   }
 
   private async _setupTrackPlayer() {
@@ -217,7 +217,7 @@ export class AudioEngine {
       try {
         this._player.pause();
         this._player.remove();
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
       this._player = null;
     }
   }
@@ -424,7 +424,7 @@ export class AudioEngine {
           try {
             this._player.pause();
             this._player.remove();
-          } catch {}
+          } catch (e) { console.warn('[AudioEngine]', e); }
           this._player = null;
         }
         this._state.isPlaying = false;
@@ -475,7 +475,7 @@ export class AudioEngine {
     } else {
       try {
         this._player?.pause();
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
     }
     this._state.isPlaying = false;
     this._persistState();
@@ -500,7 +500,7 @@ export class AudioEngine {
     } else {
       try {
         this._player?.play();
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
     }
     this._state.isPlaying = true;
     this._persistState();
@@ -529,7 +529,7 @@ export class AudioEngine {
     if (this._player) {
       try {
         this._player.clearLockScreenControls();
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
     }
     this._unload();
     this._state.currentFile = null;
@@ -553,7 +553,7 @@ export class AudioEngine {
     } else {
       try {
         this._player?.seekTo(Math.max(0, millis) / 1000);
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
     }
   }
 
@@ -568,7 +568,7 @@ export class AudioEngine {
             this._player.playbackRate = rate;
             this._player.shouldCorrectPitch = true;
           }
-        } catch {}
+        } catch (e) { console.warn('[AudioEngine]', e); }
       }
     }
     this._persistState();
@@ -688,7 +688,7 @@ export class AudioEngine {
     if (this._player) {
       try {
         this._player.clearLockScreenControls();
-      } catch {}
+      } catch (e) { console.warn('[AudioEngine]', e); }
     }
     this._unload();
     this._listeners.clear();

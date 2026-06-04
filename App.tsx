@@ -136,12 +136,33 @@ const screenOptions = {
 
 export default function App() {
   useEffect(() => {
+    const originalHandler = ErrorUtils.getGlobalHandler();
+    ErrorUtils.setGlobalHandler((error, isFatal) => {
+      if (isFatal) {
+        console.error('[FATAL]', error?.message || error);
+      } else {
+        console.warn('[ERROR]', error?.message || error);
+      }
+      if (originalHandler) originalHandler(error, isFatal);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rejectionTracking = require('promise/setimmediate/rejection-tracking');
+    rejectionTracking.enable({
+      allRejections: true,
+      onUnhandled: (id: number, error: any) => {
+        console.warn('[UNHANDLED_REJECTION]', error?.message || error);
+      },
+    });
+
     lifecycleManager.initialize();
     startHydration();
     notificationService.setup().catch(console.error);
     return () => {
       lifecycleManager.cleanup();
       notificationService.cleanup();
+      ErrorUtils.setGlobalHandler(originalHandler);
+      rejectionTracking.disable();
     };
   }, []);
 

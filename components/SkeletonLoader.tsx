@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, type ViewStyle } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface SkeletonLoaderProps {
   width?: number;
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;
+  color?: string;
 }
 
 export function SkeletonLoader({
@@ -13,7 +15,10 @@ export function SkeletonLoader({
   height = 20,
   borderRadius = 8,
   style,
+  color,
 }: SkeletonLoaderProps) {
+  const { mutedColor } = useTheme();
+  const skeletonColor = color || mutedColor;
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -29,7 +34,7 @@ export function SkeletonLoader({
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius, backgroundColor: '#27272a', opacity }, style]}
+      style={[{ width, height, borderRadius, backgroundColor: skeletonColor, opacity }, style]}
     />
   );
 }

@@ -37,7 +37,7 @@ class ArtworkServiceClass {
       if (!info.exists) {
         await makeDirectoryAsync(this._diskCacheDir);
       }
-    } catch {}
+    } catch (e) { console.warn('[ArtworkService]', e); }
     return this._diskCacheDir;
   }
 
@@ -91,7 +91,7 @@ class ArtworkServiceClass {
         eventBus.emit(AppEvents.ARTWORK_LOADED, fileUri, meta.artwork);
         return meta.artwork;
       }
-    } catch {}
+    } catch (e) { console.warn('[ArtworkService]', e); }
 
     if (fileName) {
       const placeholder = this._generatePlaceholder(fileName);
@@ -165,7 +165,7 @@ class ArtworkServiceClass {
         const mimeType = 'image/jpeg';
         return `data:${mimeType};base64,${base64}`;
       }
-    } catch {}
+    } catch (e) { console.warn('[ArtworkService]', e); }
     return null;
   }
 
@@ -178,7 +178,7 @@ class ArtworkServiceClass {
       if (base64) {
         await writeAsStringAsync(dir + cacheKey, base64, { encoding: 'base64' });
       }
-    } catch {}
+    } catch (e) { console.warn('[ArtworkService]', e); }
   }
 
   private _hashUri(uri: string): string {

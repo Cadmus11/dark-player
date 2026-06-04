@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { ArrowUp, ArrowDown } from 'phosphor-react-native';
 import type { SortField, SortDirection } from '../types';
+import { hapticSelection } from '../utils/haptics';
 
 interface SortOption {
   field: SortField;
@@ -68,6 +69,7 @@ export function SortModal({
                 className="mb-1 flex-row items-center justify-between rounded-xl px-4 py-3.5"
                 style={isActive ? { backgroundColor: `${primaryColor}15` } : undefined}
                 onPress={() => {
+                  hapticSelection();
                   if (isActive) {
                     const nextDir: SortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
                     onSelect(option.field, nextDir);
@@ -75,7 +77,10 @@ export function SortModal({
                     onSelect(option.field, option.field === 'name' ? 'asc' : 'desc');
                   }
                   onClose();
-                }}>
+                }}
+                accessibilityLabel={`Sort by ${option.label}${isActive ? `, current order: ${sortDirection}` : ''}`}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isActive }}>
                 <View className="flex-row items-center gap-3">
                   <Text
                     className="text-base"

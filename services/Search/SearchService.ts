@@ -17,7 +17,7 @@ function loadIndex() {
   try {
     const data = storage.getString(INDEX_KEY);
     if (data) searchIndex = JSON.parse(data);
-  } catch {}
+  } catch (e) { console.warn('[SearchService]', e); }
   searchIndexLoaded = true;
 }
 
@@ -40,6 +40,8 @@ export const SearchService = {
       const tokens = tokenize(file.name);
       if (file.artist) tokens.push(...tokenize(file.artist));
       if (file.album) tokens.push(...tokenize(file.album));
+      if (file.genre) tokens.push(...tokenize(file.genre));
+      if (file.year) tokens.push(...tokenize(String(file.year)));
       for (const token of tokens) {
         if (!searchIndex.terms[token]) searchIndex.terms[token] = [];
         if (!searchIndex.terms[token].includes(file.uri)) {
@@ -61,6 +63,8 @@ export const SearchService = {
       const name = file.name.toLowerCase();
       const artist = (file.artist || '').toLowerCase();
       const album = (file.album || '').toLowerCase();
+      const genre = (file.genre || '').toLowerCase();
+      const year = file.year ? String(file.year) : '';
 
       if (name === q) score += 100;
       else if (name.startsWith(q)) score += 50;
@@ -68,11 +72,15 @@ export const SearchService = {
 
       if (artist.includes(q)) score += 15;
       if (album.includes(q)) score += 10;
+      if (genre.includes(q)) score += 8;
+      if (year === q) score += 12;
 
       for (const token of queryTokens) {
         if (name.includes(token)) score += 5;
         if (artist.includes(token)) score += 3;
         if (album.includes(token)) score += 2;
+        if (genre.includes(token)) score += 2;
+        if (year.includes(token)) score += 2;
       }
 
       if (score > 0) scored.set(file.uri, score);

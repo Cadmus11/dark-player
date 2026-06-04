@@ -1,6 +1,8 @@
 import React, { Component, type ReactNode, type ErrorInfo } from 'react';
 import { View, Text, TouchableOpacity, Appearance } from 'react-native';
 import { WarningCircle } from 'phosphor-react-native';
+import { THEME_PRESETS } from '../types';
+import { getThemeSettings } from '../services/StorageService';
 
 interface Props {
   children: ReactNode;
@@ -10,15 +12,24 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  accentColor: string;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, accentColor: '#8B5CF6' };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  async componentDidMount() {
+    try {
+      const settings = await getThemeSettings();
+      const preset = THEME_PRESETS.find((t) => t.key === (settings?.colorThemeKey || 'obsidian'));
+      if (preset) this.setState({ accentColor: preset.accent });
+    } catch {}
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -52,7 +63,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </Text>
           <TouchableOpacity
             className="rounded-xl px-6 py-3"
-            style={{ backgroundColor: '#8B5CF6' }}
+            style={{ backgroundColor: this.state.accentColor }}
             onPress={this.handleRetry}>
             <Text
               className="text-[15px] font-bold"

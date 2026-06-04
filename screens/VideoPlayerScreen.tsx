@@ -38,7 +38,6 @@ import {
   Queue,
   DownloadSimple,
   ShareNetwork,
-  MusicNote,
   VideoCamera,
   Check,
   Info,
@@ -70,8 +69,6 @@ type ContentFit = 'contain' | 'cover' | 'fill';
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-const QUALITY_OPTIONS = ['Auto', '360p', '480p', '720p', '1080p', '4K'];
-
 type PlayMode = 'loop' | 'loopAll' | 'shuffle' | 'pauseAfter';
 
 export function VideoPlayerScreen({ navigation, route }: Props) {
@@ -100,7 +97,6 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const [isLocked, setIsLocked] = useState(false);
   const [orientationLock, setOrientationLock] = useState<'portrait' | 'landscape'>('portrait');
   const [isFavorite, setIsFavorite] = useState(false);
-  const [selectedQuality, setSelectedQuality] = useState('Auto');
 
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -405,15 +401,8 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const displayTitle = file.name.replace(/\.[^/.]+$/, '');
   const displayArtist = file.artist || 'Unknown Artist';
 
-  const upNextQueue = useMemo(() => {
-    const qs = queueEngine.getVideoState();
-    return qs.queue.slice(qs.currentIndex + 1);
-  }, []);
-
-  // Quality selector press handler (visual only)
-  const handleQualityPress = useCallback((quality: string) => {
-    setSelectedQuality(quality);
-  }, []);
+  const qs = queueEngine.getVideoState();
+  const upNextQueue = qs.queue.slice(qs.currentIndex + 1);
 
   return (
     <View className="flex-1" style={{ backgroundColor: '#000' }}>
@@ -441,19 +430,25 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
                 onPress={goBack}
-                activeOpacity={0.7}>
+                activeOpacity={0.7}
+                accessibilityLabel="Go back"
+                accessibilityRole="button">
                 <CaretDown size={22} color="#ffffff" weight="bold" />
               </TouchableOpacity>
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
-                  activeOpacity={0.7}>
+                  activeOpacity={0.7}
+                  accessibilityLabel="Broadcast"
+                  accessibilityRole="button">
                   <Broadcast size={20} color="#ffffff" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="h-10 w-10 items-center justify-center rounded-full bg-white/10"
                   onPress={() => setShowMenu(true)}
-                  activeOpacity={0.7}>
+                  activeOpacity={0.7}
+                  accessibilityLabel="More options"
+                  accessibilityRole="button">
                   <DotsThreeVertical size={20} color="#ffffff" weight="bold" />
                 </TouchableOpacity>
               </View>
@@ -492,7 +487,10 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     <View
                       className="h-20 w-20 items-center justify-center rounded-[20px] border-2 bg-white/[0.03]"
                       style={{ borderColor: accentColor + '60' }}>
-                      <MusicNote size={40} color={accentColor} />
+                      <Image
+                        source={require('../assets/note.png')}
+                        style={{ width: 40, height: 40, tintColor: accentColor }}
+                      />
                     </View>
                     <Text
                       className="mt-3 text-sm font-semibold tracking-[2px]"
@@ -522,7 +520,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                         onPress={(e) => {
                           e.stopPropagation();
                           prevVideo();
-                        }}>
+                        }}
+                        accessibilityLabel="Previous video"
+                        accessibilityRole="button">
                         <SkipBack size={42} color="#ffffff" weight="fill" />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -530,7 +530,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                         onPress={(e) => {
                           e.stopPropagation();
                           togglePlayback();
-                        }}>
+                        }}
+                        accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                        accessibilityRole="button">
                         {isPlaying ? (
                           <Pause size={36} color="#ffffff" weight="fill" />
                         ) : (
@@ -542,7 +544,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                         onPress={(e) => {
                           e.stopPropagation();
                           nextVideo();
-                        }}>
+                        }}
+                        accessibilityLabel="Next video"
+                        accessibilityRole="button">
                         <SkipForward size={42} color="#ffffff" weight="fill" />
                       </TouchableOpacity>
                     </View>
@@ -601,7 +605,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               </View>
               <TouchableOpacity
                 onPress={toggleFavorite}
-                className="h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                className="h-12 w-12 items-center justify-center rounded-full bg-white/10"
+                accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                accessibilityRole="button">
                 <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                   <Heart
                     size={24}
@@ -632,7 +638,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                       onPress={() => {
                         if (label === 'Share') handleShare();
                       }}
-                      activeOpacity={0.6}>
+                      activeOpacity={0.6}
+                      accessibilityLabel={label}
+                      accessibilityRole="button">
                       <Icon size={22} color={accentColor} weight="regular" />
                       <Text className="text-xs font-medium" style={{ color: mutedColor }}>
                         {label}
@@ -650,18 +658,24 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 onPress={() => {
                   queueEngine.toggleShuffle('video');
                 }}
-                activeOpacity={0.6}>
+                activeOpacity={0.6}
+                accessibilityLabel="Toggle shuffle"
+                accessibilityRole="button">
                 <Shuffle size={24} color={mutedColor} />
               </TouchableOpacity>
               <TouchableOpacity
                 className="items-center justify-center"
                 onPress={prevVideo}
-                activeOpacity={0.6}>
+                activeOpacity={0.6}
+                accessibilityLabel="Previous video"
+                accessibilityRole="button">
                 <SkipBack size={32} color="#ffffff" weight="fill" />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={togglePlayback}
                 activeOpacity={0.8}
+                accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                accessibilityRole="button"
                 style={[
                   styles.playButton,
                   {
@@ -682,7 +696,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 className="items-center justify-center"
                 onPress={nextVideo}
-                activeOpacity={0.6}>
+                activeOpacity={0.6}
+                accessibilityLabel="Next video"
+                accessibilityRole="button">
                 <SkipForward size={32} color="#ffffff" weight="fill" />
               </TouchableOpacity>
               <TouchableOpacity
@@ -692,7 +708,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                   const idx = modes.indexOf(playMode);
                   setPlayMode(modes[(idx + 1) % modes.length]);
                 }}
-                activeOpacity={0.6}>
+                activeOpacity={0.6}
+                accessibilityLabel="Toggle repeat"
+                accessibilityRole="button">
                 <Repeat
                   size={24}
                   color={playMode === 'loopAll' ? accentColor : mutedColor}
@@ -707,7 +725,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 <TouchableOpacity
                   className="flex-row items-center gap-1.5 rounded-[10px] px-3 py-2"
                   style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                  onPress={() => setIsAudioOnly(true)}>
+                  onPress={() => setIsAudioOnly(true)}
+                  accessibilityLabel="Switch to audio mode"
+                  accessibilityRole="button">
                   <Headphones size={14} color={mutedColor} />
                   <Text className="text-xs font-semibold" style={{ color: mutedColor }}>
                     Audio
@@ -717,7 +737,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
                 style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                onPress={() => setShowSpeedModal(true)}>
+                onPress={() => setShowSpeedModal(true)}
+                accessibilityLabel="Change playback speed"
+                accessibilityRole="button">
                 <Text className="text-xs font-bold" style={{ color: mutedColor }}>
                   {playbackSpeed}x
                 </Text>
@@ -725,7 +747,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
                 style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                onPress={() => setIsLocked(!isLocked)}>
+                onPress={() => setIsLocked(!isLocked)}
+                accessibilityLabel={isLocked ? 'Unlock screen' : 'Lock screen'}
+                accessibilityRole="button">
                 {isLocked ? (
                   <Lock size={16} color={accentColor} weight="fill" />
                 ) : (
@@ -736,45 +760,12 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 <TouchableOpacity
                   className="h-[34px] w-[34px] items-center justify-center rounded-[9px]"
                   style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                  onPress={handleOrientationToggle}>
+                  onPress={handleOrientationToggle}
+                  accessibilityLabel="Toggle orientation"
+                  accessibilityRole="button">
                   <ArrowsClockwise size={16} color={mutedColor} />
                 </TouchableOpacity>
               )}
-            </View>
-
-            {/* Quality Selector */}
-            <View className="mt-6 px-5">
-              <Text
-                className="mb-3 text-sm font-semibold uppercase tracking-wider"
-                style={{ color: mutedColor }}>
-                Quality
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.qualityRow}>
-                {QUALITY_OPTIONS.map((q) => (
-                  <TouchableOpacity
-                    key={q}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.qualityChip,
-                      {
-                        backgroundColor:
-                          selectedQuality === q ? accentColor : 'rgba(255,255,255,0.08)',
-                      },
-                    ]}
-                    onPress={() => handleQualityPress(q)}>
-                    <Text
-                      className="text-xs font-semibold"
-                      style={{
-                        color: selectedQuality === q ? '#000000' : '#ffffff',
-                      }}>
-                      {q}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
             </View>
 
             {/* Up Next Queue */}
@@ -837,7 +828,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       <BottomSheet visible={showMenu} onClose={() => setShowMenu(false)}>
         <View className="px-5">
           <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
             onPress={() => {
               setShowMenu(false);
               setShowPlayModeModal(true);
@@ -857,7 +848,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
             onPress={() => {
               setSubtitlesEnabled(!subtitlesEnabled);
               setShowMenu(false);
@@ -879,7 +870,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }}
           />
           <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
             onPress={handleShare}>
             <ShareNetwork size={20} color={accentColor} />
             <Text className="ml-3 text-[15px]" style={{ color: textColor }}>
@@ -887,7 +878,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
             onPress={() => {
               setShowMenu(false);
               setShowInfo(true);
@@ -898,7 +889,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+            className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
             onPress={handleDelete}>
             <Trash size={20} color="#ef4444" />
             <Text className="ml-3 text-[15px] text-[#ef4444]">Delete</Text>
@@ -1054,16 +1045,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  qualityRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingRight: 20,
-  },
-  qualityChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 14,
   },
   upNextItem: {
     flexDirection: 'row',

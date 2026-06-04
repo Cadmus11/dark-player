@@ -39,7 +39,7 @@ export const StorageService = {
     try {
       const stored = await AsyncStorage.getItem(KEYS.THEME);
       if (stored) return JSON.parse(stored);
-    } catch {}
+    } catch (e) { console.warn('[StorageService]', e); }
     return {
       colorThemeKey: 'obsidian',
       backgroundBlur: 20,
@@ -198,7 +198,7 @@ export const StorageService = {
       if (!info.exists) {
         await makeDirectoryAsync(TRASH_DIR);
       }
-    } catch {}
+    } catch (e) { console.warn('[StorageService]', e); }
   },
 
   async moveToTrash(file: FileItem): Promise<string | null> {
@@ -212,7 +212,7 @@ export const StorageService = {
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(trashFiles));
       try {
         await deleteAsync(file.uri, { idempotent: true });
-      } catch {}
+      } catch (e) { console.warn('[StorageService]', e); }
       return trashUri;
     } catch {
       return null;
@@ -227,7 +227,7 @@ export const StorageService = {
       await copyAsync({ from: entry.trashUri, to: originalUri });
       try {
         await deleteAsync(entry.trashUri, { idempotent: true });
-      } catch {}
+      } catch (e) { console.warn('[StorageService]', e); }
       const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);
       await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(updated));
       return true;
@@ -242,7 +242,7 @@ export const StorageService = {
     if (entry) {
       try {
         await deleteAsync(entry.trashUri, { idempotent: true });
-      } catch {}
+      } catch (e) { console.warn('[StorageService]', e); }
     }
     const updated = trashFiles.filter((t: any) => t.originalUri !== originalUri);
     await AsyncStorage.setItem(KEYS.TRASH_FILES, JSON.stringify(updated));
@@ -274,7 +274,7 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
     const raw = settingsStorage.getString('@settings_notifications');
     if (raw) return JSON.parse(raw);
-  } catch {}
+    } catch (e) { console.warn('[StorageService]', e); }
   return { newMediaNotification: true, pushNotification: true };
 }
 export async function saveNotificationSettings(s: NotificationSettings): Promise<void> {

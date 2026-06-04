@@ -38,9 +38,10 @@ import {
   BatteryCharging,
   Timer,
   Queue,
-  Microphone,
   Info,
   CaretDown,
+  Plus,
+  MagnifyingGlass,
 } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
@@ -149,7 +150,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     moveInQueue,
   } = useAudioPlayback();
 
-  const playlistStore = usePlaylistStore();
+  const createPlaylist = usePlaylistStore((s) => s.create);
+  const addSongsToPlaylist = usePlaylistStore((s) => s.addSongs);
+  const playlists = usePlaylistStore((s) => s.playlists);
 
   const [showQueue, setShowQueue] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
@@ -158,6 +161,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const [showLyrics, setShowLyrics] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showLyricsSearch, setShowLyricsSearch] = useState(false);
+  const [showLocalLyrics, setShowLocalLyrics] = useState(false);
+  const [lyricsSearchQuery, setLyricsSearchQuery] = useState('');
+  const [localLyricsText, setLocalLyricsText] = useState('');
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [localArtwork, setLocalArtwork] = useState<string | null>(null);
   const [extractedMeta, setExtractedMeta] = useState<MediaMetadata | null>(null);
@@ -255,12 +262,12 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
 
   const handleCreatePlaylist = () => {
     if (!newPlaylistName.trim()) return;
-    playlistStore.create(newPlaylistName.trim());
+    createPlaylist(newPlaylistName.trim());
     setNewPlaylistName('');
   };
 
   const handleAddToPlaylist = (pl: any) => {
-    playlistStore.addSongs(pl.id, [currentItem || file]);
+    addSongsToPlaylist(pl.id, [currentItem || file]);
     setShowAddToPlaylist(false);
   };
 
@@ -331,6 +338,55 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     }
   }, [showLyrics, lyricsData, lyricsLoading, currentItem, extractedMeta]);
 
+  const handleLyricsSearch = useCallback(async () => {
+    if (!lyricsSearchQuery.trim()) return;
+    setLyricsLoading(true);
+    const parts = lyricsSearchQuery.split(' - ');
+    const artist = parts.length > 1 ? parts[0].trim() : '';
+    const title = parts.length > 1 ? parts.slice(1).join(' - ').trim() : lyricsSearchQuery.trim();
+    const result = await LyricsService.fetchLyrics(title, artist);
+    if (result.lyrics) {
+      setLyricsData(result);
+      setShowLyricsSearch(false);
+      setLyricsSearchQuery('');
+    }
+    setLyricsLoading(false);
+  }, [lyricsSearchQuery]);
+
+  const handleSaveLocalLyrics = useCallback(() => {
+    if (!localLyricsText.trim()) return;
+    const title = currentItem?.name.replace(/\.[^.]+$/, '') || '';
+    const artist = currentItem?.artist || extractedMeta?.artist || '';
+    const synced: { time: number; text: string }[] = [];
+    const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+    for (const line of localLyricsText.split('\n')) {
+      const match = regex.exec(line);
+      if (match) {
+        const minutes = parseInt(match[1]);
+        const seconds = parseInt(match[2]);
+        const millis = parseInt(match[3].padEnd(3, '0'));
+        const time = minutes * 60000 + seconds * 1000 + millis;
+        const text = line.replace(regex, '').trim();
+        if (text) synced.push({ time, text });
+      }
+    }
+    synced.sort((a, b) => a.time - b.time);
+    const plainText = synced.length > 0 ? synced.map((s) => s.text).join('\n') : localLyricsText;
+    const data: LyricsData = {
+      songId: currentItem?.uri || title,
+      title,
+      artist,
+      lyrics: plainText,
+      syncedLyrics: synced,
+      source: 'lrc',
+      cachedAt: Date.now(),
+    };
+    LyricsService.cache(data);
+    setLyricsData(data);
+    setShowLocalLyrics(false);
+    setLocalLyricsText('');
+  }, [localLyricsText, currentItem, extractedMeta]);
+
   const handleStopAndClose = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
@@ -382,7 +438,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
   const quickActions = useMemo(
     () => [
       { icon: Queue, label: 'Queue', onPress: () => setShowQueue(true) },
-      { icon: Microphone, label: 'Lyrics', onPress: handleToggleLyrics, active: showLyrics },
+      { icon: 'lyrics', label: 'Lyrics', onPress: handleToggleLyrics, active: showLyrics },
       { icon: SlidersHorizontal, label: 'Equalizer', onPress: () => setShowEq(true) },
       { icon: Info, label: 'Details', onPress: () => setShowDetails(true) },
     ],
@@ -423,7 +479,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       <TouchableOpacity
         onPress={handleStopAndClose}
         className="h-10 w-10 items-center justify-center rounded-full"
-        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+        accessibilityLabel="Close player"
+        accessibilityRole="button">
         <CaretDown size={22} color={dynamicTextColor} weight="bold" />
       </TouchableOpacity>
       <Text
@@ -434,7 +492,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       <TouchableOpacity
         onPress={() => setShowMenu(true)}
         className="h-10 w-10 items-center justify-center rounded-full"
-        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+        accessibilityLabel="More options"
+        accessibilityRole="button">
         <DotsThreeVertical size={22} color={dynamicTextColor} weight="bold" />
       </TouchableOpacity>
     </View>
@@ -463,7 +523,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               {isVideo ? (
                 <VideoCamera size={64} color={palette.primary} weight="bold" />
               ) : (
-                <MusicNote size={64} color={palette.primary} weight="bold" />
+                <Image
+                  source={require('../assets/note.png')}
+                  style={{ width: 64, height: 64, tintColor: palette.primary }}
+                />
               )}
             </View>
           )}
@@ -510,7 +573,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         <TouchableOpacity
           onPress={seekBack10}
           hitSlop={16}
-          className="h-8 w-8 items-center justify-center">
+          className="h-8 w-8 items-center justify-center"
+          accessibilityLabel="Seek back 10 seconds"
+          accessibilityRole="button">
           <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>
             {'\u23EE'}
           </Text>
@@ -532,7 +597,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         <TouchableOpacity
           onPress={seekFwd10}
           hitSlop={16}
-          className="h-8 w-8 items-center justify-center">
+          className="h-8 w-8 items-center justify-center"
+          accessibilityLabel="Seek forward 10 seconds"
+          accessibilityRole="button">
           <Text style={{ color: dynamicMutedColor, fontSize: 16, fontWeight: '700' }}>
             {'\u23ED'}
           </Text>
@@ -551,19 +618,21 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
 
   const renderControls = () => (
     <View className="mb-6 flex-row items-center justify-center gap-6">
-      <TouchableOpacity onPress={toggleShuffle} className="h-10 w-10 items-center justify-center">
+      <TouchableOpacity onPress={toggleShuffle} className="h-10 w-10 items-center justify-center" accessibilityLabel="Toggle shuffle" accessibilityRole="button">
         <ShuffleAngular
           size={20}
           color={shuffle ? palette.accentColor : dynamicMutedColor}
           weight={shuffle ? 'fill' : 'regular'}
         />
       </TouchableOpacity>
-      <TouchableOpacity onPress={handlePrev} className="h-12 w-12 items-center justify-center">
+      <TouchableOpacity onPress={handlePrev} className="h-12 w-12 items-center justify-center" accessibilityLabel="Previous track" accessibilityRole="button">
         <SkipBack size={26} color={dynamicTextColor} weight="fill" />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={togglePlay}
         className="items-center justify-center"
+        accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+        accessibilityRole="button"
         style={{
           width: 80,
           height: 80,
@@ -581,10 +650,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
           <Play size={34} color={buttonIconColor} weight="fill" />
         )}
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleNext} className="h-12 w-12 items-center justify-center">
+      <TouchableOpacity onPress={handleNext} className="h-12 w-12 items-center justify-center" accessibilityLabel="Next track" accessibilityRole="button">
         <SkipForward size={26} color={dynamicTextColor} weight="fill" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={cycleRepeat} className="h-10 w-10 items-center justify-center">
+      <TouchableOpacity onPress={cycleRepeat} className="h-10 w-10 items-center justify-center" accessibilityLabel="Toggle repeat" accessibilityRole="button">
         {repeat === 'one' ? (
           <RepeatOnce size={20} color={palette.accentColor} weight="fill" />
         ) : repeat === 'all' ? (
@@ -609,11 +678,19 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
             borderWidth: action.active ? 1 : 0,
             borderColor: action.active ? palette.accentColor : 'transparent',
           }}>
-          <action.icon
-            size={16}
-            color={action.active ? palette.accentColor : dynamicMutedColor}
-            weight={action.active ? 'fill' : 'regular'}
-          />
+          {action.icon === 'lyrics' ? (
+            <Image
+              source={require('../assets/lyrics.png')}
+              style={{ width: 16, height: 16, tintColor: action.active ? palette.accentColor : dynamicMutedColor }}
+            />
+          ) : (() => {
+            const Icon = action.icon as React.ComponentType<{ size: number; color: string; weight: string }>;
+            return <Icon
+              size={16}
+              color={action.active ? palette.accentColor : dynamicMutedColor}
+              weight={action.active ? 'fill' : 'regular'}
+            />;
+          })()}
           <Text
             style={{
               color: action.active ? palette.accentColor : dynamicMutedColor,
@@ -627,20 +704,67 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     </View>
   );
 
+  const lyricsRef = useRef<ScrollView>(null);
+  const [activeLyricsIdx, setActiveLyricsIdx] = useState(-1);
+
+  const currentLyricsIdx = useMemo(() => {
+    if (!lyricsData?.syncedLyrics || lyricsData.syncedLyrics.length === 0) return -1;
+    const posMs = position * 1000;
+    let idx = -1;
+    for (let i = 0; i < lyricsData.syncedLyrics.length; i++) {
+      if (lyricsData.syncedLyrics[i].time <= posMs) idx = i;
+      else break;
+    }
+    return idx;
+  }, [lyricsData, position]);
+
+  useEffect(() => {
+    if (currentLyricsIdx >= 0 && currentLyricsIdx !== activeLyricsIdx) {
+      setActiveLyricsIdx(currentLyricsIdx);
+      lyricsRef.current?.scrollTo?.({ y: currentLyricsIdx * 36, animated: true });
+    }
+  }, [currentLyricsIdx, activeLyricsIdx]);
+
   const renderLyricsView = () => {
     if (!showLyrics) return null;
+    const hasSynced = lyricsData?.syncedLyrics && lyricsData.syncedLyrics.length > 0;
+    const plainLines = lyricsData?.lyrics?.split('\n') || [];
+
     return (
       <Animated.View className="flex-1 px-6" style={{ marginTop: 12 }}>
+        <View className="mb-3 flex-row items-center justify-end gap-3">
+          <TouchableOpacity
+            className="h-8 w-8 items-center justify-center rounded-full"
+            style={{ backgroundColor: `${palette.accentColor}18` }}
+            onPress={() => {
+              setLyricsSearchQuery(currentItem?.name.replace(/\.[^.]+$/, '') || '');
+              setShowLyricsSearch(true);
+            }}
+            accessibilityLabel="Search lyrics online"
+            accessibilityRole="button">
+            <MagnifyingGlass size={16} color={palette.accentColor} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-8 w-8 items-center justify-center rounded-full"
+            style={{ backgroundColor: `${palette.accentColor}18` }}
+            onPress={() => setShowLocalLyrics(true)}
+            accessibilityLabel="Paste local lyrics"
+            accessibilityRole="button">
+            <Plus size={16} color={palette.accentColor} />
+          </TouchableOpacity>
+        </View>
+
         {lyricsLoading ? (
           <View className="items-center py-10">
             <Text style={{ color: dynamicMutedColor, fontSize: 15 }}>Loading lyrics...</Text>
           </View>
-        ) : lyricsData?.lyrics ? (
+        ) : hasSynced ? (
           <ScrollView
+            ref={lyricsRef}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}>
-            {lyricsData.lyrics.split('\n').map((line, idx) => {
-              const isCurrent = false;
+            {lyricsData!.syncedLyrics.map((line, idx) => {
+              const isCurrent = idx === activeLyricsIdx;
               return (
                 <Text
                   key={idx}
@@ -652,10 +776,27 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
                     lineHeight: isCurrent ? 36 : 28,
                     marginBottom: 8,
                   }}>
-                  {line || '\u00A0'}
+                  {line.text || '\u00A0'}
                 </Text>
               );
             })}
+          </ScrollView>
+        ) : plainLines.length > 0 ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}>
+            {plainLines.map((line, idx) => (
+              <Text
+                key={idx}
+                style={{
+                  color: dynamicMutedColor,
+                  fontSize: 16,
+                  lineHeight: 28,
+                  marginBottom: 8,
+                }}>
+                {line || '\u00A0'}
+              </Text>
+            ))}
           </ScrollView>
         ) : (
           <View className="items-center gap-3 py-10">
@@ -664,7 +805,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               style={{ width: 36, height: 36, tintColor: palette.accentColor }}
             />
             <Text style={{ color: dynamicMutedColor, fontSize: 14, textAlign: 'center' }}>
-              No lyrics available for this track.
+              No lyrics available.{'\n'}Tap + to paste or search.
             </Text>
           </View>
         )}
@@ -730,7 +871,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
             {menuItems.map((item, i) => (
               <TouchableOpacity
                 key={i}
-                className="flex-row items-center rounded-xl px-2 py-3.5 active:bg-white/5"
+                className="flex-row items-center rounded-xl px-2 py-3.5 active:opacity-70"
                 onPress={item.action}>
                 <View
                   className="h-10 w-10 items-center justify-center rounded-full"
@@ -868,7 +1009,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               </View>
               <ScrollView className="mb-4 max-h-[200px]">
-                {playlistStore.playlists.map((pl) => (
+                {playlists.map((pl) => (
                   <TouchableOpacity
                     key={pl.id}
                     className="flex-row items-center border-b border-white/[0.06] py-3"
@@ -884,7 +1025,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
                     </View>
                   </TouchableOpacity>
                 ))}
-                {playlistStore.playlists.length === 0 && (
+                {playlists.length === 0 && (
                   <Text className="py-5 text-center text-sm" style={{ color: dynamicMutedColor }}>
                     No playlists yet
                   </Text>
@@ -952,6 +1093,131 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
         {/* EQ Screen */}
         <EqualizerScreen visible={showEq} onClose={() => setShowEq(false)} />
 
+        {/* Lyrics Search Modal */}
+        <Modal visible={showLyricsSearch} transparent animationType="fade">
+          <TouchableOpacity
+            className="flex-1 items-center justify-center bg-black/70"
+            onPress={() => setShowLyricsSearch(false)}>
+            <View
+              className="w-[85%] max-w-[360px] rounded-[28px] p-6"
+              style={{
+                borderWidth: 1,
+                borderColor: palette.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: palette.isDark ? '#27272a' : '#ffffff',
+              }}>
+              <Text
+                className="mb-4 text-center text-lg font-extrabold"
+                style={{ color: dynamicTextColor }}>
+                Search Lyrics
+              </Text>
+              <TextInput
+                className="mb-4 rounded-xl px-3.5 py-3 text-sm"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  color: dynamicTextColor,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                }}
+                placeholder="Artist - Title"
+                placeholderTextColor={dynamicMutedColor}
+                value={lyricsSearchQuery}
+                onChangeText={setLyricsSearchQuery}
+                autoFocus
+                selectTextOnFocus
+              />
+              <Text className="mb-4 text-xs" style={{ color: dynamicMutedColor }}>
+                Format: &quot;Artist - Title&quot; or just title
+              </Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  className="flex-1 items-center rounded-xl py-3"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                  onPress={() => setShowLyricsSearch(false)}>
+                  <Text className="text-[15px] font-bold" style={{ color: dynamicTextColor }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 items-center rounded-xl py-3"
+                  style={{ backgroundColor: palette.accentColor }}
+                  onPress={handleLyricsSearch}>
+                  <Text
+                    className="text-[15px] font-bold"
+                    style={{ color: palette.isDark ? '#ffffff' : '#000000' }}>
+                    {lyricsLoading ? 'Searching...' : 'Search'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Local Lyrics Input Modal */}
+        <Modal visible={showLocalLyrics} transparent animationType="fade">
+          <TouchableOpacity
+            className="flex-1 items-center justify-center bg-black/70"
+            activeOpacity={1}
+            onPress={() => setShowLocalLyrics(false)}>
+            <TouchableOpacity
+              activeOpacity={1}
+              className="w-[90%] max-w-[400px] rounded-[28px] p-6"
+              style={{
+                borderWidth: 1,
+                borderColor: palette.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: palette.isDark ? '#27272a' : '#ffffff',
+              }}>
+              <Text
+                className="mb-2 text-center text-lg font-extrabold"
+                style={{ color: dynamicTextColor }}>
+                Paste Lyrics
+              </Text>
+              <Text className="mb-4 text-center text-xs" style={{ color: dynamicMutedColor }}>
+                Supports plain text or LRC format with timestamps
+              </Text>
+              <TextInput
+                className="mb-4 rounded-xl px-3.5 py-3 text-sm"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  color: dynamicTextColor,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  height: 180,
+                  textAlignVertical: 'top',
+                }}
+                placeholder="[00:12.34] Paste lyrics here..."
+                placeholderTextColor={dynamicMutedColor}
+                value={localLyricsText}
+                onChangeText={setLocalLyricsText}
+                multiline
+                autoFocus
+              />
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  className="flex-1 items-center rounded-xl py-3"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                  onPress={() => {
+                    setShowLocalLyrics(false);
+                    setLocalLyricsText('');
+                  }}>
+                  <Text className="text-[15px] font-bold" style={{ color: dynamicTextColor }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 items-center rounded-xl py-3"
+                  style={{ backgroundColor: palette.accentColor }}
+                  onPress={handleSaveLocalLyrics}>
+                  <Text
+                    className="text-[15px] font-bold"
+                    style={{ color: palette.isDark ? '#ffffff' : '#000000' }}>
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
         {/* Details Sheet */}
         <BottomSheet
           visible={showDetails}
@@ -1006,36 +1272,6 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
               </View>
             ))}
           </View>
-        </BottomSheet>
-
-        {/* Lyrics Sheet (kept for non-inline mode) */}
-        <BottomSheet
-          visible={showLyrics && !showLyrics}
-          onClose={() => setShowLyrics(false)}
-          title="Lyrics">
-          {lyricsLoading ? (
-            <View className="items-center py-6">
-              <Text className="text-sm" style={{ color: dynamicMutedColor }}>
-                Loading lyrics...
-              </Text>
-            </View>
-          ) : lyricsData?.lyrics ? (
-            <ScrollView className="max-h-[300px] px-5" showsVerticalScrollIndicator>
-              <Text className="text-sm leading-6" style={{ color: dynamicTextColor }}>
-                {lyricsData.lyrics}
-              </Text>
-            </ScrollView>
-          ) : (
-            <View className="items-center gap-3 py-6">
-              <Image
-                source={require('../assets/lyrics.png')}
-                style={{ width: 32, height: 32, tintColor: palette.accentColor }}
-              />
-              <Text className="text-center text-sm" style={{ color: dynamicMutedColor }}>
-                No lyrics available for this track.
-              </Text>
-            </View>
-          )}
         </BottomSheet>
       </View>
     </EdgeLighting>

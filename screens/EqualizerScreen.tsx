@@ -303,7 +303,7 @@ export function EqualizerScreen({ visible, onClose }: { visible: boolean; onClos
                   alignItems: 'center',
                   backgroundColor: primaryColor,
                 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#18181b' }}>Done</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: isDarkMode ? '#18181b' : '#ffffff' }}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>

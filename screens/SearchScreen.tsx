@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useAppNavigation } from '../hooks/useAppNavigation';
@@ -25,6 +25,12 @@ export const SearchScreen = React.memo(function SearchScreen() {
   const [isFocused, setIsFocused] = useState(false);
   const { data: searchHistory = [] } = useSearchHistoryQuery();
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
 
   const rawResults = useSearchQuery(query);
   const results = useMemo(() => {

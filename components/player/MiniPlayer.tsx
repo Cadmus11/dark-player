@@ -6,8 +6,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useColorAwareness } from '../../context/ColorAwarenessContext';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { ThemedText } from '../ThemedText';
+import { hapticMedium, hapticLight } from '../../utils/haptics';
 
-export function MiniPlayer() {
+export const MiniPlayer = React.memo(function MiniPlayer() {
   const navigation = useAppNavigation();
   const { textColor, mutedColor, primaryColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
@@ -84,7 +85,9 @@ export function MiniPlayer() {
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
           style={{ backgroundColor: `${accentColor}15` }}
-          onPress={isPlaying ? pause : resume}>
+          onPress={() => { hapticMedium(); if (isPlaying) pause(); else resume(); }}
+          accessibilityLabel={isPlaying ? 'Pause video' : 'Play video'}
+          accessibilityRole="button">
           {isPlaying ? (
             <Pause size={18} color={accentColor} weight="fill" />
           ) : (
@@ -93,15 +96,19 @@ export function MiniPlayer() {
         </TouchableOpacity>
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
-          onPress={handleExpand}>
+          onPress={() => { hapticLight(); handleExpand(); }}
+          accessibilityLabel="Expand video player"
+          accessibilityRole="button">
           <ArrowsOut size={18} color={txtColor} />
         </TouchableOpacity>
         <TouchableOpacity
           className="h-9 w-9 items-center justify-center rounded-full"
-          onPress={handleClose}>
+          onPress={() => { hapticMedium(); handleClose(); }}
+          accessibilityLabel="Close mini player"
+          accessibilityRole="button">
           <X size={18} color={muteColor} />
         </TouchableOpacity>
       </View>
     </View>
   );
-}
+});

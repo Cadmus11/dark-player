@@ -13,6 +13,7 @@ import {
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Plus, Queue } from 'phosphor-react-native';
 import { usePlaylistStore } from '../stores/playlistStore';
+import { usePlaybackStore } from '../stores/playbackStore';
 import { useExpandedPlaylists } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -24,7 +25,9 @@ import type { Playlist } from '../types';
 export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
   const navigation = useAppNavigation();
   const playlists = useExpandedPlaylists();
-  const playlistStore = usePlaylistStore();
+  const createPlaylist = usePlaylistStore((s) => s.create);
+  const renamePlaylist = usePlaylistStore((s) => s.rename);
+  const deletePlaylist = usePlaylistStore((s) => s.delete);
   const { textColor, mutedColor, primaryColor, isDarkMode, borderColor, cardBg } = useTheme();
   const [showPlaylistInput, setShowPlaylistInput] = useState(false);
   const [playlistInput, setPlaylistInput] = useState('');
@@ -36,7 +39,7 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
 
   const handlePlaylistCreateConfirm = async () => {
     if (playlistInput.trim()) {
-      await playlistStore.create(playlistInput.trim());
+      await createPlaylist(playlistInput.trim());
     }
     setShowPlaylistInput(false);
     setPlaylistInput('');
@@ -52,13 +55,13 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
               'Rename Playlist',
               'Enter new name',
               async (name) => {
-                if (name?.trim()) playlistStore.rename(playlist.id, name.trim());
+                if (name?.trim()) renamePlaylist(playlist.id, name.trim());
               },
               'plain-text',
               playlist.name
             );
           } else {
-            playlistStore.rename(playlist.id, `${playlist.name} (edited)`);
+            renamePlaylist(playlist.id, `${playlist.name} (edited)`);
           }
         },
       },
@@ -66,7 +69,7 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          playlistStore.delete(playlist.id);
+          deletePlaylist(playlist.id);
         },
       },
       { text: 'Cancel', style: 'cancel' },
@@ -104,7 +107,12 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
                   paddingVertical: 20,
                   paddingHorizontal: 12,
                 }}
-                onPress={() => navigation.navigate('MusicTab')}
+                onPress={() => {
+                  if (playlist.files.length > 0) {
+                    usePlaybackStore.getState().play(playlist.files[0], playlist.files, 0);
+                    navigation.navigate('MusicPlayer', { file: playlist.files[0] });
+                  }
+                }}
                 onLongPress={() => handlePlaylistLongPress(playlist)}>
                 {playlist.coverUri ? (
                   <View
@@ -198,7 +206,7 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
                 className="flex-1 items-center rounded-xl py-3"
                 style={{ backgroundColor: primaryColor }}
                 onPress={handlePlaylistCreateConfirm}>
-                <Text className="text-sm font-bold" style={{ color: '#18181b' }}>
+                <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#18181b' : '#ffffff' }}>
                   Create
                 </Text>
               </TouchableOpacity>

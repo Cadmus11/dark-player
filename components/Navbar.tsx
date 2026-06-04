@@ -12,6 +12,7 @@ import {
 } from 'phosphor-react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useTheme } from '../context/ThemeContext';
+import { hapticLight } from '../utils/haptics';
 
 const TABS = [
   { key: 'MusicTab', route: 'MusicTab', icon: MusicNote, label: 'Music' },
@@ -29,7 +30,7 @@ const TABS = [
     route: 'FolderList',
     icon: FolderSimple,
     label: 'Folders',
-    params: { title: 'Folders', filterType: 'recent' as const },
+    params: { title: 'Folders', filterType: 'folders' as const },
   },
   {
     key: 'Artists',
@@ -63,12 +64,16 @@ export function Navbar() {
             className="mr-2 flex-row items-center rounded-full px-4 py-1.5"
             style={isActive ? { backgroundColor: primaryColor + '20' } : { opacity: 0.6 }}
             onPress={() => {
+              hapticLight();
               if ('params' in tab && tab.params) {
                 navigation.navigate(tab.route as any, tab.params as any);
               } else {
                 navigation.navigate(tab.route as any);
               }
-            }}>
+            }}
+            accessibilityLabel={tab.label}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}>
             <Icon
               size={15}
               color={isActive ? primaryColor : mutedColor}

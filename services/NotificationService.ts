@@ -11,7 +11,7 @@ function getNotificationSettings(): NotificationSettings {
   try {
     const raw = storage.getString('@settings_notifications');
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch (e) { console.warn('[NotificationService]', e); }
   return { newMediaNotification: true, pushNotification: true };
 }
 

@@ -13,6 +13,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { ThemedText } from '../components/ThemedText';
+import { hapticLight } from '../utils/haptics';
 import type { FolderFilterType } from '../types';
 
 interface CoreItem {
@@ -39,7 +40,7 @@ const CORE_ITEMS: CoreItem[] = [
     key: 'lyrics',
     icon: (c) => <MicrophoneStage size={24} color={c} weight="fill" />,
     label: 'With Lyrics',
-    filterType: 'recent',
+    filterType: 'lyrics',
   },
   {
     key: 'top',
@@ -51,19 +52,19 @@ const CORE_ITEMS: CoreItem[] = [
     key: 'albums',
     icon: (c) => <VinylRecord size={24} color={c} weight="fill" />,
     label: 'Albums',
-    filterType: 'recent',
+    filterType: 'albums',
   },
   {
     key: 'artists',
     icon: (c) => <User size={24} color={c} weight="fill" />,
     label: 'Artists',
-    filterType: 'recent',
+    filterType: 'artists',
   },
   {
     key: 'folders',
     icon: (c) => <Folder size={24} color={c} weight="fill" />,
     label: 'Folders',
-    filterType: 'recent',
+    filterType: 'folders',
   },
 ];
 
@@ -96,9 +97,12 @@ export const CorePage = React.memo(function CorePage() {
                 marginRight: index % 2 === 0 ? 8 : 0,
               },
             ]}
-            onPress={() =>
-              navigation.navigate('FolderList', { title: item.label, filterType: item.filterType })
-            }>
+            onPress={() => {
+              hapticLight();
+              navigation.navigate('FolderList', { title: item.label, filterType: item.filterType });
+            }}
+            accessibilityLabel={item.label}
+            accessibilityRole="button">
             <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
               {item.icon(primaryColor)}
             </View>

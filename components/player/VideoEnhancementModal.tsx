@@ -9,6 +9,7 @@ import {
   SunDim,
 } from 'phosphor-react-native';
 import type { VideoEnhancementSettings, VideoQualityTarget } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -34,6 +35,7 @@ export function VideoEnhancementModal({
   fileUri,
   primaryColor,
 }: Props) {
+  const { textColor, mutedColor, cardBg, borderColor: themeBorderColor, isDarkMode } = useTheme();
   const [settings, setSettings] = useState<VideoEnhancementSettings>(currentSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   useEffect(() => {
@@ -82,11 +84,11 @@ export function VideoEnhancementModal({
         activeOpacity={1}>
         <TouchableOpacity
           className="max-h-[85%] rounded-t-[28px] pb-[40] pt-5"
-          style={{ backgroundColor: '#18181b' }}
+          style={{ backgroundColor: cardBg }}
           activeOpacity={1}>
           <View className="mb-4 flex-row items-center px-5">
             <MagicWand size={22} color={primaryColor} weight="bold" />
-            <Text className="ml-2.5 flex-1 text-lg font-extrabold text-white">
+            <Text className="ml-2.5 flex-1 text-lg font-extrabold" style={{ color: textColor }}>
               Video Enhancement
             </Text>
             <TouchableOpacity onPress={onClose}>
@@ -99,7 +101,7 @@ export function VideoEnhancementModal({
           <ScrollView className="px-5" showsVerticalScrollIndicator={false}>
             <Text
               className="mb-2.5 text-[11px] font-bold tracking-[1]"
-              style={{ color: '#a1a1aa' }}>
+              style={{ color: mutedColor }}>
               QUALITY UPSCALE
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -110,21 +112,21 @@ export function VideoEnhancementModal({
                     key={opt.target}
                     className="min-w-[45%] flex-1 items-center gap-1 rounded-xl border p-3.5"
                     style={{
-                      borderColor: isSelected ? primaryColor : '#27272a',
-                      backgroundColor: isSelected ? `${primaryColor}12` : '#1a1a1e',
+                      borderColor: isSelected ? primaryColor : themeBorderColor,
+                      backgroundColor: isSelected ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                     }}
                     onPress={() => setQualityTarget(opt.target)}>
                     <ImageSquare
                       size={20}
-                      color={isSelected ? primaryColor : '#e4e4e7'}
+                      color={isSelected ? primaryColor : textColor}
                       weight={isSelected ? 'fill' : 'regular'}
                     />
                     <Text
                       className="mt-1 text-[13px] font-bold"
-                      style={{ color: isSelected ? primaryColor : '#e4e4e7' }}>
+                      style={{ color: isSelected ? primaryColor : textColor }}>
                       {opt.label}
                     </Text>
-                    <Text className="text-[10px]" style={{ color: '#71717a' }}>
+                    <Text className="text-[10px]" style={{ color: mutedColor }}>
                       {opt.description}
                     </Text>
                   </TouchableOpacity>
@@ -134,28 +136,28 @@ export function VideoEnhancementModal({
 
             <Text
               className="mb-2.5 mt-5 text-[11px] font-bold tracking-[1]"
-              style={{ color: '#a1a1aa' }}>
+              style={{ color: mutedColor }}>
               ENHANCEMENT FILTERS
             </Text>
             <View className="flex-row flex-wrap gap-2">
               <TouchableOpacity
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
-                  borderColor: settings.colorEnhancement ? primaryColor : '#27272a',
-                  backgroundColor: settings.colorEnhancement ? `${primaryColor}12` : '#1a1a1e',
+                  borderColor: settings.colorEnhancement ? primaryColor : themeBorderColor,
+                  backgroundColor: settings.colorEnhancement ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('colorEnhancement')}>
                 <PaintBrush
                   size={22}
-                  color={settings.colorEnhancement ? primaryColor : '#e4e4e7'}
+                  color={settings.colorEnhancement ? primaryColor : textColor}
                   weight={settings.colorEnhancement ? 'fill' : 'regular'}
                 />
                 <Text
                   className="mt-1 text-[13px] font-bold"
-                  style={{ color: settings.colorEnhancement ? primaryColor : '#e4e4e7' }}>
+                  style={{ color: settings.colorEnhancement ? primaryColor : textColor }}>
                   Color Boost
                 </Text>
-                <Text className="text-[10px]" style={{ color: '#71717a' }}>
+                <Text className="text-[10px]" style={{ color: mutedColor }}>
                   Enhance vibrance
                 </Text>
               </TouchableOpacity>
@@ -163,21 +165,21 @@ export function VideoEnhancementModal({
               <TouchableOpacity
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
-                  borderColor: settings.sharpening ? primaryColor : '#27272a',
-                  backgroundColor: settings.sharpening ? `${primaryColor}12` : '#1a1a1e',
+                  borderColor: settings.sharpening ? primaryColor : themeBorderColor,
+                  backgroundColor: settings.sharpening ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('sharpening')}>
                 <Sparkle
                   size={22}
-                  color={settings.sharpening ? primaryColor : '#e4e4e7'}
+                  color={settings.sharpening ? primaryColor : textColor}
                   weight={settings.sharpening ? 'fill' : 'regular'}
                 />
                 <Text
                   className="mt-1 text-[13px] font-bold"
-                  style={{ color: settings.sharpening ? primaryColor : '#e4e4e7' }}>
+                  style={{ color: settings.sharpening ? primaryColor : textColor }}>
                   Sharpen
                 </Text>
-                <Text className="text-[10px]" style={{ color: '#71717a' }}>
+                <Text className="text-[10px]" style={{ color: mutedColor }}>
                   Detail clarity
                 </Text>
               </TouchableOpacity>
@@ -185,21 +187,21 @@ export function VideoEnhancementModal({
               <TouchableOpacity
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
-                  borderColor: settings.denoise ? primaryColor : '#27272a',
-                  backgroundColor: settings.denoise ? `${primaryColor}12` : '#1a1a1e',
+                  borderColor: settings.denoise ? primaryColor : themeBorderColor,
+                  backgroundColor: settings.denoise ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('denoise')}>
                 <Waveform
                   size={22}
-                  color={settings.denoise ? primaryColor : '#e4e4e7'}
+                  color={settings.denoise ? primaryColor : textColor}
                   weight={settings.denoise ? 'fill' : 'regular'}
                 />
                 <Text
                   className="mt-1 text-[13px] font-bold"
-                  style={{ color: settings.denoise ? primaryColor : '#e4e4e7' }}>
+                  style={{ color: settings.denoise ? primaryColor : textColor }}>
                   Denoise
                 </Text>
-                <Text className="text-[10px]" style={{ color: '#71717a' }}>
+                <Text className="text-[10px]" style={{ color: mutedColor }}>
                   Reduce noise
                 </Text>
               </TouchableOpacity>
@@ -207,21 +209,21 @@ export function VideoEnhancementModal({
               <TouchableOpacity
                 className="w-[47%] items-center gap-1 rounded-xl border p-3.5"
                 style={{
-                  borderColor: settings.hdr ? primaryColor : '#27272a',
-                  backgroundColor: settings.hdr ? `${primaryColor}12` : '#1a1a1e',
+                  borderColor: settings.hdr ? primaryColor : themeBorderColor,
+                  backgroundColor: settings.hdr ? `${primaryColor}12` : isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                 }}
                 onPress={() => toggleSetting('hdr')}>
                 <SunDim
                   size={22}
-                  color={settings.hdr ? primaryColor : '#e4e4e7'}
+                  color={settings.hdr ? primaryColor : textColor}
                   weight={settings.hdr ? 'fill' : 'regular'}
                 />
                 <Text
                   className="mt-1 text-[13px] font-bold"
-                  style={{ color: settings.hdr ? primaryColor : '#e4e4e7' }}>
+                  style={{ color: settings.hdr ? primaryColor : textColor }}>
                   HDR Tone
                 </Text>
-                <Text className="text-[10px]" style={{ color: '#71717a' }}>
+                <Text className="text-[10px]" style={{ color: mutedColor }}>
                   Wide dynamic range
                 </Text>
               </TouchableOpacity>
@@ -229,7 +231,7 @@ export function VideoEnhancementModal({
 
             <TouchableOpacity
               className="mb-2.5 mt-5 flex-row items-center justify-center gap-2 rounded-xl py-3.5"
-              style={{ backgroundColor: hasEnhancements ? primaryColor : '#27272a' }}
+              style={{ backgroundColor: hasEnhancements ? primaryColor : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
               onPress={handleApply}
               disabled={isProcessing || !hasEnhancements}>
               {isProcessing ? (
@@ -238,12 +240,12 @@ export function VideoEnhancementModal({
                 <>
                   <MagicWand
                     size={18}
-                    color={hasEnhancements ? '#0a0a0a' : '#71717a'}
+                    color={hasEnhancements ? '#0a0a0a' : mutedColor}
                     weight="bold"
                   />
                   <Text
                     className="text-[15px] font-bold"
-                    style={{ color: hasEnhancements ? '#0a0a0a' : '#71717a' }}>
+                    style={{ color: hasEnhancements ? '#0a0a0a' : mutedColor }}>
                     {hasEnhancements ? 'Apply Enhancement' : 'Select enhancement options'}
                   </Text>
                 </>

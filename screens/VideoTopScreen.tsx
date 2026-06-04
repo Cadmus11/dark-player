@@ -112,13 +112,13 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
               style={{
                 width: CARD_WIDTH,
                 marginRight: 10,
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                 borderColor: borderColor,
                 borderWidth: 1,
               }}
               onPress={() => navigateToFile(video)}>
               <View
-                style={{ height: CARD_HEIGHT * 0.6, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                style={{ height: CARD_HEIGHT * 0.6, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}>
                 {video.thumbnail ? (
                   <Image
                     source={{ uri: video.thumbnail }}

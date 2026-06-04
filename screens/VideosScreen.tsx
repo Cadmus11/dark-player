@@ -9,9 +9,11 @@ import { ThemedText } from '../components/ThemedText';
 import { Sorting } from '../services/Sorting';
 import { SortModal } from '../components/SortModal';
 import FileGrid from '../components/FileGrid';
+import { SkeletonCard } from '../components/SkeletonLoader';
 
 export const VideosScreen = React.memo(function VideosScreen() {
   const videos = useMediaStore((s) => s.videos);
+  const loading = useMediaStore((s) => s.loading);
   const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
   const [sortField, setSortField] = useState<SortField>('date');
@@ -54,26 +56,36 @@ export const VideosScreen = React.memo(function VideosScreen() {
         <ThemedText variant="h1">Videos</ThemedText>
       </View>
       <View className="flex-1">
-        <SortModal
-          visible={showSortModal}
-          onClose={() => setShowSortModal(false)}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          onSelect={handleSortSelect}
-          primaryColor={primaryColor}
-          textColor={textColor}
-          mutedColor={mutedColor}
-          isDarkMode={isDarkMode}
-        />
-        <FileGrid
-          data={sortedVideos}
-          onPress={navigateToFile}
-          primaryColor={primaryColor}
-          textColor={textColor}
-          mutedColor={mutedColor}
-          emptyMessage="No videos found"
-          hideName
-        />
+        {loading && videos.length === 0 ? (
+          <View className="flex-row flex-wrap px-3 pt-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </View>
+        ) : (
+          <>
+            <SortModal
+              visible={showSortModal}
+              onClose={() => setShowSortModal(false)}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSelect={handleSortSelect}
+              primaryColor={primaryColor}
+              textColor={textColor}
+              mutedColor={mutedColor}
+              isDarkMode={isDarkMode}
+            />
+            <FileGrid
+              data={sortedVideos}
+              onPress={navigateToFile}
+              primaryColor={primaryColor}
+              textColor={textColor}
+              mutedColor={mutedColor}
+              emptyMessage="No videos found"
+              hideName
+            />
+          </>
+        )}
       </View>
     </ScreenLayout>
   );
