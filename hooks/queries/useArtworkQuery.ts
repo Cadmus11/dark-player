@@ -1,14 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from './queryKeys';
-import { artworkService } from '../../services/ArtworkService';
-import { staleTimes } from './QueryProvider';
-
-export function useArtworkQuery(uri: string, fileName?: string) {
-  return useQuery({
-    queryKey: queryKeys.artwork.byUri(uri),
-    queryFn: () => artworkService.getArtwork(uri, fileName),
-    staleTime: staleTimes.artwork,
-    gcTime: staleTimes.artwork * 2,
-    enabled: !!uri,
-  });
-}
+// useArtworkQuery was removed. Artwork loading is now handled by
+// useArtworkColors + the ArtworkService singleton, which already manages
+// its own in-memory + disk cache. See components/ArtworkGlow.tsx and
+// hooks/useArtworkColors.ts.
+export {};

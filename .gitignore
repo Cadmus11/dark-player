@@ -55,9 +55,13 @@ yarn-error.*
 # Coverage / Testing
 coverage/
 .nyc_output/
+.opencode/*
+.opencode/
 
 # Agent instructions (AI-generated, environment-specific)
 AGENTS.md
+.opencode/tmp
+
 
 # Lock files (optional - uncomment if you want to ignore)
 # package-lock.json

@@ -323,10 +323,14 @@ export async function downloadBackupFromDrive(token: string, fileId: string): Pr
 }
 
 export async function deleteDriveBackup(token: string, fileId: string): Promise<void> {
-  await fetch(`${DRIVE_BASE}/files/${fileId}`, {
+  const res = await fetch(`${DRIVE_BASE}/files/${fileId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Drive delete error ${res.status}: ${text}`);
+  }
 }
 
 export async function uploadMediaToDrive(

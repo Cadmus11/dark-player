@@ -30,14 +30,13 @@ export const LyricsService = {
     const cached = this.getCached(songId);
     if (cached) return cached;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
       const resp = await fetch(
         `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`,
         { signal: controller.signal }
       );
-      clearTimeout(timeout);
       if (resp.ok) {
         const data = await resp.json();
         const lyricsData: LyricsData = {
@@ -54,6 +53,8 @@ export const LyricsService = {
       }
     } catch (e) {
       console.warn('[LyricsService]', e);
+    } finally {
+      clearTimeout(timeout);
     }
 
     return {

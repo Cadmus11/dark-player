@@ -1,22 +1,10 @@
 import { useCallback, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { StorageService } from '../services/StorageService';
-import { useFavoritesQuery } from './queries/useStorageQueries';
-import { queryKeys } from './queries/queryKeys';
+import { useFavoritesQuery, useToggleFavoriteMutation } from './queries/useStorageQueries';
 import type { FileItem } from '../types';
 
 export function useFavorites(allFiles: FileItem[]) {
-  const queryClient = useQueryClient();
   const { data: favoriteUris = [] } = useFavoritesQuery();
-
-  const toggleFavorite = useCallback(
-    async (uri: string) => {
-      const updated = await StorageService.toggleFavorite(uri);
-      queryClient.setQueryData(queryKeys.storage.favorites(), updated);
-      return updated;
-    },
-    [queryClient]
-  );
+  const toggleMutation = useToggleFavoriteMutation();
 
   const isFavorite = useCallback((uri: string) => favoriteUris.includes(uri), [favoriteUris]);
 
@@ -25,5 +13,12 @@ export function useFavorites(allFiles: FileItem[]) {
     [allFiles, favoriteUris]
   );
 
-  return { favoriteUris, favoriteFiles, toggleFavorite, isFavorite };
+  return {
+    favoriteUris,
+    favoriteFiles,
+    isFavorite,
+    toggleFavorite: toggleMutation.mutate,
+    toggleFavoriteAsync: toggleMutation.mutateAsync,
+    isToggling: toggleMutation.isPending,
+  };
 }

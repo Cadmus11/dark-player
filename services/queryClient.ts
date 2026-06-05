@@ -24,14 +24,18 @@ export function createPersistedQueryClient(): QueryClient {
       queries: {
         retry: 2,
         refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
         staleTime: 5 * 60 * 1000,
         gcTime: 24 * 60 * 60 * 1000,
+      },
+      mutations: {
+        retry: 0,
       },
     },
   });
 }
 
-export function getPersistedQueryClient(): QueryClient {
+export function getQueryClient(): QueryClient {
   if (!_queryClient) {
     _queryClient = createPersistedQueryClient();
   }

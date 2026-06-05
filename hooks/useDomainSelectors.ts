@@ -8,12 +8,10 @@ import {
   useRecentlyPlayedQuery,
   useSearchHistoryQuery,
 } from './queries/useStorageQueries';
-import { usePlaylistsQuery } from './queries/usePlaylistQuery';
 import type {
   FileItem,
   Category,
   Playlist,
-  PlaylistData,
   RecentlyPlayed,
   SavedSearch,
 } from '../types';
@@ -75,11 +73,11 @@ function useFilesByUri(): Map<string, FileItem> {
 
 export function useExpandedPlaylists(): Playlist[] {
   const filesByUri = useFilesByUri();
-  const { data: playlists } = usePlaylistsQuery();
+  const playlists = usePlaylistStore((s) => s.playlists);
 
   return useMemo(
     () =>
-      (playlists ?? []).map((p: PlaylistData) => {
+      playlists.map((p) => {
         const files = p.songIds.map((uri) => filesByUri.get(uri)).filter(Boolean) as FileItem[];
         return {
           id: p.id,
