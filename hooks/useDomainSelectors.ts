@@ -8,13 +8,7 @@ import {
   useRecentlyPlayedQuery,
   useSearchHistoryQuery,
 } from './queries/useStorageQueries';
-import type {
-  FileItem,
-  Category,
-  Playlist,
-  RecentlyPlayed,
-  SavedSearch,
-} from '../types';
+import type { FileItem, Category, Playlist, RecentlyPlayed, SavedSearch } from '../types';
 
 export function useCategories(): Category[] {
   const videos = useMediaStore((s) => s.videos);

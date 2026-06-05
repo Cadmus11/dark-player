@@ -114,9 +114,7 @@ export function useClearSearchHistoryMutation() {
     mutationFn: () => StorageService.clearSearchHistory(),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.storage.searchHistory() });
-      const previous = queryClient.getQueryData<SavedSearch[]>(
-        queryKeys.storage.searchHistory()
-      );
+      const previous = queryClient.getQueryData<SavedSearch[]>(queryKeys.storage.searchHistory());
       queryClient.setQueryData<SavedSearch[]>(queryKeys.storage.searchHistory(), []);
       return { previous };
     },
