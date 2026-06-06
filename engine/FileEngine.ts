@@ -1,11 +1,10 @@
-import * as MediaLibrary from 'expo-media-library';
 import { MMKV } from 'react-native-mmkv';
 import { Platform } from 'react-native';
 import type { FileItem, FileType } from '../types';
 import { permissionService } from '../services/PermissionService';
 import { CancellationToken, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
-import { getInfoAsync } from 'expo-file-system/legacy';
+import { scanMedia } from '../services/MediaScanner';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -69,17 +68,17 @@ export class FileEngine {
     return FileEngine.instance;
   }
 
+  getFileType(fileName: string): FileType {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    return EXTENSION_MAP[ext] || 'other';
+  }
+
   getArtColor(name: string): string {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return ART_COLORS[Math.abs(hash) % ART_COLORS.length];
-  }
-
-  getFileType(fileName: string): FileType {
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    return EXTENSION_MAP[ext] || 'other';
   }
 
   formatFileSize(bytes?: number): string {
@@ -207,101 +206,13 @@ export class FileEngine {
     }
   }
 
-  /** Batch-resolve missing file sizes with limited concurrency */
-  private async _resolveMissingSizes(
-    assets: { uri: string; fileSize?: number }[],
-    token: CancellationToken
-  ): Promise<Map<string, number>> {
-    const missing = assets.map((a) => a.uri).filter((_, i) => !assets[i].fileSize);
-    const result = new Map<string, number>();
-    if (missing.length === 0) return result;
-
-    const CONCURRENCY = 5;
-    for (let start = 0; start < missing.length; start += CONCURRENCY) {
-      token.throwIfCancelled();
-      const batch = missing.slice(start, start + CONCURRENCY);
-      const settled = await Promise.allSettled(
-        batch.map(async (uri) => {
-          const info = await getInfoAsync(uri);
-          return { uri, size: info.exists ? info.size : undefined };
-        })
-      );
-      for (const s of settled) {
-        if (s.status === 'fulfilled' && s.value.size) {
-          result.set(s.value.uri, s.value.size);
-        }
-      }
-    }
-    return result;
-  }
-
   private async _getMediaFiles(
     type: 'video' | 'audio',
     token: CancellationToken
   ): Promise<FileItem[]> {
     try {
-      const mediaType = type === 'audio' ? 'audio' : 'video';
-      const PAGE_SIZE = 200;
-      const MAX_PAGES = 50;
-      const assets: MediaLibrary.Asset[] = [];
-      let after: string | undefined;
-      for (let page = 0; page < MAX_PAGES; page++) {
-        token.throwIfCancelled();
-        const pageInfo: MediaLibrary.PagedInfo<MediaLibrary.Asset> =
-          await MediaLibrary.getAssetsAsync({
-            mediaType,
-            first: PAGE_SIZE,
-            sortBy: ['creationTime'],
-            ...(after ? { after } : {}),
-          });
-        if (pageInfo.assets.length === 0) break;
-        assets.push(...pageInfo.assets);
-        if (!pageInfo.hasNextPage) break;
-        after = pageInfo.endCursor;
-      }
-
-      token.throwIfCancelled();
-
-      const missingSizes = await this._resolveMissingSizes(assets, token);
-
-      const items: FileItem[] = assets.map((asset) => {
-        const size = (asset as any).fileSize ?? missingSizes.get(asset.uri);
-        return {
-          uri: asset.uri,
-          name: asset.filename,
-          type,
-          assetId: asset.id,
-          modifiedAt: asset.modificationTime * 1000,
-          createdAt: asset.creationTime * 1000,
-          thumbnail: type === 'video' ? asset.uri : undefined,
-          duration: asset.duration ? asset.duration * 1000 : undefined,
-          artColor: this.getArtColor(asset.filename),
-          size,
-        };
-      });
-
-      if (type === 'audio') {
-        const itemsByUri = new Map(items.map((it) => [it.uri, it]));
-        const LRC_BATCH = 20;
-        for (let i = 0; i < items.length; i += LRC_BATCH) {
-          token.throwIfCancelled();
-          const batch = items.slice(i, i + LRC_BATCH);
-          const results = await Promise.allSettled(
-            batch.map(async (item) => {
-              const lrcPath = item.uri.replace(/\.[^.]+$/, '.lrc');
-              const info = await getInfoAsync(lrcPath);
-              return { uri: item.uri, exists: info.exists };
-            })
-          );
-          for (const r of results) {
-            if (r.status === 'fulfilled' && r.value.exists) {
-              const item = itemsByUri.get(r.value.uri);
-              if (item) item.hasLyrics = true;
-            }
-          }
-        }
-      }
-      return items;
+      const result = await scanMedia({ type, token, resolveLrc: type === 'audio' });
+      return result.items;
     } catch (e) {
       if (isCancelled(e)) throw e;
       return [];

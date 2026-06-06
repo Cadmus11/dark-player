@@ -22,6 +22,10 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.blockList = [/react-native-css-interop\/\.cache\/.*/];
 
+config.resolver.sourceExts = Array.from(
+  new Set([...(config.resolver.sourceExts || []), 'wasm'])
+);
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === 'web' && moduleName === '@gorhom/bottom-sheet') {
     return {

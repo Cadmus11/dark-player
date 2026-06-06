@@ -5,6 +5,9 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { linking } from './navigation/linking';
+import { loadNavigationState, saveNavigationState } from './navigation/persistence';
+import { setupNavigation } from './navigation/setup';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorAwarenessProvider } from './context/ColorAwarenessContext';
@@ -157,6 +160,7 @@ export default function App() {
 
     lifecycleManager.initialize();
     startHydration();
+    setupNavigation();
     notificationService.setup().catch(console.error);
     return () => {
       lifecycleManager.cleanup();
@@ -170,8 +174,9 @@ export default function App() {
     performance?.mark?.('navigation-ready');
   }, []);
 
-  const handleStateChange = useCallback(() => {
+  const handleStateChange = useCallback((state: any) => {
     performance?.mark?.('navigation-state-change');
+    saveNavigationState(state);
   }, []);
 
   return (
@@ -187,7 +192,10 @@ export default function App() {
                       <OverlayProvider>
                         <NavigationContainer
                           onReady={handleNavigationReady}
-                          onStateChange={handleStateChange}>
+                          onStateChange={handleStateChange}
+                          linking={linking}
+                          initialState={loadNavigationState()}
+                          fallback={<ScreenFallback />}>
                           <Suspense fallback={<ScreenFallback />}>
                             <Stack.Navigator screenOptions={screenOptions}>
                               <Stack.Screen name="MainTabs" component={MainTabs} />
