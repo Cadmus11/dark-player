@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, FileItem, SortField, SortDirection } from '../types';
 import { CaretLeft, VideoCamera, MusicNote, FunnelSimple } from 'phosphor-react-native';
 import { useMediaStore } from '../stores/mediaStore';
-import { usePlaybackStore } from '../stores/playbackStore';
+import { useAudioEngine } from '../hooks/useAudioEngine';
 import { useTheme } from '../context/ThemeContext';
 import { formatDuration, formatFileSize } from '../services/FileService';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -21,13 +21,16 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   audio: MusicNote,
 };
 
-export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
+export const CategoryScreen = React.memo(function CategoryScreen({
+  navigation,
+  route,
+}: CategoryScreenProps) {
   const { type, title, icon } = route.params;
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
   const loading = useMediaStore((s) => s.loading);
   const { textColor, mutedColor, isDarkMode, primaryColor } = useTheme();
-  const currentFile = usePlaybackStore((s) => s.currentFile);
+  const currentFile = useAudioEngine((s) => s.currentFile);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -191,4 +194,4 @@ export function CategoryScreen({ navigation, route }: CategoryScreenProps) {
       />
     </ScreenLayout>
   );
-}
+});

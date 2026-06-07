@@ -1,10 +1,14 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { parseBuffer } from 'music-metadata-browser';
-import { DatabaseService } from '../DatabaseService';
+import { MMKV } from 'react-native-mmkv';
 import { eventBus, AppEvents } from '../EventBus';
 import type { MediaMetadata } from '../../types';
 
+const metaStorage = new MMKV({ id: 'metadata-cache' });
+
 export const ARTWORK_DIR = (FileSystem.cacheDirectory || '') + 'metadata_artwork/';
+
+const META_PREFIX = '@meta_';
 
 function computeArtworkHash(uri: string): string {
   return uri
@@ -98,14 +102,12 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
   return btoa(parts.join(''));
 }
 
-const MAX_METADATA_READ_BYTES = 2 * 1024 * 1024; // 2MB — metadata headers are within this
+const MAX_METADATA_READ_BYTES = 2 * 1024 * 1024;
 
 async function readFileBase64(uri: string): Promise<string> {
-  // Try partial read first (faster for large files, metadata is in the header)
   try {
     const info = await FileSystem.getInfoAsync(uri);
     if (info.exists && info.size && info.size > MAX_METADATA_READ_BYTES) {
-      // For files > 2MB, attempt to read first 2MB via fetch Range request
       const resp = await fetch(uri, {
         headers: { Range: `bytes=0-${MAX_METADATA_READ_BYTES - 1}` },
       });
@@ -122,7 +124,6 @@ async function readFileBase64(uri: string): Promise<string> {
   } catch (e) {
     console.warn('[MetadataService]', e);
   }
-  // Fallback to full file read
   return FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
@@ -130,7 +131,7 @@ async function readFileBase64(uri: string): Promise<string> {
 
 export const MetadataService = {
   async extract(uri: string, name: string): Promise<MediaMetadata> {
-    const cached = await this.getCached(uri);
+    const cached = this.getCached(uri);
     if (cached) {
       if (cached.artwork) eventBus.emit(AppEvents.ARTWORK_LOADED, uri, cached.artwork);
       return cached;
@@ -197,7 +198,7 @@ export const MetadataService = {
       if (parsed.artist && !metadata.artist) metadata.artist = parsed.artist;
     }
 
-    await this.cache(uri, metadata);
+    this.cache(uri, metadata);
     return metadata;
   },
 
@@ -216,12 +217,17 @@ export const MetadataService = {
     }
   },
 
-  async cache(uri: string, metadata: MediaMetadata) {
-    await DatabaseService.cacheMetadata(uri, metadata);
+  cache(uri: string, metadata: MediaMetadata) {
+    metaStorage.set(META_PREFIX + uri, JSON.stringify(metadata));
   },
 
-  async getCached(uri: string): Promise<MediaMetadata | null> {
-    return DatabaseService.getCachedMetadata(uri);
+  getCached(uri: string): MediaMetadata | null {
+    try {
+      const data = metaStorage.getString(META_PREFIX + uri);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
   },
 
   async getArtworkPath(uri: string): Promise<string | null> {
@@ -235,6 +241,7 @@ export const MetadataService = {
     } catch (e) {
       console.warn('[MetadataService]', e);
     }
-    await DatabaseService.clearMetadataCache();
+    const keys = metaStorage.getAllKeys();
+    keys.filter((k) => k.startsWith(META_PREFIX)).forEach((k) => metaStorage.delete(k));
   },
 };

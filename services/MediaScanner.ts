@@ -5,35 +5,13 @@ import type { FileItem, FileType } from '../types';
 import { CancellationToken, isCancelled } from './Cancellation';
 import { withRetry } from './RetryService';
 import { eventBus, AppEvents } from './EventBus';
+import { getArtColor } from '../utils/file-type';
 
 const PAGE_SIZE = 200;
 const MAX_PAGES = 50;
 const SIZE_CONCURRENCY = 4;
 const LRC_CONCURRENCY = 12;
 const SCAN_TIMEOUT_MS = 60_000;
-
-const ART_COLORS = [
-  '#00E5FF',
-  '#3B82F6',
-  '#8B5CF6',
-  '#22D3EE',
-  '#A855F7',
-  '#38BDF8',
-  '#F97316',
-  '#22C55E',
-  '#EF4444',
-  '#FB7185',
-  '#00F5D4',
-  '#00FF66',
-];
-
-function getArtColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ART_COLORS[Math.abs(hash) % ART_COLORS.length];
-}
 
 export interface MediaScanOptions {
   type: 'video' | 'audio';

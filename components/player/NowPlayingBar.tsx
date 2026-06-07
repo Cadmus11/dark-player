@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Image } from 'react-native';
 import { Play, Pause, SkipForward, X } from 'phosphor-react-native';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useAudioEngine, audioEngine } from '../../hooks/useAudioEngine';
 import { useTheme } from '../../context/ThemeContext';
 import { useColorAwareness } from '../../context/ColorAwarenessContext';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
@@ -12,21 +12,22 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
   const navigation = useAppNavigation();
   const { textColor, mutedColor, cardBg, borderColor, primaryColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
-  const state = usePlaybackStore((s) => {
-    if (s.source !== 'music' || !s.currentFile) return null;
+  const state = useAudioEngine((s) => {
+    if (!s.currentFile) return null;
     return {
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,
-      progress: s.progress,
-      pause: s.pause,
-      resume: s.resume,
-      next: s.next,
-      stop: s.stop,
+      progress: s.duration > 0 ? s.position / s.duration : 0,
     };
   });
 
   if (!state) return null;
-  const { currentFile, isPlaying, progress, pause, resume, next, stop } = state;
+  const { currentFile, isPlaying, progress } = state;
+
+  const pause = () => audioEngine.pause();
+  const resume = () => audioEngine.resume();
+  const next = () => audioEngine.next();
+  const stop = () => audioEngine.stop();
 
   const handleOpenPlayer = () => {
     navigation.navigate('MusicPlayer', { file: currentFile });

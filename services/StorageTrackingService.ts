@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
-import { eventBus, AppEvents } from './EventBus';
+import { formatFileSize } from '../utils/format';
 
 export interface StorageSnapshot {
   deviceTotal: number;
@@ -44,14 +44,6 @@ function sumSizes(files: { size?: number }[]): number {
   return total;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
 export const StorageTrackingService = {
   async collectSnapshot(
     audio: { size?: number }[],
@@ -72,7 +64,6 @@ export const StorageTrackingService = {
     };
     _cached = snapshot;
     _lastFetch = Date.now();
-    eventBus.emit(AppEvents.SETTINGS_CHANGED);
     return snapshot;
   },
 
@@ -86,5 +77,5 @@ export const StorageTrackingService = {
     return this.collectSnapshot(audio, video);
   },
 
-  formatBytes,
+  formatBytes: formatFileSize,
 };

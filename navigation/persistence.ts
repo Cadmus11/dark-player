@@ -36,7 +36,3 @@ export function saveNavigationState(state: NavigationState | undefined): void {
     // quota or serialization issue: drop state, do not crash
   }
 }
-
-export function clearNavigationState(): void {
-  storage.delete(STATE_KEY);
-}

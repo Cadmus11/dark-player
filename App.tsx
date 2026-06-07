@@ -1,20 +1,20 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { enableScreens, enableFreeze, screensEnabled } from 'react-native-screens';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { NavigationContainer } from '@react-navigation/native';
+import type { NavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { linking } from './navigation/linking';
 import { loadNavigationState, saveNavigationState } from './navigation/persistence';
-import { setupNavigation } from './navigation/setup';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { ColorAwarenessProvider } from './context/ColorAwarenessContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { FontProvider } from './context/FontContext';
 import { OverlayProvider } from './services/OverlaySystem';
-import { QueryProvider } from './hooks/queries/QueryProvider';
 import { startHydration } from './services/HydrationService';
 import { lifecycleManager } from './services/LifecycleManager';
 import { notificationService } from './services/NotificationService';
@@ -158,9 +158,13 @@ export default function App() {
       },
     });
 
+    if (!screensEnabled()) {
+      enableScreens(true);
+    }
+    enableFreeze(true);
+
     lifecycleManager.initialize();
     startHydration();
-    setupNavigation();
     notificationService.setup().catch(console.error);
     return () => {
       lifecycleManager.cleanup();
@@ -174,7 +178,7 @@ export default function App() {
     performance?.mark?.('navigation-ready');
   }, []);
 
-  const handleStateChange = useCallback((state: any) => {
+  const handleStateChange = useCallback((state: NavigationState | undefined) => {
     performance?.mark?.('navigation-state-change');
     saveNavigationState(state);
   }, []);
@@ -183,76 +187,74 @@ export default function App() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <BottomSheetModalProvider>
-          <QueryProvider>
-            <ErrorBoundary>
-              <LanguageProvider>
-                <FontProvider>
-                  <ThemeProvider>
-                    <ColorAwarenessProvider>
-                      <OverlayProvider>
-                        <NavigationContainer
-                          onReady={handleNavigationReady}
-                          onStateChange={handleStateChange}
-                          linking={linking}
-                          initialState={loadNavigationState()}
-                          fallback={<ScreenFallback />}>
-                          <Suspense fallback={<ScreenFallback />}>
-                            <Stack.Navigator screenOptions={screenOptions}>
-                              <Stack.Screen name="MainTabs" component={MainTabs} />
-                              <Stack.Screen name="Category">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <CategoryScreen {...props} />
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                              <Stack.Screen name="FolderList">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <FolderScreen {...props} />
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                              <Stack.Screen name="VideoTop">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <VideoTopScreen {...props} />
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                              <Stack.Screen name="PrivateFolder">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <PrivateFolderScreen {...props} />
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                              <Stack.Screen name="VideoPlayer">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <PlayerBoundary>
-                                      <VideoPlayerScreen {...props} />
-                                    </PlayerBoundary>
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                              <Stack.Screen name="MusicPlayer">
-                                {(props) => (
-                                  <Suspense fallback={<ScreenFallback />}>
-                                    <MusicPlayerScreen {...props} />
-                                  </Suspense>
-                                )}
-                              </Stack.Screen>
-                            </Stack.Navigator>
-                          </Suspense>
-                        </NavigationContainer>
-                      </OverlayProvider>
-                    </ColorAwarenessProvider>
-                  </ThemeProvider>
-                </FontProvider>
-              </LanguageProvider>
-            </ErrorBoundary>
-          </QueryProvider>
+          <ErrorBoundary>
+            <LanguageProvider>
+              <FontProvider>
+                <ThemeProvider>
+                  <ColorAwarenessProvider>
+                    <OverlayProvider>
+                      <NavigationContainer
+                        onReady={handleNavigationReady}
+                        onStateChange={handleStateChange}
+                        linking={linking}
+                        initialState={loadNavigationState()}
+                        fallback={<ScreenFallback />}>
+                        <Suspense fallback={<ScreenFallback />}>
+                          <Stack.Navigator screenOptions={screenOptions}>
+                            <Stack.Screen name="MainTabs" component={MainTabs} />
+                            <Stack.Screen name="Category">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <CategoryScreen {...props} />
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="FolderList">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <FolderScreen {...props} />
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="VideoTop">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <VideoTopScreen {...props} />
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="PrivateFolder">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <PrivateFolderScreen {...props} />
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="VideoPlayer">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <PlayerBoundary>
+                                    <VideoPlayerScreen {...props} />
+                                  </PlayerBoundary>
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                            <Stack.Screen name="MusicPlayer">
+                              {(props) => (
+                                <Suspense fallback={<ScreenFallback />}>
+                                  <MusicPlayerScreen {...props} />
+                                </Suspense>
+                              )}
+                            </Stack.Screen>
+                          </Stack.Navigator>
+                        </Suspense>
+                      </NavigationContainer>
+                    </OverlayProvider>
+                  </ColorAwarenessProvider>
+                </ThemeProvider>
+              </FontProvider>
+            </LanguageProvider>
+          </ErrorBoundary>
         </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>

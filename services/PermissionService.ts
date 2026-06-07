@@ -1,6 +1,5 @@
 import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
-import { eventBus, AppEvents } from './EventBus';
 
 export type PermissionStatus =
   | 'UNKNOWN'
@@ -80,7 +79,6 @@ class PermissionServiceClass {
     }
 
     this._notify();
-    eventBus.emit(AppEvents.PERMISSIONS_CHANGED, this._state);
     return this._state.mediaLibrary;
   }
 
@@ -117,7 +115,6 @@ class PermissionServiceClass {
     }
 
     this._notify();
-    eventBus.emit(AppEvents.PERMISSIONS_CHANGED, this._state);
     return this._state.mediaLibrary;
   }
 

@@ -13,7 +13,7 @@ import {
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Plus, Queue } from 'phosphor-react-native';
 import { usePlaylistStore } from '../stores/playlistStore';
-import { usePlaybackStore } from '../stores/playbackStore';
+import { audioEngine } from '../engine/AudioEngine';
 import { useExpandedPlaylists } from '../hooks/useDomainSelectors';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -109,7 +109,7 @@ export const PlaylistsScreen = React.memo(function PlaylistsScreen() {
                 }}
                 onPress={() => {
                   if (playlist.files.length > 0) {
-                    usePlaybackStore.getState().play(playlist.files[0], playlist.files, 0);
+                    audioEngine.play(playlist.files[0], playlist.files, 0);
                     navigation.navigate('MusicPlayer', { file: playlist.files[0] });
                   }
                 }}

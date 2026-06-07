@@ -52,7 +52,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useColorAwareness } from '../context/ColorAwarenessContext';
 import { colorAwarenessEngine } from '../services/ColorAwarenessEngine';
 import { NeonSlider } from '../components/NeonSlider';
-import { fileEngine } from '../engine/FileEngine';
+import { formatDuration } from '../utils/format';
 import { videoEngine } from '../engine/VideoEngine';
 import { queueEngine } from '../engine/QueueEngine';
 import { HistoryService } from '../services/History/HistoryService';
@@ -582,7 +582,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               {/* Progress Bar */}
               <View className="mt-3 flex-row items-center gap-2 px-1">
                 <Text className="w-10 text-xs" style={{ color: mutedColor }}>
-                  {fileEngine.formatDuration(position)}
+                  {formatDuration(position)}
                 </Text>
                 <View className="flex-1">
                   <NeonSlider
@@ -594,7 +594,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                   />
                 </View>
                 <Text className="w-10 text-right text-xs" style={{ color: mutedColor }}>
-                  {fileEngine.formatDuration(duration)}
+                  {formatDuration(duration)}
                 </Text>
               </View>
             </View>
@@ -825,7 +825,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                     </View>
                     {item.duration ? (
                       <Text className="ml-2 text-xs" style={{ color: mutedColor }}>
-                        {fileEngine.formatDuration(item.duration)}
+                        {formatDuration(item.duration)}
                       </Text>
                     ) : null}
                   </TouchableOpacity>
@@ -1011,7 +1011,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               Duration
             </Text>
             <Text className="flex-[2] text-right text-sm" style={{ color: textColor }}>
-              {fileEngine.formatDuration(duration)}
+              {formatDuration(duration)}
             </Text>
           </View>
         </View>

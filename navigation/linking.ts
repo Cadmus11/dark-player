@@ -19,8 +19,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
       FolderList: 'folder/:title/:filterType',
       VideoTop: 'videos/top',
       PrivateFolder: 'private',
-      VideoPlayer: 'play/video/:fileUri',
-      MusicPlayer: 'play/music/:fileUri',
     },
   },
 };

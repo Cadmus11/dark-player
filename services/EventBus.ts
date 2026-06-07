@@ -1,29 +1,10 @@
 type EventHandler = (...args: any[]) => void;
 
 export const AppEvents = {
-  TRACK_CHANGED: 'track:changed',
-  PLAYBACK_STARTED: 'playback:started',
-  PLAYBACK_PAUSED: 'playback:paused',
-  PLAYBACK_STOPPED: 'playback:stopped',
-  PLAYBACK_FAILED: 'playback:failed',
-  SCAN_STARTED: 'scan:started',
   SCAN_COMPLETED: 'scan:completed',
   SCAN_FAILED: 'scan:failed',
-  QUEUE_CHANGED: 'queue:changed',
-  PERMISSIONS_CHANGED: 'permissions:changed',
   ARTWORK_LOADED: 'artwork:loaded',
-  ARTWORK_FAILED: 'artwork:failed',
   LIFECYCLE_FOREGROUND: 'lifecycle:foreground',
-  LIFECYCLE_BACKGROUND: 'lifecycle:background',
-  LIFECYCLE_INACTIVE: 'lifecycle:inactive',
-  SETTINGS_CHANGED: 'settings:changed',
-  FAVORITES_CHANGED: 'favorites:changed',
-  STORAGE_PRESSURE: 'storage:pressure',
-  MEMORY_WARNING: 'memory:warning',
-  HYDRATION_PHASE: 'hydration:phase',
-  COLOR_THEME_CHANGED: 'color:theme:changed',
-  ARTWORK_COLORS_EXTRACTED: 'artwork:colors:extracted',
-  MOOD_CHANGED: 'mood:changed',
 } as const;
 
 export type AppEvent = (typeof AppEvents)[keyof typeof AppEvents];

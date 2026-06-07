@@ -8,11 +8,13 @@ import { PrivateFolderService } from '../services/PrivateFolderService';
 import { useTheme } from '../context/ThemeContext';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FileIcon } from '../components/FileIcon';
-import { fileEngine } from '../engine/FileEngine';
+import { getArtColor } from '../utils/file-type';
 
 type PrivateFolderProps = NativeStackScreenProps<RootStackParamList, 'PrivateFolder'>;
 
-export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
+export const PrivateFolderScreen = React.memo(function PrivateFolderScreen({
+  navigation,
+}: PrivateFolderProps) {
   const { textColor, mutedColor, primaryColor, borderColor, isDarkMode } = useTheme();
   const [entries, setEntries] = useState<PrivateFileEntry[]>([]);
   const [unlocked, setUnlocked] = useState(false);
@@ -75,7 +77,7 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
         uri: entry.uri,
         name: entry.name,
         type: PrivateFolderService.inferType(entry.name),
-        artColor: fileEngine.getArtColor(entry.name),
+        artColor: getArtColor(entry.name),
       };
       if (file.type === 'video') {
         navigation.navigate('VideoPlayer', { file });
@@ -216,4 +218,4 @@ export function PrivateFolderScreen({ navigation }: PrivateFolderProps) {
       )}
     </ScreenLayout>
   );
-}
+});

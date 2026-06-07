@@ -1,6 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
 import type { FileItem, PlaylistData, RepeatMode } from '../types';
-import { eventBus, AppEvents } from '../services/EventBus';
 
 const storage = new MMKV({ id: 'queue-engine' });
 const PLAYLISTS_KEY = '@queue_playlists';
@@ -42,7 +41,6 @@ export class QueueEngine {
 
   private _notify() {
     this._listeners.forEach((cb) => cb());
-    eventBus.emit(AppEvents.QUEUE_CHANGED);
   }
 
   // --- Audio Queue ---

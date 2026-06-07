@@ -4,8 +4,8 @@ import { FlashList } from '@shopify/flash-list';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { MagnifyingGlass, Clock, X, VideoCamera, MusicNote } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useSearchQuery } from '../hooks/queries/useSearchQuery';
-import { useSearchHistoryQuery } from '../hooks/queries/useStorageQueries';
+import { useSearchQuery } from '../hooks/useSearchQuery';
+import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { SearchService } from '../services/Search/SearchService';
 import type { FileItem, FileType } from '../types';
 import { FileIcon } from '../components/FileIcon';
@@ -23,7 +23,12 @@ export const SearchScreen = React.memo(function SearchScreen() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileType | 'all'>('all');
   const [isFocused, setIsFocused] = useState(false);
-  const { data: searchHistory = [] } = useSearchHistoryQuery();
+  const searchHistory = useSearchHistoryStore((s) => s.searchHistory);
+  const loadSearchHistory = useSearchHistoryStore((s) => s.load);
+
+  React.useEffect(() => {
+    loadSearchHistory();
+  }, [loadSearchHistory]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

@@ -2,12 +2,9 @@ import { useMemo } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
 import { usePlaylistStore } from '../stores/playlistStore';
 import { useVisibleAudio } from './useVisibleAudio';
-import {
-  useFavoritesQuery,
-  useRecentFilesQuery,
-  useRecentlyPlayedQuery,
-  useSearchHistoryQuery,
-} from './queries/useStorageQueries';
+import { useFavoritesStore } from '../stores/favoritesStore';
+import { useRecentsStore } from '../stores/recentsStore';
+import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import type { FileItem, Category, Playlist, RecentlyPlayed, SavedSearch } from '../types';
 
 export function useCategories(): Category[] {
@@ -107,7 +104,7 @@ export function usePlaylistById(id: string): Playlist | undefined {
 
 export function useFavoriteFiles(): FileItem[] {
   const allFiles = useAllFiles();
-  const { data: favoriteUris = [] } = useFavoritesQuery();
+  const favoriteUris = useFavoritesStore((s) => s.favoriteUris);
 
   return useMemo(
     () => allFiles.filter((f) => favoriteUris.includes(f.uri)),
@@ -117,7 +114,7 @@ export function useFavoriteFiles(): FileItem[] {
 
 export function useRecentFiles(): FileItem[] {
   const allFiles = useAllFiles();
-  const { data: recentFiles = [] } = useRecentFilesQuery();
+  const recentFiles = useRecentsStore((s) => s.recentFiles);
 
   return useMemo(() => {
     const uriSet = new Set<string>();
@@ -127,11 +124,11 @@ export function useRecentFiles(): FileItem[] {
 }
 
 export function useRecentlyPlayed(): RecentlyPlayed[] {
-  const { data: recentlyPlayed = [] } = useRecentlyPlayedQuery();
+  const recentlyPlayed = useRecentsStore((s) => s.recentlyPlayed);
   return recentlyPlayed;
 }
 
 export function useSearchHistory(): SavedSearch[] {
-  const { data: searchHistory = [] } = useSearchHistoryQuery();
+  const searchHistory = useSearchHistoryStore((s) => s.searchHistory);
   return searchHistory;
 }

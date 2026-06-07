@@ -1,15 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
-import { fileEngine } from '../engine/FileEngine';
-import { useVideosQuery, useAudioQuery, useMediaScanMutation } from './queries/useMediaQuery';
 import type { SortField, SortDirection, FileItem } from '../types';
+import { formatFileSize, formatDuration } from '../utils/format';
 
 export function useMediaFiles() {
   const store = useMediaStore();
-
-  const videosQuery = useVideosQuery();
-  const audioQuery = useAudioQuery();
-  const scanMutation = useMediaScanMutation();
 
   const sortedBy = useCallback((field: SortField, direction: SortDirection, items: FileItem[]) => {
     const arr = [...items];
@@ -47,28 +42,25 @@ export function useMediaFiles() {
     return arr;
   }, []);
 
-  const formatSize = useCallback((bytes?: number) => fileEngine.formatFileSize(bytes), []);
-  const formatDuration = useCallback((ms?: number) => fileEngine.formatDuration(ms), []);
+  const formatSize = useCallback((bytes?: number) => formatFileSize(bytes), []);
+  const formatDurationFn = useCallback((ms?: number) => formatDuration(ms), []);
 
-  const allFiles = useMemo(
-    () => [...(videosQuery.data ?? store.videos), ...(audioQuery.data ?? store.audio)],
-    [videosQuery.data, audioQuery.data, store.videos, store.audio]
-  );
+  const allFiles = useMemo(() => [...store.videos, ...store.audio], [store.videos, store.audio]);
 
   return {
-    videos: videosQuery.data ?? store.videos,
-    audio: audioQuery.data ?? store.audio,
+    videos: store.videos,
+    audio: store.audio,
     allFiles,
-    loading: store.loading || videosQuery.isLoading || audioQuery.isLoading,
+    loading: store.loading,
     scanProgress: store.scanProgress,
     scanStage: store.scanStage,
     permissionsGranted: store.permissionsGranted,
-    error: store.error || videosQuery.error?.message || audioQuery.error?.message || null,
+    error: store.error,
 
-    scanMedia: scanMutation.mutateAsync as unknown as () => Promise<void>,
+    scanMedia: store.scanMedia,
     loadCache: store.loadCache,
     sortedBy,
     formatSize,
-    formatDuration,
+    formatDuration: formatDurationFn,
   };
 }

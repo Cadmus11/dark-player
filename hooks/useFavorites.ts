@@ -1,10 +1,15 @@
 import { useCallback, useMemo } from 'react';
-import { useFavoritesQuery, useToggleFavoriteMutation } from './queries/useStorageQueries';
+import { useFavoritesStore } from '../stores/favoritesStore';
 import type { FileItem } from '../types';
 
 export function useFavorites(allFiles: FileItem[]) {
-  const { data: favoriteUris = [] } = useFavoritesQuery();
-  const toggleMutation = useToggleFavoriteMutation();
+  const favoriteUris = useFavoritesStore((s) => s.favoriteUris);
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+  const loaded = useFavoritesStore((s) => s.loaded);
+
+  if (!loaded) {
+    useFavoritesStore.getState().load();
+  }
 
   const isFavorite = useCallback((uri: string) => favoriteUris.includes(uri), [favoriteUris]);
 
@@ -17,8 +22,7 @@ export function useFavorites(allFiles: FileItem[]) {
     favoriteUris,
     favoriteFiles,
     isFavorite,
-    toggleFavorite: toggleMutation.mutate,
-    toggleFavoriteAsync: toggleMutation.mutateAsync,
-    isToggling: toggleMutation.isPending,
+    toggleFavorite,
+    isToggling: false,
   };
 }

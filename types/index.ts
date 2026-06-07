@@ -324,12 +324,6 @@ export type FolderFilterType =
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
-  MusicTab: undefined;
-  VideosTab: undefined;
-  PlaylistsTab: undefined;
-  CoreTab: undefined;
-  SearchTab: undefined;
-  SettingsTab: undefined;
   Category: { type: FileType; title: string; icon: string };
   FolderList: { title: string; filterType: FolderFilterType };
   VideoTop: undefined;

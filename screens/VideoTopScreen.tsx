@@ -21,7 +21,9 @@ function scoreVideoQuality(v: FileItem): number {
   return bitrate * 1000 + durationScore;
 }
 
-export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
+export const VideoTopScreen = React.memo(function VideoTopScreen({
+  navigation,
+}: VideoTopScreenProps) {
   const videos = useMediaStore((s) => s.videos);
   const { textColor, mutedColor, primaryColor, borderColor, isDarkMode } = useTheme();
 
@@ -156,4 +158,4 @@ export function VideoTopScreen({ navigation }: VideoTopScreenProps) {
       </ScrollView>
     </ScreenLayout>
   );
-}
+});

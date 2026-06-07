@@ -1,5 +1,4 @@
 import { getColors } from 'react-native-image-colors';
-import { eventBus, AppEvents } from './EventBus';
 import type {
   RawArtworkPalette,
   ColorTheme,
@@ -186,10 +185,6 @@ class ColorAwarenessEngineClass {
         genre: metadata?.genre,
       };
 
-      eventBus.emit(AppEvents.ARTWORK_COLORS_EXTRACTED, this._state);
-      if (mood !== 'neutral') {
-        eventBus.emit(AppEvents.MOOD_CHANGED, mood);
-      }
       this._notify();
     } catch {
       this._state = { ...FALLBACK_STATE, artworkUri };

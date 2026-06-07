@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { Animated, Easing } from 'react-native';
 import { colorAwarenessEngine } from '../services/ColorAwarenessEngine';
-import { usePlaybackStore } from '../stores/playbackStore';
+import { useAudioEngine } from '../hooks/useAudioEngine';
 import type { ArtworkColorState, ColorTheme, EdgeLightingColors, MoodType } from '../types';
 
 interface ColorAwarenessContextType {
@@ -27,7 +27,7 @@ const ColorAwarenessContext = createContext<ColorAwarenessContextType | undefine
 export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ArtworkColorState>(() => colorAwarenessEngine.getState());
   const transitionAnim = useRef(new Animated.Value(0)).current;
-  const currentFile = usePlaybackStore((s) => s.currentFile);
+  const currentFile = useAudioEngine((s) => s.currentFile);
 
   const crossfadeProgress = transitionAnim.interpolate({
     inputRange: [0, 1],

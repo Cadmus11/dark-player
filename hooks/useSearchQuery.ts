@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useAllFiles } from '../useDomainSelectors';
-import { SearchService } from '../../services/Search/SearchService';
-import type { FileItem } from '../../types';
+import { useAllFiles } from './useDomainSelectors';
+import { SearchService } from '../services/Search/SearchService';
+import type { FileItem } from '../types';
 
 export function useSearchQuery(query: string): FileItem[] {
   const allFiles = useAllFiles();

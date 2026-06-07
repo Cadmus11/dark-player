@@ -5,6 +5,8 @@ import { permissionService } from '../services/PermissionService';
 import { CancellationToken, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
 import { scanMedia } from '../services/MediaScanner';
+import { getFileType, getArtColor } from '../utils/file-type';
+import { formatFileSize, formatDuration } from '../utils/format';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -16,38 +18,6 @@ const CACHE_KEYS = {
   version: '@fe_version',
   lastModified: '@fe_last_modified',
 };
-
-const EXTENSION_MAP: Record<string, FileType> = {
-  mp4: 'video',
-  mov: 'video',
-  avi: 'video',
-  mkv: 'video',
-  webm: 'video',
-  m4v: 'video',
-  mp3: 'audio',
-  wav: 'audio',
-  aac: 'audio',
-  flac: 'audio',
-  m4a: 'audio',
-  ogg: 'audio',
-  wma: 'audio',
-  opus: 'audio',
-};
-
-const ART_COLORS = [
-  '#00E5FF',
-  '#3B82F6',
-  '#8B5CF6',
-  '#22D3EE',
-  '#A855F7',
-  '#38BDF8',
-  '#F97316',
-  '#22C55E',
-  '#EF4444',
-  '#FB7185',
-  '#00F5D4',
-  '#00FF66',
-];
 
 type ScanCallback = (progress: number, stage: string) => void;
 
@@ -69,32 +39,19 @@ export class FileEngine {
   }
 
   getFileType(fileName: string): FileType {
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    return EXTENSION_MAP[ext] || 'other';
+    return getFileType(fileName);
   }
 
   getArtColor(name: string): string {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return ART_COLORS[Math.abs(hash) % ART_COLORS.length];
+    return getArtColor(name);
   }
 
   formatFileSize(bytes?: number): string {
-    if (!bytes || bytes === 0) return 'Unknown';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return formatFileSize(bytes);
   }
 
   formatDuration(ms?: number): string {
-    if (!ms) return '0:00';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return formatDuration(ms);
   }
 
   shouldRescan(): boolean {

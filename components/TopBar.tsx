@@ -18,7 +18,7 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
   return (
     <View>
       <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
-        <TouchableOpacity onPress={() => navigation.navigate('MusicTab')}>
+        <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'MusicTab' })}>
           <Text
             style={{
               fontFamily: 'Poppins',
@@ -50,7 +50,7 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
           <TouchableOpacity
             onPress={() => {
               hapticLight();
-              navigation.navigate('SearchTab');
+              navigation.navigate('MainTabs', { screen: 'SearchTab' });
             }}
             accessibilityLabel="Search"
             accessibilityRole="button">
@@ -59,7 +59,7 @@ export function TopBar({ onSortPress, sortLabel }: TopBarProps) {
           <TouchableOpacity
             onPress={() => {
               hapticLight();
-              navigation.navigate('SettingsTab');
+              navigation.navigate('MainTabs', { screen: 'SettingsTab' });
             }}
             accessibilityLabel="Settings"
             accessibilityRole="button">

@@ -35,10 +35,8 @@ class LifecycleManagerClass {
       eventBus.emit(AppEvents.LIFECYCLE_FOREGROUND);
     } else if (next === 'background') {
       this._lifecycleState = 'background';
-      eventBus.emit(AppEvents.LIFECYCLE_BACKGROUND);
     } else if (next === 'inactive') {
       this._lifecycleState = 'inactive';
-      eventBus.emit(AppEvents.LIFECYCLE_INACTIVE);
     }
 
     this._notify();

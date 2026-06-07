@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Image } from 'react-native';
 import { X, Play, Pause, ArrowsOut } from 'phosphor-react-native';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useAudioEngine, audioEngine } from '../../hooks/useAudioEngine';
 import { useTheme } from '../../context/ThemeContext';
 import { useColorAwareness } from '../../context/ColorAwarenessContext';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
@@ -12,22 +12,19 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
   const navigation = useAppNavigation();
   const { textColor, mutedColor, primaryColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
-  const state = usePlaybackStore((s) => {
-    if (s.source !== 'video' || !s.currentFile) return null;
+  const state = useAudioEngine((s) => {
+    if (!s.currentFile) return null;
     return {
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,
-      progress: s.progress,
-      pause: s.pause,
-      resume: s.resume,
-      stop: s.stop,
+      progress: s.duration > 0 ? s.position / s.duration : 0,
     };
   });
 
   if (!state) return null;
-  const { currentFile, isPlaying, progress, pause, resume, stop } = state;
+  const { currentFile, isPlaying, progress } = state;
 
-  const handleClose = () => stop();
+  const handleClose = () => audioEngine.stop();
 
   const handleExpand = () => {
     if (currentFile) {
@@ -90,8 +87,8 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
           style={{ backgroundColor: `${accentColor}15` }}
           onPress={() => {
             hapticMedium();
-            if (isPlaying) pause();
-            else resume();
+            if (isPlaying) audioEngine.pause();
+            else audioEngine.resume();
           }}
           accessibilityLabel={isPlaying ? 'Pause video' : 'Play video'}
           accessibilityRole="button">

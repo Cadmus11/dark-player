@@ -19,7 +19,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation';
 import { Microphone, CheckCircle } from 'phosphor-react-native';
 import { useVisibleAudio } from '../hooks/useVisibleAudio';
 import { usePlaylistStore } from '../stores/playlistStore';
-import { usePlaybackStore } from '../stores/playbackStore';
+import { useAudioEngine } from '../hooks/useAudioEngine';
 import { useTheme } from '../context/ThemeContext';
 import type { FileItem, SortField, SortDirection, FileAction } from '../types';
 import { ScreenLayout } from '../components/ScreenLayout';
@@ -48,7 +48,7 @@ export const MusicScreen = React.memo(function MusicScreen() {
   const audio = useVisibleAudio();
   const navigation = useAppNavigation();
   const { primaryColor, textColor, mutedColor, isDarkMode } = useTheme();
-  const currentFile = usePlaybackStore((s) => s.currentFile);
+  const currentFile = useAudioEngine((s) => s.currentFile);
   const loading = useMediaStore((s) => s.loading);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');

@@ -20,7 +20,7 @@ import {
 import { useMediaStore } from '../stores/mediaStore';
 import { useRecentlyPlayed } from '../hooks/useDomainSelectors';
 import { useFavorites } from '../hooks/useFavorites';
-import { usePlaybackStore } from '../stores/playbackStore';
+import { useAudioEngine } from '../hooks/useAudioEngine';
 import { useTheme } from '../context/ThemeContext';
 import { HistoryService } from '../services/History/HistoryService';
 import { formatDuration, formatFileSize } from '../services/FileService';
@@ -84,14 +84,17 @@ function getUnusedFiles(files: FileItem[]): FileItem[] {
   });
 }
 
-export function FolderScreen({ navigation, route }: FolderScreenProps) {
+export const FolderScreen = React.memo(function FolderScreen({
+  navigation,
+  route,
+}: FolderScreenProps) {
   const { title, filterType } = route.params;
   const videos = useMediaStore((s) => s.videos);
   const audio = useMediaStore((s) => s.audio);
   const loading = useMediaStore((s) => s.loading);
   const recentlyPlayed = useRecentlyPlayed();
   const { textColor, mutedColor, primaryColor, isDarkMode } = useTheme();
-  const currentFile = usePlaybackStore((s) => s.currentFile);
+  const currentFile = useAudioEngine((s) => s.currentFile);
   const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
   const { favoriteUris } = useFavorites(allFiles);
 
@@ -353,4 +356,4 @@ export function FolderScreen({ navigation, route }: FolderScreenProps) {
       />
     </ScreenLayout>
   );
-}
+});

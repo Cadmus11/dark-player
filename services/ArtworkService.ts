@@ -6,6 +6,7 @@ import {
   writeAsStringAsync,
 } from 'expo-file-system/legacy';
 import { eventBus, AppEvents } from './EventBus';
+import { getArtColor } from '../utils/file-type';
 
 interface MemoryCacheEntry {
   dataUri: string;
@@ -107,25 +108,7 @@ class ArtworkServiceClass {
   }
 
   private _generatePlaceholder(name: string): string {
-    const COLORS = [
-      '#00E5FF',
-      '#3B82F6',
-      '#8B5CF6',
-      '#22D3EE',
-      '#A855F7',
-      '#38BDF8',
-      '#F97316',
-      '#22C55E',
-      '#EF4444',
-      '#FB7185',
-      '#00F5D4',
-      '#00FF66',
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return COLORS[Math.abs(hash) % COLORS.length];
+    return getArtColor(name);
   }
 
   private _cacheInMemory(fileUri: string, dataUri: string): void {

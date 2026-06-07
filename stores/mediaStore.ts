@@ -4,7 +4,6 @@ import { fileEngine } from '../engine/FileEngine';
 import { permissionService } from '../services/PermissionService';
 import { taskManager, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
-import { usePlaybackStore } from './playbackStore';
 
 interface MediaStoreState {
   videos: FileItem[];
@@ -164,10 +163,5 @@ eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
     useMediaStore.setState({ videos });
   }
   fileEngine.setThumbnail(uri, artworkPath);
-  const playbackState = usePlaybackStore.getState();
-  if (playbackState.currentFile?.uri === uri) {
-    usePlaybackStore.setState({
-      currentFile: { ...playbackState.currentFile, thumbnail: artworkPath },
-    });
-  }
+  // Thumbnail updated in engine cache, no store sync needed
 });
