@@ -4,6 +4,9 @@ import { fileEngine } from '../engine/FileEngine';
 import { permissionService } from '../services/PermissionService';
 import { taskManager, isCancelled } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
+import { mediaRepository } from '../services/MediaRepository';
+import { searchIndex } from '../services/SearchIndex';
+import { collectionsIndex } from '../services/CollectionsIndex';
 
 interface MediaStoreState {
   videos: FileItem[];
@@ -40,12 +43,16 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
 
   loadCache: () => {
     const cached = fileEngine.loadFromCache();
+    mediaRepository.setAll(cached.videos, cached.audio);
     set({
       videos: cached.videos,
       audio: cached.audio,
       loading: false,
       permissionsGranted: permissionService.isGranted(),
+      hydrationStage: 2,
     });
+    searchIndex.buildChunked([...cached.audio, ...cached.videos]);
+    collectionsIndex.buildChunked(cached.audio, cached.videos);
   },
 
   scanMedia: async () => {
@@ -111,7 +118,6 @@ export const useMediaStore = create<MediaStoreState>((set, get) => ({
   },
 }));
 
-// Subscribe to permission changes — trigger scan when newly granted
 permissionService.subscribe(() => {
   const granted = permissionService.isGranted();
   const state = useMediaStore.getState();
@@ -123,7 +129,6 @@ permissionService.subscribe(() => {
   }
 });
 
-// Re-check permissions when app returns to foreground
 eventBus.on(AppEvents.LIFECYCLE_FOREGROUND, async () => {
   const state = useMediaStore.getState();
   const prevGranted = state.permissionsGranted;
@@ -135,7 +140,6 @@ eventBus.on(AppEvents.LIFECYCLE_FOREGROUND, async () => {
   }
 });
 
-// Subscribe to artwork loading to update thumbnails in real-time
 eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
   const state = useMediaStore.getState();
   const findInArray = (files: FileItem[]): number => {
@@ -163,5 +167,18 @@ eventBus.on(AppEvents.ARTWORK_LOADED, (uri: string, artworkPath: string) => {
     useMediaStore.setState({ videos });
   }
   fileEngine.setThumbnail(uri, artworkPath);
-  // Thumbnail updated in engine cache, no store sync needed
+  mediaRepository.updateThumbnail(uri, artworkPath);
+});
+
+eventBus.on(AppEvents.METADATA_PARSED, (uri: string, metadata: any) => {
+  mediaRepository.updateMetadata(uri, metadata);
+  searchIndex.updateFile(mediaRepository.getByUri(uri)!);
+  collectionsIndex.updateFile(mediaRepository.getByUri(uri)!);
+});
+
+eventBus.on(AppEvents.FILE_UPDATED, (uri: string, file: FileItem) => {
+  if (file) {
+    searchIndex.updateFile(file);
+    collectionsIndex.updateFile(file);
+  }
 });

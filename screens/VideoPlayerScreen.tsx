@@ -268,7 +268,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         player.play();
         HistoryService.resumePlaySession(file.uri);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[VideoPlayer] Playback toggle failed:', e);
+    }
   }, [isPlaying, player, file.uri]);
 
   const seekTo = useCallback(

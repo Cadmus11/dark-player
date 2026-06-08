@@ -1,12 +1,16 @@
 import { MMKV } from 'react-native-mmkv';
 import { Platform } from 'react-native';
-import type { FileItem, FileType } from '../types';
+import type { FileItem } from '../types';
 import { permissionService } from '../services/PermissionService';
-import { CancellationToken, isCancelled } from '../services/Cancellation';
+import { CancellationToken } from '../services/Cancellation';
 import { eventBus, AppEvents } from '../services/EventBus';
-import { scanMedia } from '../services/MediaScanner';
-import { getFileType, getArtColor } from '../utils/file-type';
-import { formatFileSize, formatDuration } from '../utils/format';
+import { fetchRawAssets } from '../services/RawAssetFetcher';
+import { processAssets } from '../services/MediaProcessor';
+import { mediaRepository } from '../services/MediaRepository';
+import { searchIndex } from '../services/SearchIndex';
+import { collectionsIndex } from '../services/CollectionsIndex';
+import { metadataQueue } from '../services/MetadataQueue';
+import { cacheManager } from '../services/CacheManager';
 
 const storage = new MMKV({ id: 'file-engine' });
 const CACHE_VERSION = 3;
@@ -38,20 +42,16 @@ export class FileEngine {
     return FileEngine.instance;
   }
 
-  getFileType(fileName: string): FileType {
-    return getFileType(fileName);
+  get repository() {
+    return mediaRepository;
   }
 
-  getArtColor(name: string): string {
-    return getArtColor(name);
+  get searchIdx() {
+    return searchIndex;
   }
 
-  formatFileSize(bytes?: number): string {
-    return formatFileSize(bytes);
-  }
-
-  formatDuration(ms?: number): string {
-    return formatDuration(ms);
+  get collections() {
+    return collectionsIndex;
   }
 
   shouldRescan(): boolean {
@@ -67,6 +67,9 @@ export class FileEngine {
 
   clearCache() {
     Object.values(CACHE_KEYS).forEach((k) => storage.delete(k));
+    mediaRepository.clearAll();
+    searchIndex.clear();
+    collectionsIndex.clear();
   }
 
   private _getLastModified(): number {
@@ -75,13 +78,6 @@ export class FileEngine {
 
   private _setLastModified(time: number) {
     storage.set(CACHE_KEYS.lastModified, time);
-  }
-
-  // Incremental scan support: detect changes since last scan
-  private _shouldIncrementalScan(): boolean {
-    const lastModified = this._getLastModified();
-    if (!lastModified) return false;
-    return Date.now() - lastModified < 7 * 24 * 60 * 60 * 1000;
   }
 
   async scanAll(
@@ -105,7 +101,6 @@ export class FileEngine {
     onProgress?.(0.15, 'Checking for changes...');
     ct.throwIfCancelled();
 
-    // Incremental: try cached first
     if (this.hasCache() && !this.shouldRescan()) {
       const cached = this.loadFromCache();
       this._state = {
@@ -113,31 +108,65 @@ export class FileEngine {
         audio: cached.audio,
         lastModified: this._getLastModified(),
       };
+      mediaRepository.setAll(cached.videos, cached.audio);
       onProgress?.(1, 'Done (cached)');
       return cached;
     }
 
-    onProgress?.(0.3, 'Scanning media library...');
+    onProgress?.(0.2, 'Fetching media assets...');
     ct.throwIfCancelled();
 
-    const [mediaVideos, mediaAudio] = await Promise.all([
-      this._getMediaFiles('video', ct),
-      this._getMediaFiles('audio', ct),
+    const [videoAssets, audioAssets] = await Promise.all([
+      fetchRawAssets('video', ct, (loaded, hasMore) => {
+        onProgress?.(0.2 + (loaded / 10000) * 0.3, `Fetching videos... ${loaded}`);
+      }),
+      fetchRawAssets('audio', ct, (loaded, hasMore) => {
+        onProgress?.(0.5 + (loaded / 10000) * 0.2, `Fetching audio... ${loaded}`);
+      }),
     ]);
 
     ct.throwIfCancelled();
-    onProgress?.(0.8, 'Caching results...');
+    onProgress?.(0.7, 'Processing files...');
 
-    this._saveCache(mediaVideos, mediaAudio);
-    this._state = { videos: mediaVideos, audio: mediaAudio, lastModified: Date.now() };
+    const [processedVideos, processedAudio] = await Promise.all([
+      processAssets(videoAssets.assets, ct),
+      processAssets(audioAssets.assets, ct),
+    ]);
+
+    ct.throwIfCancelled();
+    onProgress?.(0.85, 'Saving cache...');
+
+    mediaRepository.setAll(processedVideos, processedAudio);
+    this._saveCache(processedVideos, processedAudio);
+    this._state = {
+      videos: processedVideos,
+      audio: processedAudio,
+      lastModified: Date.now(),
+    };
     this._setLastModified(Date.now());
 
+    ct.throwIfCancelled();
     onProgress?.(1, 'Done');
+
     eventBus.emit(AppEvents.SCAN_COMPLETED, {
-      videos: mediaVideos.length,
-      audio: mediaAudio.length,
+      videos: processedVideos.length,
+      audio: processedAudio.length,
     });
-    return { videos: mediaVideos, audio: mediaAudio };
+
+    setTimeout(() => {
+      this._buildIndexes(processedVideos, processedAudio);
+      metadataQueue.enqueueBatch(processedAudio.slice(0, 200));
+      cacheManager.cleanup();
+    }, 500);
+
+    return { videos: processedVideos, audio: processedAudio };
+  }
+
+  private _buildIndexes(videos: FileItem[], audio: FileItem[]): void {
+    searchIndex.build([...audio, ...videos]);
+    collectionsIndex.build(audio, videos);
+    eventBus.emit(AppEvents.SEARCH_INDEX_REBUILT);
+    eventBus.emit(AppEvents.COLLECTION_BUILT);
   }
 
   loadFromCache(): { videos: FileItem[]; audio: FileItem[] } {
@@ -163,25 +192,14 @@ export class FileEngine {
     }
   }
 
-  private async _getMediaFiles(
-    type: 'video' | 'audio',
-    token: CancellationToken
-  ): Promise<FileItem[]> {
-    try {
-      const result = await scanMedia({ type, token, resolveLrc: type === 'audio' });
-      return result.items;
-    } catch (e) {
-      if (isCancelled(e)) throw e;
-      return [];
-    }
-  }
-
   async requestPermissions(): Promise<boolean> {
     await permissionService.requestMediaLibrary();
     return permissionService.isGranted();
   }
 
   setThumbnail(uri: string, thumbnail: string) {
+    mediaRepository.updateThumbnail(uri, thumbnail);
+
     const update = (files: FileItem[]) =>
       files.map((f) => (f.uri === uri ? { ...f, thumbnail } : f));
     const videos = update(this._getCached(CACHE_KEYS.videos));

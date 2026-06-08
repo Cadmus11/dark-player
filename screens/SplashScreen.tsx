@@ -20,12 +20,14 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     };
 
     if (useMediaStore.getState().hydrationStage >= 2) {
+      console.log('[SplashScreen] Already at hydrationStage >= 2, finishing.');
       done();
       return;
     }
 
     const unsub = useMediaStore.subscribe((s) => {
       if (s.hydrationStage >= 2) {
+        console.log('[SplashScreen] hydrationStage reached 2, fading out.');
         unsub();
         clearTimeout(forceTimeout);
         Animated.timing(fadeAnim, {

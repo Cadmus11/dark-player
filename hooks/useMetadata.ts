@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { MetadataService } from '../services/Metadata/MetadataService';
+import { mediaRepository } from '../services/MediaRepository';
+import { metadataQueue } from '../services/MetadataQueue';
+import { eventBus, AppEvents } from '../services/EventBus';
 import type { MediaMetadata } from '../types';
 
 export function useMetadata(uri: string, fileName: string) {
@@ -16,12 +19,13 @@ export function useMetadata(uri: string, fileName: string) {
 
     (async () => {
       try {
-        const cached = await MetadataService.getCached(uri);
+        const cached = mediaRepository.getMetadata(uri) || MetadataService.getCached(uri);
         if (!cancelled) {
           if (cached) {
             setMetadata(cached);
             setLoading(false);
           } else {
+            metadataQueue.enqueueCritical({ uri, name: fileName } as any);
             const extracted = await MetadataService.extract(uri, fileName);
             if (!cancelled) {
               setMetadata(extracted);
@@ -34,8 +38,19 @@ export function useMetadata(uri: string, fileName: string) {
       }
     })();
 
+    const unsubscribe = eventBus.on(
+      AppEvents.METADATA_PARSED,
+      (parsedUri: string, meta: MediaMetadata) => {
+        if (parsedUri === uri && !cancelled) {
+          setMetadata(meta);
+          setLoading(false);
+        }
+      }
+    );
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [uri, fileName]);
 

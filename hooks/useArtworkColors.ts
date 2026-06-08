@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getColors } from 'react-native-image-colors';
+import { hexToLuminance, contrastRatio, adjustBrightness, parseHex } from '../utils/color';
 
 export interface ArtworkPalette {
   primary: string;
@@ -11,37 +12,10 @@ export interface ArtworkPalette {
   accentColor: string;
 }
 
-function hexToLuminance(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-function contrastRatio(l1: number, l2: number): number {
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
 function bestTextColor(bg: string): string {
   const bgLum = hexToLuminance(bg);
   const whiteLum = hexToLuminance('#ffffff');
   return contrastRatio(whiteLum, bgLum) >= 4.5 ? '#ffffff' : '#000000';
-}
-
-function adjustBrightness(hex: string, amount: number): string {
-  const r = Math.min(255, Math.max(0, parseInt(hex.slice(1, 3), 16) + amount));
-  const g = Math.min(255, Math.max(0, parseInt(hex.slice(3, 5), 16) + amount));
-  const b = Math.min(255, Math.max(0, parseInt(hex.slice(5, 7), 16) + amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
-function parseHex(color: string): string {
-  if (!color || color === '#000000') return '#1a1a2e';
-  if (color.startsWith('#')) return color;
-  return `#${color}`;
 }
 
 const FALLBACK: ArtworkPalette = {

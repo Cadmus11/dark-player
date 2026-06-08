@@ -12,6 +12,7 @@ import {
   Share,
   PanResponder,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, LyricsData, MediaMetadata } from '../types';
@@ -295,7 +296,9 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       const hidden = useSettingsStore.getState().hiddenFiles;
       const exts = [...(hidden.hideExtensions || []), currentItem.name.split('.').pop() || ''];
       useSettingsStore.getState().updateHiddenFiles({ hideExtensions: [...new Set(exts)] });
-    } catch {}
+    } catch (e) {
+      console.warn('[MusicPlayer] Failed to hide:', e);
+    }
   }, [currentItem]);
 
   const handleDelete = useCallback(async () => {
@@ -305,7 +308,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
       const { StorageService } = await import('../services/StorageService');
       await StorageService.addToRecentlyDeleted(currentItem);
       await StorageService.moveToTrash(currentItem);
-    } catch {}
+    } catch (e) {
+      console.warn('[MusicPlayer] Failed to delete:', e);
+      Alert.alert('Error', 'Failed to delete file. Please try again.');
+    }
   }, [currentItem]);
 
   const handleToggleLyrics = useCallback(async () => {

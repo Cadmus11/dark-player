@@ -5,6 +5,14 @@ export const AppEvents = {
   SCAN_FAILED: 'scan:failed',
   ARTWORK_LOADED: 'artwork:loaded',
   LIFECYCLE_FOREGROUND: 'lifecycle:foreground',
+  METADATA_PARSED: 'metadata:parsed',
+  METADATA_BATCH_COMPLETE: 'metadata:batch:complete',
+  FILE_UPDATED: 'file:updated',
+  COLLECTION_BUILT: 'collection:built',
+  SEARCH_INDEX_REBUILT: 'search:index:rebuilt',
+  CACHE_CLEANUP_COMPLETE: 'cache:cleanup:complete',
+  THUMBNAIL_LOADED: 'thumbnail:loaded',
+  MEDIA_PROCESSING_COMPLETE: 'media:processing:complete',
 } as const;
 
 export type AppEvent = (typeof AppEvents)[keyof typeof AppEvents];
@@ -43,12 +51,16 @@ class EventBusService {
     this._listeners.get(event)?.forEach((handler) => {
       try {
         handler(...args);
-      } catch {}
+      } catch (e) {
+        console.warn(`[EventBus] Listener error on "${event}":`, e);
+      }
     });
     this._onceListeners.get(event)?.forEach((handler) => {
       try {
         handler(...args);
-      } catch {}
+      } catch (e) {
+        console.warn(`[EventBus] Once-listener error on "${event}":`, e);
+      }
     });
     this._onceListeners.get(event)?.clear();
   }

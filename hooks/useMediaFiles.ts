@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
+import { searchIndex } from '../services/SearchIndex';
 import type { SortField, SortDirection, FileItem } from '../types';
 import { formatFileSize, formatDuration } from '../utils/format';
 
@@ -50,6 +51,10 @@ export function useMediaFiles() {
     return arr;
   }, []);
 
+  const search = useCallback((query: string): FileItem[] => {
+    return searchIndex.search(query);
+  }, []);
+
   const formatSize = useCallback((bytes?: number) => formatFileSize(bytes), []);
   const formatDurationFn = useCallback((ms?: number) => formatDuration(ms), []);
 
@@ -68,6 +73,7 @@ export function useMediaFiles() {
     scanMedia,
     loadCache,
     sortedBy,
+    search,
     formatSize,
     formatDuration: formatDurationFn,
   };
