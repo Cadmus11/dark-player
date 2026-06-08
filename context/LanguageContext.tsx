@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LanguageCode } from '../i18n/languages';
 import { getTranslation, translate as translateWithValues, LANGUAGES } from '../i18n/languages';
@@ -32,24 +32,26 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function setLanguage(code: LanguageCode) {
+  const setLanguage = useCallback(async (code: LanguageCode) => {
     setLanguageState(code);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, code);
     } catch (e) {
       console.warn('[LanguageContext]', e);
     }
-  }
+  }, []);
 
-  function t(key: string, values?: Record<string, string | number>): string {
+  const t = useCallback((key: string, values?: Record<string, string | number>): string => {
     const translations = getTranslation(language);
     const template = translations[key];
     if (!template) return key;
     return translateWithValues(template, values);
-  }
+  }, [language]);
+
+  const contextValue = useMemo(() => ({ language, setLanguage, t, languages: LANGUAGES }), [language, setLanguage, t]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, languages: LANGUAGES }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

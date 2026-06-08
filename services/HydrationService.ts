@@ -13,35 +13,40 @@ export function startHydration(): Promise<void> {
   if (_hydrationPromise) return _hydrationPromise;
 
   _hydrationPromise = (async () => {
-    await Promise.all([
-      useSettingsStore.getState().load(),
-      (async () => {
-        if (fileEngine.hasCache()) {
-          useMediaStore.getState().loadCache();
-        }
-        usePlaylistStore.getState().load();
-      })(),
-      useFavoritesStore.getState().load(),
-      useRecentsStore.getState().loadRecentFiles(),
-      useRecentsStore.getState().loadRecentlyPlayed(),
-      useSearchHistoryStore.getState().load(),
-    ]);
+    try {
+      await Promise.all([
+        useSettingsStore.getState().load(),
+        (async () => {
+          if (fileEngine.hasCache()) {
+            useMediaStore.getState().loadCache();
+          }
+          usePlaylistStore.getState().load();
+        })(),
+        useFavoritesStore.getState().load(),
+        useRecentsStore.getState().loadRecentFiles(),
+        useRecentsStore.getState().loadRecentlyPlayed(),
+        useSearchHistoryStore.getState().load(),
+      ]);
 
-    let permStatus = await permissionService.checkMediaLibrary();
-    if (permStatus !== 'GRANTED' && permStatus !== 'PARTIAL') {
-      permStatus = await permissionService.requestMediaLibrary();
-    }
-    if (permStatus === 'GRANTED' || permStatus === 'PARTIAL') {
-      useMediaStore.setState({ permissionsGranted: true });
-      if (!fileEngine.hasCache()) {
-        await useMediaStore.getState().scanMedia();
+      let permStatus = await permissionService.checkMediaLibrary();
+      if (permStatus !== 'GRANTED' && permStatus !== 'PARTIAL') {
+        permStatus = await permissionService.requestMediaLibrary();
       }
-    }
-    useMediaStore.getState().setHydrationStage(3);
+      if (permStatus === 'GRANTED' || permStatus === 'PARTIAL') {
+        useMediaStore.setState({ permissionsGranted: true });
+        if (!fileEngine.hasCache()) {
+          await useMediaStore.getState().scanMedia();
+        }
+      }
+      useMediaStore.getState().setHydrationStage(3);
 
-    const store = useMediaStore.getState();
-    if (!store.loading && fileEngine.shouldRescan() && permissionService.isGranted()) {
-      useMediaStore.getState().scanMedia();
+      const store = useMediaStore.getState();
+      if (!store.loading && fileEngine.shouldRescan() && permissionService.isGranted()) {
+        useMediaStore.getState().scanMedia();
+      }
+    } catch (e) {
+      console.warn('[HydrationService] Hydration failed, will retry on next call:', e);
+      _hydrationPromise = null;
     }
   })();
 

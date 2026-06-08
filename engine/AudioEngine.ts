@@ -425,6 +425,9 @@ export class AudioEngine {
       this._persistState();
       this._notify();
       this._stopPositionCheck();
+      if (this._state.currentFile) {
+        NowPlayingNotification.updatePlayState(false);
+      }
       return;
     }
     try {

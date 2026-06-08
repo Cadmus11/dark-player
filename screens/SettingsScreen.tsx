@@ -181,9 +181,8 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
       await setBackgroundImage(dest);
     }
   }, [setBackgroundImage]);
-  const settingsStore = useSettingsStore();
+  const hiddenFilesSettings = useSettingsStore((s) => s.hiddenFiles);
   const navigation = useAppNavigation();
-  const hiddenFilesSettings = settingsStore.hiddenFiles;
   const mediaAudio = useMediaStore((s) => s.audio);
   const hiddenFiles = useMemo(() => {
     if (!hiddenFilesSettings.hideShortSongs) return [];
@@ -1991,7 +1990,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
             try {
               const data = await collectBackupData();
               if (googleDrive.isConnected) {
-                const token = googleDrive.getAccessToken();
+                const token = await googleDrive.getAccessToken();
                 if (token) {
                   setBackupStatus('Uploading to Google Drive...');
                   await uploadBackupToDrive(token, data);
@@ -2067,7 +2066,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                   if (!result.canceled && result.assets?.[0]) {
                     const asset = result.assets[0];
                     setBackupStatus(`Uploading ${asset.name}...`);
-                    const token = googleDrive.getAccessToken();
+                    const token = await googleDrive.getAccessToken();
                     if (token) {
                       await uploadMediaToDrive(token, asset.uri, asset.name);
                       setBackupStatus(`${asset.name} uploaded to Drive!`);
@@ -2101,7 +2100,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               onPress={async () => {
                 setBackupLoading(true);
                 try {
-                  const token = googleDrive.getAccessToken();
+                  const token = await googleDrive.getAccessToken();
                   if (token) {
                     const backups = await listDriveBackups(token);
                     setDriveBackups(backups);
@@ -2149,7 +2148,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                     onPress={async () => {
                       setBackupStatus('Restoring from Drive...');
                       try {
-                        const token = googleDrive.getAccessToken();
+                        const token = await googleDrive.getAccessToken();
                         if (token) {
                           const data = await downloadBackupFromDrive(token, file.id);
                           await restoreFromBackup(data);
@@ -2166,7 +2165,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                     style={{ backgroundColor: '#ef444420' }}
                     onPress={async () => {
                       try {
-                        const token = googleDrive.getAccessToken();
+                        const token = await googleDrive.getAccessToken();
                         if (token) {
                           await deleteDriveBackup(token, file.id);
                           setDriveBackups((prev) => prev.filter((f) => f.id !== file.id));
@@ -2270,7 +2269,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
               className="flex-row items-center gap-3 rounded-xl px-3 py-[14]"
               onPress={async () => {
                 try {
-                  const token = googleDrive.getAccessToken();
+                  const token = await googleDrive.getAccessToken();
                   if (token) {
                     const { listDriveMedia } = await import('../services/BackupService');
                     const media = await listDriveMedia(token);
@@ -2315,7 +2314,7 @@ export const SettingsScreen = React.memo(function SettingsScreen() {
                     style={{ backgroundColor: '#ef444420' }}
                     onPress={async () => {
                       try {
-                        const token = googleDrive.getAccessToken();
+                        const token = await googleDrive.getAccessToken();
                         if (token) {
                           await deleteDriveBackup(token, file.id);
                           setDriveMedia((prev) => prev.filter((f) => f.id !== file.id));

@@ -13,7 +13,7 @@ export const NowPlayingBar = React.memo(function NowPlayingBar() {
   const { textColor, mutedColor, cardBg, borderColor, primaryColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
   const state = useAudioEngine((s) => {
-    if (!s.currentFile) return null;
+    if (!s.currentFile || s.currentFile.type !== 'audio') return null;
     return {
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,

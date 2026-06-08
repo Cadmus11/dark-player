@@ -1,21 +1,42 @@
-import { useSyncExternalStore, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { audioEngine } from '../engine/AudioEngine';
 import { queueEngine } from '../engine/QueueEngine';
 import type { FileItem, RepeatMode } from '../types';
 
-function subscribe(callback: () => void) {
-  return audioEngine.subscribe(callback);
-}
-
-function getSnapshot() {
+function getState() {
   return audioEngine.getState();
 }
 
+function shallowEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 export function useAudioEngine<Selected>(
-  selector: (state: ReturnType<typeof getSnapshot>) => Selected
+  selector: (state: ReturnType<typeof getState>) => Selected
 ): Selected {
-  const state = useSyncExternalStore(subscribe, getSnapshot);
-  return selector(state);
+  const selectorRef = useRef(selector);
+  selectorRef.current = selector;
+
+  const [selected, setSelected] = useState(() => selector(getState()));
+
+  useEffect(() => {
+    const unsub = audioEngine.subscribe(() => {
+      const next = selectorRef.current(getState());
+      setSelected((prev) => (typeof next === 'object' && next !== null && shallowEqual(prev, next) ? prev : next));
+    });
+    return unsub;
+  }, []);
+
+  return selected;
 }
 
 export function useAudioEngineState() {
@@ -23,12 +44,20 @@ export function useAudioEngineState() {
 }
 
 export function useAudioPlayback() {
-  const state = useAudioEngineState();
+  const currentFile = useAudioEngine((s) => s.currentFile);
+  const isPlaying = useAudioEngine((s) => s.isPlaying);
+  const position = useAudioEngine((s) => s.position);
+  const duration = useAudioEngine((s) => s.duration);
+  const queue = useAudioEngine((s) => s.queue);
+  const currentIndex = useAudioEngine((s) => s.currentIndex);
+  const shuffle = useAudioEngine((s) => s.shuffle);
+  const repeat = useAudioEngine((s) => s.repeat);
+  const playbackSpeed = useAudioEngine((s) => s.playbackSpeed);
 
-  const playFile = useCallback((file: FileItem, queue?: FileItem[], startIndex?: number) => {
-    const q = queue || [file];
+  const playFile = useCallback((file: FileItem, q?: FileItem[], startIndex?: number) => {
+    const queueArg = q || [file];
     const idx = startIndex ?? 0;
-    audioEngine.play(file, q, idx);
+    audioEngine.play(file, queueArg, idx);
   }, []);
 
   const seekTo = useCallback((percent: number) => {
@@ -37,44 +66,64 @@ export function useAudioPlayback() {
     audioEngine.seekTo(percent * s.duration);
   }, []);
 
-  return {
-    currentFile: state.currentFile,
-    isPlaying: state.isPlaying,
-    position: state.position,
-    duration: state.duration,
-    progress: state.duration > 0 ? state.position / state.duration : 0,
-    queue: state.queue,
-    currentIndex: state.currentIndex,
-    shuffle: state.shuffle,
-    repeat: state.repeat,
-    playbackSpeed: state.playbackSpeed,
+  const playQueue = useCallback((queueArg: FileItem[], startIndex = 0) => {
+    if (queueArg.length === 0) return;
+    audioEngine.play(queueArg[startIndex], queueArg, startIndex);
+  }, []);
 
+  const playIndex = useCallback((index: number) => audioEngine.playIndex(index), []);
+  const pause = useCallback(() => audioEngine.pause(), []);
+  const resume = useCallback(() => audioEngine.resume(), []);
+  const togglePlay = useCallback(() => audioEngine.togglePlay(), []);
+  const skipNext = useCallback(() => audioEngine.next(), []);
+  const skipPrev = useCallback(() => audioEngine.previous(), []);
+  const setRate = useCallback((rate: number) => audioEngine.setRate(rate), []);
+  const setRepeatMode = useCallback((mode: RepeatMode) => audioEngine.setRepeat(mode), []);
+  const cycleRepeat = useCallback(() => audioEngine.cycleRepeat(), []);
+  const toggleShuffle = useCallback(() => audioEngine.toggleShuffle(), []);
+  const setQueueFn = useCallback(
+    (q: FileItem[], startIndex?: number) => audioEngine.setQueue(q, startIndex),
+    []
+  );
+  const moveInQueue = useCallback(
+    (from: number, to: number) => queueEngine.moveInQueue(from, to, 'audio'),
+    []
+  );
+  const stop = useCallback(() => audioEngine.stop(), []);
+
+  return useMemo(() => ({
+    currentFile,
+    isPlaying,
+    position,
+    duration,
+    progress: duration > 0 ? position / duration : 0,
+    queue,
+    currentIndex,
+    shuffle,
+    repeat,
+    playbackSpeed,
     playFile,
     seekTo,
-    playQueue: useCallback((queue: FileItem[], startIndex = 0) => {
-      if (queue.length === 0) return;
-      audioEngine.play(queue[startIndex], queue, startIndex);
-    }, []),
-    playIndex: useCallback((index: number) => audioEngine.playIndex(index), []),
-    pause: useCallback(() => audioEngine.pause(), []),
-    resume: useCallback(() => audioEngine.resume(), []),
-    togglePlay: useCallback(() => audioEngine.togglePlay(), []),
-    skipNext: useCallback(() => audioEngine.next(), []),
-    skipPrev: useCallback(() => audioEngine.previous(), []),
-    setRate: useCallback((rate: number) => audioEngine.setRate(rate), []),
-    setRepeatMode: useCallback((mode: RepeatMode) => audioEngine.setRepeat(mode), []),
-    cycleRepeat: useCallback(() => audioEngine.cycleRepeat(), []),
-    toggleShuffle: useCallback(() => audioEngine.toggleShuffle(), []),
-    setQueue: useCallback(
-      (queue: FileItem[], startIndex?: number) => audioEngine.setQueue(queue, startIndex),
-      []
-    ),
-    moveInQueue: useCallback(
-      (from: number, to: number) => queueEngine.moveInQueue(from, to, 'audio'),
-      []
-    ),
-    stop: useCallback(() => audioEngine.stop(), []),
-  };
+    playQueue,
+    playIndex,
+    pause,
+    resume,
+    togglePlay,
+    skipNext,
+    skipPrev,
+    setRate,
+    setRepeatMode,
+    cycleRepeat,
+    toggleShuffle,
+    setQueue: setQueueFn,
+    moveInQueue,
+    stop,
+  }), [
+    currentFile, isPlaying, position, duration, queue, currentIndex,
+    shuffle, repeat, playbackSpeed, playFile, seekTo, playQueue,
+    playIndex, pause, resume, togglePlay, skipNext, skipPrev, setRate,
+    setRepeatMode, cycleRepeat, toggleShuffle, setQueueFn, moveInQueue, stop,
+  ]);
 }
 
 export { audioEngine };

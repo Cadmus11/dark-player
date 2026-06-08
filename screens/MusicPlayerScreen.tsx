@@ -123,6 +123,8 @@ function MarqueeText({
 export function MusicPlayerScreen({ navigation, route }: Props) {
   const { file } = route.params;
   const audio = useVisibleAudio();
+  const audioRef = useRef(audio);
+  audioRef.current = audio;
 
   const {
     currentFile,
@@ -218,10 +220,10 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     const engine = AudioEngine.getInstance();
     const state = engine.getState();
     if (state.currentFile?.uri === file.uri && state.isPlaying) return;
-    const q = audio.length > 0 ? audio : [file];
+    const q = audioRef.current.length > 0 ? audioRef.current : [file];
     const idx = q.findIndex((f) => f.uri === file.uri);
     playFile(file, q, idx >= 0 ? idx : 0);
-  }, [file, playFile, audio]);
+  }, [file.uri]);
 
   const currentItem = queue[currentIndex] || file;
   const artworkUri = currentItem?.thumbnail || localArtwork || null;

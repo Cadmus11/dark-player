@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TextInput,
   Dimensions,
   StatusBar,
   Platform,
@@ -57,6 +58,8 @@ import { videoEngine } from '../engine/VideoEngine';
 import { queueEngine } from '../engine/QueueEngine';
 import { HistoryService } from '../services/History/HistoryService';
 import { BottomSheet } from '../services/OverlaySystem';
+import { useFavoritesStore } from '../stores/favoritesStore';
+import { usePlaylistStore } from '../stores/playlistStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoPlayer'>;
 
@@ -97,6 +100,18 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const [isLocked, setIsLocked] = useState(false);
   const [orientationLock, setOrientationLock] = useState<'portrait' | 'landscape'>('portrait');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+
+  const toggleFavoriteVideo = useFavoritesStore((s) => s.toggleFavorite);
+  const favoriteUris = useFavoritesStore((s) => s.favoriteUris);
+  const createPlaylist = usePlaylistStore((s) => s.create);
+  const addSongsToPlaylist = usePlaylistStore((s) => s.addSongs);
+  const playlists = usePlaylistStore((s) => s.playlists);
+
+  useEffect(() => {
+    setIsFavorite(favoriteUris.includes(file.uri));
+  }, [file.uri, favoriteUris]);
 
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const autoHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,7 +171,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       ScreenOrientation.unlockAsync().catch(() => {});
       if (autoHideRef.current) clearTimeout(autoHideRef.current);
     };
-  }, [file.uri, file]);
+  }, [file.uri]);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -279,6 +294,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
   const toggleFavorite = useCallback(() => {
+    toggleFavoriteVideo(file.uri);
     setIsFavorite((prev) => !prev);
     Animated.sequence([
       Animated.timing(heartScale, {
@@ -292,7 +308,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [heartScale]);
+  }, [heartScale, file.uri, toggleFavoriteVideo]);
 
   const nextVideo = useCallback(() => {
     const next = videoEngine.nextInQueue();
@@ -639,22 +655,20 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 style={styles.quickActionsBlur}>
                 <View className="flex-row items-center justify-around py-3">
                   {[
-                    { Icon: ThumbsUp, label: 'Like' },
-                    { Icon: Queue, label: 'Playlist' },
-                    { Icon: DownloadSimple, label: 'Download' },
-                    { Icon: ShareNetwork, label: 'Share' },
-                  ].map(({ Icon, label }, idx) => (
+                    { Icon: ThumbsUp, label: 'Like', onPress: () => toggleFavorite(), active: isFavorite },
+                    { Icon: Queue, label: 'Playlist', onPress: () => setShowAddToPlaylist(true) },
+                    { Icon: DownloadSimple, label: 'Download', onPress: () => Alert.alert('Download', 'Video download will be available in a future update.') },
+                    { Icon: ShareNetwork, label: 'Share', onPress: handleShare },
+                  ].map(({ Icon, label, onPress, active }, idx) => (
                     <TouchableOpacity
                       key={label}
                       className="items-center gap-1.5 px-4 py-1"
-                      onPress={() => {
-                        if (label === 'Share') handleShare();
-                      }}
+                      onPress={onPress}
                       activeOpacity={0.6}
                       accessibilityLabel={label}
                       accessibilityRole="button">
-                      <Icon size={22} color={accentColor} weight="regular" />
-                      <Text className="text-xs font-medium" style={{ color: mutedColor }}>
+                      <Icon size={22} color={active ? accentColor : mutedColor} weight={active ? 'fill' : 'regular'} />
+                      <Text className="text-xs font-medium" style={{ color: active ? accentColor : mutedColor }}>
                         {label}
                       </Text>
                     </TouchableOpacity>
@@ -1014,6 +1028,60 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
               {formatDuration(duration)}
             </Text>
           </View>
+        </View>
+      </BottomSheet>
+
+      {/* Add to Playlist Modal */}
+      <BottomSheet visible={showAddToPlaylist} onClose={() => setShowAddToPlaylist(false)}>
+        <View className="px-5">
+          <Text className="mb-4 text-lg font-bold" style={{ color: textColor }}>
+            Add to Playlist
+          </Text>
+          <View className="mb-4 flex-row gap-2.5">
+            <TextInput
+              className="flex-1 rounded-xl px-3.5 py-3 text-sm"
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: textColor }}
+              placeholder="New playlist name"
+              placeholderTextColor={mutedColor}
+              value={newPlaylistName}
+              onChangeText={setNewPlaylistName}
+            />
+            <TouchableOpacity
+              className="justify-center rounded-xl px-4"
+              style={{ backgroundColor: primaryColor }}
+              onPress={() => {
+                if (!newPlaylistName.trim()) return;
+                createPlaylist(newPlaylistName.trim());
+                setNewPlaylistName('');
+              }}>
+              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>
+                Create
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView className="max-h-[200px]">
+            {playlists.map((pl) => (
+              <TouchableOpacity
+                key={pl.id}
+                className="flex-row items-center border-b py-3"
+                style={{ borderBottomColor: 'rgba(255,255,255,0.05)' }}
+                onPress={() => {
+                  addSongsToPlaylist(pl.id, [file]);
+                  setShowAddToPlaylist(false);
+                }}>
+                <Queue size={20} color={mutedColor} />
+                <View className="ml-3 flex-1">
+                  <Text className="text-[15px]" style={{ color: textColor }}>{pl.name}</Text>
+                  <Text className="text-xs" style={{ color: mutedColor }}>{pl.totalTracks} tracks</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {playlists.length === 0 && (
+              <Text className="py-5 text-center text-sm" style={{ color: mutedColor }}>
+                No playlists yet
+              </Text>
+            )}
+          </ScrollView>
         </View>
       </BottomSheet>
     </View>

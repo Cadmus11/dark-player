@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useColorScheme } from 'nativewind';
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
 import type { ThemeSettings, ColorThemePreset, LayoutSize } from '../types';
@@ -57,12 +57,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const { setColorScheme } = useColorScheme();
   const [theme, setTheme] = useState<ThemeSettings>(DEFAULT_THEME);
   const [currentThemeKey, setCurrentThemeKey] = useState('obsidian');
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   useEffect(() => {
     (async () => {
       const settings = await getThemeSettings();
       if (settings) {
         setTheme(settings);
+        themeRef.current = settings;
         setCurrentThemeKey(settings.colorThemeKey || 'obsidian');
         const preset = THEME_PRESETS.find((t) => t.key === (settings.colorThemeKey || 'obsidian'));
         if (preset) {
@@ -73,52 +76,52 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     })();
   }, [setColorScheme]);
 
-  async function applyThemeSettings(settings: ThemeSettings) {
-    setTheme(settings);
-    await saveThemeSettings(settings);
-  }
+  const updateTheme = useCallback(async (settings: Partial<ThemeSettings>) => {
+    const updated = { ...themeRef.current, ...settings };
+    setTheme(updated);
+    themeRef.current = updated;
+    await saveThemeSettings(updated);
+  }, []);
 
-  async function updateTheme(settings: Partial<ThemeSettings>) {
-    const updated = { ...theme, ...settings };
-    await applyThemeSettings(updated);
-  }
-
-  async function setColorTheme(key: string) {
+  const setColorTheme = useCallback(async (key: string) => {
     const preset = THEME_PRESETS.find((t) => t.key === key);
     if (!preset) return;
     setCurrentThemeKey(preset.key);
     const dark = isColorDark(preset.background);
     setColorScheme(dark ? 'dark' : 'light');
-    await applyThemeSettings({ ...theme, colorThemeKey: preset.key });
-  }
+    const updated = { ...themeRef.current, colorThemeKey: preset.key };
+    setTheme(updated);
+    themeRef.current = updated;
+    await saveThemeSettings(updated);
+  }, [setColorScheme]);
 
-  async function setBackgroundImage(uri: string) {
+  const setBackgroundImage = useCallback(async (uri: string) => {
     await updateTheme({ backgroundImageUri: uri });
-  }
+  }, [updateTheme]);
 
-  async function clearBackgroundImage() {
+  const clearBackgroundImage = useCallback(async () => {
     await updateTheme({ backgroundImageUri: undefined, backgroundBlur: 0 });
-  }
+  }, [updateTheme]);
 
-  async function setBackgroundBlur(blur: number) {
+  const setBackgroundBlur = useCallback(async (blur: number) => {
     await updateTheme({ backgroundBlur: Math.max(0, Math.min(100, blur)) });
-  }
+  }, [updateTheme]);
 
-  async function setBackgroundFit(fit: 'cover' | 'contain') {
+  const setBackgroundFit = useCallback(async (fit: 'cover' | 'contain') => {
     await updateTheme({ backgroundImageFit: fit });
-  }
+  }, [updateTheme]);
 
-  async function setBackgroundMode(mode: 'fill' | 'wallpaper' | 'spotlight') {
+  const setBackgroundMode = useCallback(async (mode: 'fill' | 'wallpaper' | 'spotlight') => {
     await updateTheme({ backgroundMode: mode });
-  }
+  }, [updateTheme]);
 
-  async function setBackgroundBrightness(brightness: number) {
+  const setBackgroundBrightness = useCallback(async (brightness: number) => {
     await updateTheme({ backgroundBrightness: Math.max(0, Math.min(100, brightness)) });
-  }
+  }, [updateTheme]);
 
-  async function setSizeMode(mode: LayoutSize) {
+  const setSizeMode = useCallback(async (mode: LayoutSize) => {
     await updateTheme({ sizeMode: mode });
-  }
+  }, [updateTheme]);
 
   const preset = THEME_PRESETS.find((t) => t.key === currentThemeKey) || THEME_PRESETS[0];
   const dark = isColorDark(preset.background);
@@ -130,35 +133,41 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const backgroundColor = preset.background;
   const backgroundOverlayColor = hexToRgba(preset.accent, 0.7);
 
-  function getAccentWithOpacity(alpha: number): string {
+  const getAccentWithOpacity = useCallback((alpha: number): string => {
     return hexToRgba(preset.accent, alpha);
-  }
+  }, [preset.accent]);
+
+  const contextValue = useMemo(() => ({
+    theme,
+    updateTheme,
+    setColorTheme,
+    setBackgroundImage,
+    clearBackgroundImage,
+    setBackgroundBlur,
+    setBackgroundFit,
+    setBackgroundMode,
+    setBackgroundBrightness,
+    setSizeMode,
+    isDarkMode: dark,
+    textColor,
+    mutedColor,
+    cardBg,
+    borderColor,
+    primaryColor,
+    backgroundColor,
+    backgroundOverlayColor,
+    getAccentWithOpacity,
+    currentThemeKey,
+    themePresets: THEME_PRESETS,
+  }), [
+    theme, updateTheme, setColorTheme, setBackgroundImage, clearBackgroundImage,
+    setBackgroundBlur, setBackgroundFit, setBackgroundMode, setBackgroundBrightness,
+    setSizeMode, dark, textColor, mutedColor, cardBg, borderColor, primaryColor,
+    backgroundColor, backgroundOverlayColor, getAccentWithOpacity, currentThemeKey,
+  ]);
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        updateTheme,
-        setColorTheme,
-        setBackgroundImage,
-        clearBackgroundImage,
-        setBackgroundBlur,
-        setBackgroundFit,
-        setBackgroundMode,
-        setBackgroundBrightness,
-        setSizeMode,
-        isDarkMode: dark,
-        textColor,
-        mutedColor,
-        cardBg,
-        borderColor,
-        primaryColor,
-        backgroundColor,
-        backgroundOverlayColor,
-        getAccentWithOpacity,
-        currentThemeKey,
-        themePresets: THEME_PRESETS,
-      }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

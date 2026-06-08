@@ -12,6 +12,7 @@ import {
 } from 'phosphor-react-native';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useTheme } from '../context/ThemeContext';
+import { useColorAwareness } from '../context/ColorAwarenessContext';
 import { hapticLight } from '../utils/haptics';
 
 const TABS = [
@@ -44,7 +45,8 @@ const TABS = [
 
 export function Navbar() {
   const navigation = useAppNavigation();
-  const { primaryColor, mutedColor } = useTheme();
+  const { primaryColor, mutedColor, cardBg } = useTheme();
+  const { canUseArtwork, themeColors } = useColorAwareness();
 
   const tabState = useNavigationState((state) => {
     const mainTabs = state?.routes?.find((r) => r.name === 'MainTabs');
@@ -52,6 +54,9 @@ export function Navbar() {
   });
 
   const currentTab: string | undefined = tabState?.routeNames?.[tabState?.index ?? 0] ?? 'MusicTab';
+
+  const activeColor = canUseArtwork ? themeColors.accent : primaryColor;
+  const inactiveColor = canUseArtwork ? themeColors.textSecondary : mutedColor;
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 pb-2">
@@ -62,7 +67,11 @@ export function Navbar() {
           <TouchableOpacity
             key={tab.key}
             className="mr-2 flex-row items-center rounded-full px-4 py-1.5"
-            style={isActive ? { backgroundColor: primaryColor + '20' } : { opacity: 0.6 }}
+            style={{
+              borderWidth: 1,
+              borderColor: isActive ? activeColor : inactiveColor + '40',
+              backgroundColor: isActive ? activeColor + '15' : 'transparent',
+            }}
             onPress={() => {
               hapticLight();
               if ('params' in tab && tab.params) {
@@ -76,12 +85,12 @@ export function Navbar() {
             accessibilityState={{ selected: isActive }}>
             <Icon
               size={15}
-              color={isActive ? primaryColor : mutedColor}
+              color={isActive ? activeColor : inactiveColor}
               weight={isActive ? 'fill' : 'regular'}
             />
             <Text
               className="ml-1.5 text-sm font-semibold"
-              style={{ color: isActive ? primaryColor : mutedColor }}>
+              style={{ color: isActive ? activeColor : inactiveColor }}>
               {tab.label}
             </Text>
           </TouchableOpacity>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 
@@ -55,13 +55,15 @@ let _fontsLoadingStarted = false;
 
 export function FontProvider({ children }: { children: ReactNode }) {
   const [fontKey, setFontKey] = useState('system');
-  const [fontsLoaded] = useState(true);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
     loadFont();
     if (!_fontsLoadingStarted) {
       _fontsLoadingStarted = true;
-      loadCustomFonts();
+      loadCustomFonts().then(() => setFontsLoaded(true));
+    } else {
+      setFontsLoaded(true);
     }
   }, []);
 
@@ -84,26 +86,27 @@ export function FontProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function setFont(key: string) {
+  const setFont = useCallback(async (key: string) => {
     setFontKey(key);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, key);
     } catch (e) {
       console.warn('[FontContext]', e);
     }
-  }
+  }, []);
 
   const option = FONT_OPTIONS.find((o) => o.key === fontKey) || FONT_OPTIONS[0];
 
+  const contextValue = useMemo(() => ({
+    fontKey,
+    fontFamily: option.fontFamily,
+    setFont,
+    fontOptions: FONT_OPTIONS,
+    fontsLoaded,
+  }), [fontKey, option.fontFamily, setFont, fontsLoaded]);
+
   return (
-    <FontContext.Provider
-      value={{
-        fontKey,
-        fontFamily: option.fontFamily,
-        setFont,
-        fontOptions: FONT_OPTIONS,
-        fontsLoaded,
-      }}>
+    <FontContext.Provider value={contextValue}>
       {children}
     </FontContext.Provider>
   );

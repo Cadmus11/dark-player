@@ -13,7 +13,7 @@ export const MiniPlayer = React.memo(function MiniPlayer() {
   const { textColor, mutedColor, primaryColor, cardBg, borderColor, isDarkMode } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
   const state = useAudioEngine((s) => {
-    if (!s.currentFile) return null;
+    if (!s.currentFile || s.currentFile.type !== 'video') return null;
     return {
       currentFile: s.currentFile,
       isPlaying: s.isPlaying,

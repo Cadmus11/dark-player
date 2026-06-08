@@ -4,7 +4,15 @@ import type { SortField, SortDirection, FileItem } from '../types';
 import { formatFileSize, formatDuration } from '../utils/format';
 
 export function useMediaFiles() {
-  const store = useMediaStore();
+  const videos = useMediaStore((s) => s.videos);
+  const audio = useMediaStore((s) => s.audio);
+  const loading = useMediaStore((s) => s.loading);
+  const scanProgress = useMediaStore((s) => s.scanProgress);
+  const scanStage = useMediaStore((s) => s.scanStage);
+  const permissionsGranted = useMediaStore((s) => s.permissionsGranted);
+  const error = useMediaStore((s) => s.error);
+  const scanMedia = useMediaStore((s) => s.scanMedia);
+  const loadCache = useMediaStore((s) => s.loadCache);
 
   const sortedBy = useCallback((field: SortField, direction: SortDirection, items: FileItem[]) => {
     const arr = [...items];
@@ -45,20 +53,20 @@ export function useMediaFiles() {
   const formatSize = useCallback((bytes?: number) => formatFileSize(bytes), []);
   const formatDurationFn = useCallback((ms?: number) => formatDuration(ms), []);
 
-  const allFiles = useMemo(() => [...store.videos, ...store.audio], [store.videos, store.audio]);
+  const allFiles = useMemo(() => [...videos, ...audio], [videos, audio]);
 
   return {
-    videos: store.videos,
-    audio: store.audio,
+    videos,
+    audio,
     allFiles,
-    loading: store.loading,
-    scanProgress: store.scanProgress,
-    scanStage: store.scanStage,
-    permissionsGranted: store.permissionsGranted,
-    error: store.error,
+    loading,
+    scanProgress,
+    scanStage,
+    permissionsGranted,
+    error,
 
-    scanMedia: store.scanMedia,
-    loadCache: store.loadCache,
+    scanMedia,
+    loadCache,
     sortedBy,
     formatSize,
     formatDuration: formatDurationFn,

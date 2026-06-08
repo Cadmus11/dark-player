@@ -77,18 +77,40 @@ export function useGoogleDrive(clientId?: string) {
     setError(null);
   }, []);
 
-  const getAccessToken = useCallback((): string | null => {
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const refreshToken = storage.getString(REFRESH_KEY);
+    if (!refreshToken || !clientId) return null;
+    try {
+      const tokenResult = await AuthSession.exchangeCodeAsync(
+        { clientId, code: refreshToken, redirectUri, extraParams: {} },
+        { tokenEndpoint: 'https://oauth2.googleapis.com/token' }
+      );
+      if (tokenResult.accessToken) {
+        cachedToken = tokenResult.accessToken;
+        tokenRef.current = tokenResult.accessToken;
+        storage.set(TOKEN_KEY, tokenResult.accessToken);
+        const expiry = Date.now() + (tokenResult.expiresIn || 3600) * 1000;
+        storage.set(EXPIRY_KEY, String(expiry));
+        return tokenResult.accessToken;
+      }
+    } catch (e) {
+      console.warn('[useGoogleDrive] Token refresh failed:', e);
+    }
+    return null;
+  }, [clientId, redirectUri]);
+
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
     const expiryStr = storage.getString(EXPIRY_KEY);
     if (expiryStr && Date.now() > parseInt(expiryStr, 10)) {
       const refreshToken = storage.getString(REFRESH_KEY);
       if (refreshToken) {
-        return null;
+        return await refreshAccessToken();
       }
       signOut();
       return null;
     }
     return tokenRef.current;
-  }, [signOut]);
+  }, [signOut, refreshAccessToken]);
 
   return {
     isConnected,

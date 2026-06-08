@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useFavoritesStore } from '../stores/favoritesStore';
 import type { FileItem } from '../types';
 
@@ -7,9 +7,11 @@ export function useFavorites(allFiles: FileItem[]) {
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const loaded = useFavoritesStore((s) => s.loaded);
 
-  if (!loaded) {
-    useFavoritesStore.getState().load();
-  }
+  useEffect(() => {
+    if (!loaded) {
+      useFavoritesStore.getState().load();
+    }
+  }, [loaded]);
 
   const isFavorite = useCallback((uri: string) => favoriteUris.includes(uri), [favoriteUris]);
 

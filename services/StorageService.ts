@@ -270,6 +270,12 @@ export const StorageService = {
 
 // Legacy playback settings (kept for SettingsScreen compatibility)
 export async function getPlaybackSettings(): Promise<PlaybackSettings> {
+  try {
+    const raw = settingsStorage.getString('@settings_playback');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn('[StorageService]', e);
+  }
   return {
     playWithOtherApps: false,
     crossFade: false,
@@ -278,7 +284,7 @@ export async function getPlaybackSettings(): Promise<PlaybackSettings> {
   };
 }
 export async function savePlaybackSettings(s: PlaybackSettings): Promise<void> {
-  /* kept for compat */
+  settingsStorage.set('@settings_playback', JSON.stringify(s));
 }
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   try {
@@ -293,16 +299,22 @@ export async function saveNotificationSettings(s: NotificationSettings): Promise
   settingsStorage.set('@settings_notifications', JSON.stringify(s));
 }
 export async function getSleepTimerSettings(): Promise<SleepTimerSettings> {
+  try {
+    const raw = settingsStorage.getString('@settings_sleep_timer');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn('[StorageService]', e);
+  }
   return { enabled: false, mode: 'off', minutes: 30, playOneToEnd: false };
 }
 export async function saveSleepTimerSettings(s: SleepTimerSettings): Promise<void> {
-  /* kept for compat */
+  settingsStorage.set('@settings_sleep_timer', JSON.stringify(s));
 }
 export async function getRemoveAds(): Promise<boolean> {
-  return false;
+  return settingsStorage.getString('@settings_remove_ads') === 'true';
 }
 export async function setRemoveAds(v: boolean): Promise<void> {
-  /* kept for compat */
+  settingsStorage.set('@settings_remove_ads', String(v));
 }
 
 // Backward-compatible named exports

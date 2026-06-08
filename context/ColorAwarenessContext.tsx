@@ -4,6 +4,8 @@ import React, {
   useState,
   useEffect,
   useRef,
+  useMemo,
+  useCallback,
   type ReactNode,
 } from 'react';
 import { Animated, Easing } from 'react-native';
@@ -29,10 +31,10 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
   const transitionAnim = useRef(new Animated.Value(0)).current;
   const currentFile = useAudioEngine((s) => s.currentFile);
 
-  const crossfadeProgress = transitionAnim.interpolate({
+  const crossfadeProgress = useMemo(() => transitionAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
-  });
+  }), [transitionAnim]);
 
   useEffect(() => {
     let prev = colorAwarenessEngine.getState();
@@ -57,7 +59,7 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
     }
   }, [currentFile?.uri, currentFile]);
 
-  const triggerTransition = () => {
+  const triggerTransition = useCallback(() => {
     transitionAnim.setValue(0);
     Animated.timing(transitionAnim, {
       toValue: 1,
@@ -67,22 +69,23 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
     }).start(() => {
       transitionAnim.setValue(0);
     });
-  };
+  }, [transitionAnim]);
 
   const canUseArtwork = !!state.artworkUri;
 
+  const contextValue = useMemo(() => ({
+    state,
+    themeColors: state.theme,
+    edgeColors: state.edgeColors,
+    mood: state.mood,
+    transitionAnim,
+    crossfadeProgress,
+    triggerTransition,
+    canUseArtwork,
+  }), [state, transitionAnim, crossfadeProgress, triggerTransition, canUseArtwork]);
+
   return (
-    <ColorAwarenessContext.Provider
-      value={{
-        state,
-        themeColors: state.theme,
-        edgeColors: state.edgeColors,
-        mood: state.mood,
-        transitionAnim,
-        crossfadeProgress,
-        triggerTransition,
-        canUseArtwork,
-      }}>
+    <ColorAwarenessContext.Provider value={contextValue}>
       {children}
     </ColorAwarenessContext.Provider>
   );
