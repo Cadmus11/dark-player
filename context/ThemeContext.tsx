@@ -1,4 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useColorScheme } from 'nativewind';
 import { getThemeSettings, saveThemeSettings } from '../services/StorageService';
 import type { ThemeSettings, ColorThemePreset, LayoutSize } from '../types';
@@ -83,45 +92,66 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     await saveThemeSettings(updated);
   }, []);
 
-  const setColorTheme = useCallback(async (key: string) => {
-    const preset = THEME_PRESETS.find((t) => t.key === key);
-    if (!preset) return;
-    setCurrentThemeKey(preset.key);
-    const dark = isColorDark(preset.background);
-    setColorScheme(dark ? 'dark' : 'light');
-    const updated = { ...themeRef.current, colorThemeKey: preset.key };
-    setTheme(updated);
-    themeRef.current = updated;
-    await saveThemeSettings(updated);
-  }, [setColorScheme]);
+  const setColorTheme = useCallback(
+    async (key: string) => {
+      const preset = THEME_PRESETS.find((t) => t.key === key);
+      if (!preset) return;
+      setCurrentThemeKey(preset.key);
+      const dark = isColorDark(preset.background);
+      setColorScheme(dark ? 'dark' : 'light');
+      const updated = { ...themeRef.current, colorThemeKey: preset.key };
+      setTheme(updated);
+      themeRef.current = updated;
+      await saveThemeSettings(updated);
+    },
+    [setColorScheme]
+  );
 
-  const setBackgroundImage = useCallback(async (uri: string) => {
-    await updateTheme({ backgroundImageUri: uri });
-  }, [updateTheme]);
+  const setBackgroundImage = useCallback(
+    async (uri: string) => {
+      await updateTheme({ backgroundImageUri: uri });
+    },
+    [updateTheme]
+  );
 
   const clearBackgroundImage = useCallback(async () => {
     await updateTheme({ backgroundImageUri: undefined, backgroundBlur: 0 });
   }, [updateTheme]);
 
-  const setBackgroundBlur = useCallback(async (blur: number) => {
-    await updateTheme({ backgroundBlur: Math.max(0, Math.min(100, blur)) });
-  }, [updateTheme]);
+  const setBackgroundBlur = useCallback(
+    async (blur: number) => {
+      await updateTheme({ backgroundBlur: Math.max(0, Math.min(100, blur)) });
+    },
+    [updateTheme]
+  );
 
-  const setBackgroundFit = useCallback(async (fit: 'cover' | 'contain') => {
-    await updateTheme({ backgroundImageFit: fit });
-  }, [updateTheme]);
+  const setBackgroundFit = useCallback(
+    async (fit: 'cover' | 'contain') => {
+      await updateTheme({ backgroundImageFit: fit });
+    },
+    [updateTheme]
+  );
 
-  const setBackgroundMode = useCallback(async (mode: 'fill' | 'wallpaper' | 'spotlight') => {
-    await updateTheme({ backgroundMode: mode });
-  }, [updateTheme]);
+  const setBackgroundMode = useCallback(
+    async (mode: 'fill' | 'wallpaper' | 'spotlight') => {
+      await updateTheme({ backgroundMode: mode });
+    },
+    [updateTheme]
+  );
 
-  const setBackgroundBrightness = useCallback(async (brightness: number) => {
-    await updateTheme({ backgroundBrightness: Math.max(0, Math.min(100, brightness)) });
-  }, [updateTheme]);
+  const setBackgroundBrightness = useCallback(
+    async (brightness: number) => {
+      await updateTheme({ backgroundBrightness: Math.max(0, Math.min(100, brightness)) });
+    },
+    [updateTheme]
+  );
 
-  const setSizeMode = useCallback(async (mode: LayoutSize) => {
-    await updateTheme({ sizeMode: mode });
-  }, [updateTheme]);
+  const setSizeMode = useCallback(
+    async (mode: LayoutSize) => {
+      await updateTheme({ sizeMode: mode });
+    },
+    [updateTheme]
+  );
 
   const preset = THEME_PRESETS.find((t) => t.key === currentThemeKey) || THEME_PRESETS[0];
   const dark = isColorDark(preset.background);
@@ -133,44 +163,62 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const backgroundColor = preset.background;
   const backgroundOverlayColor = hexToRgba(preset.accent, 0.7);
 
-  const getAccentWithOpacity = useCallback((alpha: number): string => {
-    return hexToRgba(preset.accent, alpha);
-  }, [preset.accent]);
-
-  const contextValue = useMemo(() => ({
-    theme,
-    updateTheme,
-    setColorTheme,
-    setBackgroundImage,
-    clearBackgroundImage,
-    setBackgroundBlur,
-    setBackgroundFit,
-    setBackgroundMode,
-    setBackgroundBrightness,
-    setSizeMode,
-    isDarkMode: dark,
-    textColor,
-    mutedColor,
-    cardBg,
-    borderColor,
-    primaryColor,
-    backgroundColor,
-    backgroundOverlayColor,
-    getAccentWithOpacity,
-    currentThemeKey,
-    themePresets: THEME_PRESETS,
-  }), [
-    theme, updateTheme, setColorTheme, setBackgroundImage, clearBackgroundImage,
-    setBackgroundBlur, setBackgroundFit, setBackgroundMode, setBackgroundBrightness,
-    setSizeMode, dark, textColor, mutedColor, cardBg, borderColor, primaryColor,
-    backgroundColor, backgroundOverlayColor, getAccentWithOpacity, currentThemeKey,
-  ]);
-
-  return (
-    <ThemeContext.Provider value={contextValue}>
-      {children}
-    </ThemeContext.Provider>
+  const getAccentWithOpacity = useCallback(
+    (alpha: number): string => {
+      return hexToRgba(preset.accent, alpha);
+    },
+    [preset.accent]
   );
+
+  const contextValue = useMemo(
+    () => ({
+      theme,
+      updateTheme,
+      setColorTheme,
+      setBackgroundImage,
+      clearBackgroundImage,
+      setBackgroundBlur,
+      setBackgroundFit,
+      setBackgroundMode,
+      setBackgroundBrightness,
+      setSizeMode,
+      isDarkMode: dark,
+      textColor,
+      mutedColor,
+      cardBg,
+      borderColor,
+      primaryColor,
+      backgroundColor,
+      backgroundOverlayColor,
+      getAccentWithOpacity,
+      currentThemeKey,
+      themePresets: THEME_PRESETS,
+    }),
+    [
+      theme,
+      updateTheme,
+      setColorTheme,
+      setBackgroundImage,
+      clearBackgroundImage,
+      setBackgroundBlur,
+      setBackgroundFit,
+      setBackgroundMode,
+      setBackgroundBrightness,
+      setSizeMode,
+      dark,
+      textColor,
+      mutedColor,
+      cardBg,
+      borderColor,
+      primaryColor,
+      backgroundColor,
+      backgroundOverlayColor,
+      getAccentWithOpacity,
+      currentThemeKey,
+    ]
+  );
+
+  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

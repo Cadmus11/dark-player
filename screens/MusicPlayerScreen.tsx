@@ -223,6 +223,7 @@ export function MusicPlayerScreen({ navigation, route }: Props) {
     const q = audioRef.current.length > 0 ? audioRef.current : [file];
     const idx = q.findIndex((f) => f.uri === file.uri);
     playFile(file, q, idx >= 0 ? idx : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file.uri]);
 
   const currentItem = queue[currentIndex] || file;

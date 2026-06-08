@@ -31,7 +31,9 @@ export function useAudioEngine<Selected>(
   useEffect(() => {
     const unsub = audioEngine.subscribe(() => {
       const next = selectorRef.current(getState());
-      setSelected((prev) => (typeof next === 'object' && next !== null && shallowEqual(prev, next) ? prev : next));
+      setSelected((prev) =>
+        typeof next === 'object' && next !== null && shallowEqual(prev, next) ? prev : next
+      );
     });
     return unsub;
   }, []);
@@ -91,39 +93,63 @@ export function useAudioPlayback() {
   );
   const stop = useCallback(() => audioEngine.stop(), []);
 
-  return useMemo(() => ({
-    currentFile,
-    isPlaying,
-    position,
-    duration,
-    progress: duration > 0 ? position / duration : 0,
-    queue,
-    currentIndex,
-    shuffle,
-    repeat,
-    playbackSpeed,
-    playFile,
-    seekTo,
-    playQueue,
-    playIndex,
-    pause,
-    resume,
-    togglePlay,
-    skipNext,
-    skipPrev,
-    setRate,
-    setRepeatMode,
-    cycleRepeat,
-    toggleShuffle,
-    setQueue: setQueueFn,
-    moveInQueue,
-    stop,
-  }), [
-    currentFile, isPlaying, position, duration, queue, currentIndex,
-    shuffle, repeat, playbackSpeed, playFile, seekTo, playQueue,
-    playIndex, pause, resume, togglePlay, skipNext, skipPrev, setRate,
-    setRepeatMode, cycleRepeat, toggleShuffle, setQueueFn, moveInQueue, stop,
-  ]);
+  return useMemo(
+    () => ({
+      currentFile,
+      isPlaying,
+      position,
+      duration,
+      progress: duration > 0 ? position / duration : 0,
+      queue,
+      currentIndex,
+      shuffle,
+      repeat,
+      playbackSpeed,
+      playFile,
+      seekTo,
+      playQueue,
+      playIndex,
+      pause,
+      resume,
+      togglePlay,
+      skipNext,
+      skipPrev,
+      setRate,
+      setRepeatMode,
+      cycleRepeat,
+      toggleShuffle,
+      setQueue: setQueueFn,
+      moveInQueue,
+      stop,
+    }),
+    [
+      currentFile,
+      isPlaying,
+      position,
+      duration,
+      queue,
+      currentIndex,
+      shuffle,
+      repeat,
+      playbackSpeed,
+      playFile,
+      seekTo,
+      playQueue,
+      playIndex,
+      pause,
+      resume,
+      togglePlay,
+      skipNext,
+      skipPrev,
+      setRate,
+      setRepeatMode,
+      cycleRepeat,
+      toggleShuffle,
+      setQueueFn,
+      moveInQueue,
+      stop,
+    ]
+  );
 }
 
 export { audioEngine };

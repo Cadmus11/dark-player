@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 
@@ -97,19 +105,18 @@ export function FontProvider({ children }: { children: ReactNode }) {
 
   const option = FONT_OPTIONS.find((o) => o.key === fontKey) || FONT_OPTIONS[0];
 
-  const contextValue = useMemo(() => ({
-    fontKey,
-    fontFamily: option.fontFamily,
-    setFont,
-    fontOptions: FONT_OPTIONS,
-    fontsLoaded,
-  }), [fontKey, option.fontFamily, setFont, fontsLoaded]);
-
-  return (
-    <FontContext.Provider value={contextValue}>
-      {children}
-    </FontContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      fontKey,
+      fontFamily: option.fontFamily,
+      setFont,
+      fontOptions: FONT_OPTIONS,
+      fontsLoaded,
+    }),
+    [fontKey, option.fontFamily, setFont, fontsLoaded]
   );
+
+  return <FontContext.Provider value={contextValue}>{children}</FontContext.Provider>;
 }
 
 export function useFont() {

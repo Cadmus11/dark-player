@@ -45,7 +45,7 @@ const TABS = [
 
 export function Navbar() {
   const navigation = useAppNavigation();
-  const { primaryColor, mutedColor, cardBg } = useTheme();
+  const { primaryColor, mutedColor } = useTheme();
   const { canUseArtwork, themeColors } = useColorAwareness();
 
   const tabState = useNavigationState((state) => {

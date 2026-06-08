@@ -11,6 +11,7 @@ import React, {
 import { Animated, Easing } from 'react-native';
 import { colorAwarenessEngine } from '../services/ColorAwarenessEngine';
 import { useAudioEngine } from '../hooks/useAudioEngine';
+import { useTheme } from './ThemeContext';
 import type { ArtworkColorState, ColorTheme, EdgeLightingColors, MoodType } from '../types';
 
 interface ColorAwarenessContextType {
@@ -30,11 +31,16 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ArtworkColorState>(() => colorAwarenessEngine.getState());
   const transitionAnim = useRef(new Animated.Value(0)).current;
   const currentFile = useAudioEngine((s) => s.currentFile);
+  const { backgroundColor } = useTheme();
 
-  const crossfadeProgress = useMemo(() => transitionAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  }), [transitionAnim]);
+  const crossfadeProgress = useMemo(
+    () =>
+      transitionAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 1],
+      }),
+    [transitionAnim]
+  );
 
   useEffect(() => {
     let prev = colorAwarenessEngine.getState();
@@ -56,8 +62,10 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
         album: currentFile.album,
         genre: undefined,
       });
+    } else {
+      colorAwarenessEngine.resetToBackground(backgroundColor);
     }
-  }, [currentFile?.uri, currentFile]);
+  }, [currentFile?.uri, currentFile, backgroundColor]);
 
   const triggerTransition = useCallback(() => {
     transitionAnim.setValue(0);
@@ -73,21 +81,22 @@ export function ColorAwarenessProvider({ children }: { children: ReactNode }) {
 
   const canUseArtwork = !!state.artworkUri;
 
-  const contextValue = useMemo(() => ({
-    state,
-    themeColors: state.theme,
-    edgeColors: state.edgeColors,
-    mood: state.mood,
-    transitionAnim,
-    crossfadeProgress,
-    triggerTransition,
-    canUseArtwork,
-  }), [state, transitionAnim, crossfadeProgress, triggerTransition, canUseArtwork]);
+  const contextValue = useMemo(
+    () => ({
+      state,
+      themeColors: state.theme,
+      edgeColors: state.edgeColors,
+      mood: state.mood,
+      transitionAnim,
+      crossfadeProgress,
+      triggerTransition,
+      canUseArtwork,
+    }),
+    [state, transitionAnim, crossfadeProgress, triggerTransition, canUseArtwork]
+  );
 
   return (
-    <ColorAwarenessContext.Provider value={contextValue}>
-      {children}
-    </ColorAwarenessContext.Provider>
+    <ColorAwarenessContext.Provider value={contextValue}>{children}</ColorAwarenessContext.Provider>
   );
 }
 

@@ -212,6 +212,33 @@ class ColorAwarenessEngineClass {
     this._extractInProgress = false;
   }
 
+  resetToBackground(bgHex: string): void {
+    this._extractInProgress = false;
+    const bg = parseHex(bgHex, '#1a1a2e');
+    const isDark = hexToLuminance(bg) < 0.3;
+    const adjusted = isDark ? adjustBrightness(bg, 30) : adjustBrightness(bg, -30);
+    const theme: ColorTheme = {
+      primary: adjusted,
+      secondary: isDark ? adjustBrightness(bg, 50) : adjustBrightness(bg, -50),
+      accent: adjusted,
+      background: bg,
+      surface: isDark ? adjustBrightness(bg, 15) : adjustBrightness(bg, -20),
+      textPrimary: isDark ? '#ffffff' : '#000000',
+      textSecondary: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+    };
+    this._state = {
+      artworkUri: null,
+      rawPalette: null,
+      theme,
+      isDark,
+      blurStrength: computeBlurStrength(hexToLuminance(bg)),
+      overlayOpacity: computeOverlayOpacity(hexToLuminance(bg)),
+      edgeColors: computeEdgeColors(theme, isDark),
+      mood: 'neutral',
+    };
+    this._notify();
+  }
+
   getTransitionDuration(): number {
     const mood = this._state.mood;
     if (mood === 'calm' || mood === 'melancholic') return 800;

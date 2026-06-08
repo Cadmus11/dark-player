@@ -171,6 +171,7 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
       ScreenOrientation.unlockAsync().catch(() => {});
       if (autoHideRef.current) clearTimeout(autoHideRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file.uri]);
 
   useEffect(() => {
@@ -539,8 +540,13 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
 
                 {/* Overlay controls */}
                 <Animated.View
-                  style={[StyleSheet.absoluteFill, { opacity: controlsOpacity }]}
-                  pointerEvents={showControls && !isAudioOnly ? 'auto' : 'none'}>
+                  style={[
+                    StyleSheet.absoluteFill,
+                    {
+                      opacity: controlsOpacity,
+                      pointerEvents: showControls && !isAudioOnly ? 'auto' : 'none',
+                    },
+                  ]}>
                   <Pressable style={styles.overlayTouchable} onPress={handleVideoTap}>
                     <View className="flex-row items-center justify-center gap-8">
                       <TouchableOpacity
@@ -655,9 +661,22 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 style={styles.quickActionsBlur}>
                 <View className="flex-row items-center justify-around py-3">
                   {[
-                    { Icon: ThumbsUp, label: 'Like', onPress: () => toggleFavorite(), active: isFavorite },
+                    {
+                      Icon: ThumbsUp,
+                      label: 'Like',
+                      onPress: () => toggleFavorite(),
+                      active: isFavorite,
+                    },
                     { Icon: Queue, label: 'Playlist', onPress: () => setShowAddToPlaylist(true) },
-                    { Icon: DownloadSimple, label: 'Download', onPress: () => Alert.alert('Download', 'Video download will be available in a future update.') },
+                    {
+                      Icon: DownloadSimple,
+                      label: 'Download',
+                      onPress: () =>
+                        Alert.alert(
+                          'Download',
+                          'Video download will be available in a future update.'
+                        ),
+                    },
                     { Icon: ShareNetwork, label: 'Share', onPress: handleShare },
                   ].map(({ Icon, label, onPress, active }, idx) => (
                     <TouchableOpacity
@@ -667,8 +686,14 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                       activeOpacity={0.6}
                       accessibilityLabel={label}
                       accessibilityRole="button">
-                      <Icon size={22} color={active ? accentColor : mutedColor} weight={active ? 'fill' : 'regular'} />
-                      <Text className="text-xs font-medium" style={{ color: active ? accentColor : mutedColor }}>
+                      <Icon
+                        size={22}
+                        color={active ? accentColor : mutedColor}
+                        weight={active ? 'fill' : 'regular'}
+                      />
+                      <Text
+                        className="text-xs font-medium"
+                        style={{ color: active ? accentColor : mutedColor }}>
                         {label}
                       </Text>
                     </TouchableOpacity>
@@ -1054,7 +1079,9 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 createPlaylist(newPlaylistName.trim());
                 setNewPlaylistName('');
               }}>
-              <Text className="text-sm font-bold" style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>
+              <Text
+                className="text-sm font-bold"
+                style={{ color: isDarkMode ? '#ffffff' : '#000000' }}>
                 Create
               </Text>
             </TouchableOpacity>
@@ -1071,8 +1098,12 @@ export function VideoPlayerScreen({ navigation, route }: Props) {
                 }}>
                 <Queue size={20} color={mutedColor} />
                 <View className="ml-3 flex-1">
-                  <Text className="text-[15px]" style={{ color: textColor }}>{pl.name}</Text>
-                  <Text className="text-xs" style={{ color: mutedColor }}>{pl.totalTracks} tracks</Text>
+                  <Text className="text-[15px]" style={{ color: textColor }}>
+                    {pl.name}
+                  </Text>
+                  <Text className="text-xs" style={{ color: mutedColor }}>
+                    {pl.totalTracks} tracks
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))}

@@ -9,17 +9,25 @@ interface SplashScreenProps {
 export function SplashScreen({ onFinish }: SplashScreenProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const finishedRef = useRef(false);
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
     const done = () => {
       if (finishedRef.current) return;
       finishedRef.current = true;
-      onFinish?.();
+      onFinishRef.current?.();
     };
+
+    if (useMediaStore.getState().hydrationStage >= 2) {
+      done();
+      return;
+    }
 
     const unsub = useMediaStore.subscribe((s) => {
       if (s.hydrationStage >= 2) {
         unsub();
+        clearTimeout(forceTimeout);
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
@@ -36,20 +44,14 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
     const forceTimeout = setTimeout(() => {
       unsub();
-      if (!finishedRef.current) {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(done);
-      }
+      done();
     }, 4000);
 
     return () => {
       unsub();
       clearTimeout(forceTimeout);
     };
-  }, [fadeAnim, onFinish]);
+  }, [fadeAnim]);
 
   return (
     <Animated.View className="flex-1" style={{ opacity: fadeAnim }}>

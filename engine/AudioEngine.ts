@@ -169,6 +169,19 @@ export class AudioEngine {
       });
       this._isLoaded = true;
       NowPlayingNotification.setupChannel();
+      NowPlayingNotification.registerPlaybackActions((action) => {
+        switch (action) {
+          case 'previous':
+            this.skipToPrevious();
+            break;
+          case 'next':
+            this.skipToNext();
+            break;
+          case 'playpause':
+            this.togglePlay();
+            break;
+        }
+      });
     } catch (e) {
       console.warn('[AudioEngine]', e);
     }

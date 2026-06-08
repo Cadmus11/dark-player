@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { FileItem } from '../types';
-import { AudioEngine } from '../engine/AudioEngine';
 
 export const NOTIFICATION_CATEGORY = 'media-playback';
 
@@ -11,6 +10,7 @@ const NOTIFICATION_ID = 'lumora-now-playing';
 let currentFile: FileItem | null = null;
 let isPlaying = false;
 let responseSubscription: Notifications.EventSubscription | null = null;
+let _onPlaybackAction: ((action: 'previous' | 'next' | 'playpause') => void) | null = null;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -58,6 +58,10 @@ export const NowPlayingNotification = {
     }
   },
 
+  registerPlaybackActions(handler: (action: 'previous' | 'next' | 'playpause') => void) {
+    _onPlaybackAction = handler;
+  },
+
   handleResponse(response: Notifications.NotificationResponse) {
     const { actionIdentifier } = response;
 
@@ -65,17 +69,15 @@ export const NowPlayingNotification = {
       return;
     }
 
-    const engine = AudioEngine.getInstance();
-
     switch (actionIdentifier) {
       case 'previous':
-        engine.skipToPrevious();
+        _onPlaybackAction?.('previous');
         break;
       case 'next':
-        engine.skipToNext();
+        _onPlaybackAction?.('next');
         break;
       case 'playpause':
-        engine.togglePlay();
+        _onPlaybackAction?.('playpause');
         break;
     }
   },

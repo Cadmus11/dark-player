@@ -18,7 +18,7 @@ export function EdgeLighting({ children, opacity = 0.08, enabled = true }: EdgeL
 
   return (
     <View className="flex-1">
-      <View className="absolute inset-0" pointerEvents="none">
+      <View className="absolute inset-0" style={{ pointerEvents: 'none' }}>
         <LinearGradient
           style={StyleSheet.absoluteFill}
           start={{ x: 0, y: 0.5 }}
